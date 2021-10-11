@@ -88,11 +88,6 @@ namespace CML {
 
             void updatePointUncertainty(PPoint point, float scaledVarTH, float absVarTH, float minRelBS) {
 
-                if (!haveAF && !haveLF) {
-                    point->setVisibility(false);
-                    return;
-                }
-
                 scalar_t idepth = point->getReferenceInverseDepth();
 
                 scalar_t depth = 1.0 / idepth;
@@ -101,22 +96,6 @@ namespace CML {
                 scalar_t var = (1.0 / (idepth_hessian+0.01));
                 point->setUncertainty(var);
 
-                if(var * depth4 > scaledVarTH) {
-                    point->setVisibility(false);
-                    return;
-                }
-
-                if(var > absVarTH) {
-                    point->setVisibility(false);
-                    return;
-                }
-
-                if(maxRelBaseline < minRelBS) {
-                    point->setVisibility(false);
-                    return;
-                }
-
-                point->setVisibility(true);
                 return;
             }
 
