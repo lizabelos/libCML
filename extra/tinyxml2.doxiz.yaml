@@ -1,0 +1,27 @@
+sidebar:
+  Basic Tutorial:
+  - Getting Started: readme.md
+  Important API:
+  - File API:
+    - LoadFile: api/tinyxml2/XMLDocument/LoadFile
+    - SaveFile: api/tinyxml2/XMLDocument/SaveFile
+    Print API:
+    - Print: api/tinyxml2/XMLDocument/Print
+    - OpenElement: api/tinyxml2/XMLPrinter/OpenElement
+    - PushAttribute: api/tinyxml2/XMLPrinter/PushAttribute
+    Parse XML API:
+    - FirstChildElement: api/tinyxml2/XMLNode/FirstChildElement
+    - GetText: api/tinyxml2/XMLElement/GetText
+autodocSettings:
+  Public API:
+    baseUrl: api
+    language: cpp
+    INPUT: tinyxml2.cpp tinyxml2.h
+    EXCLUDE: test tests examples
+    EXCLUDE_PATTERNS: '*/tests/* */test/*'
+    EXAMPLE_PATH: examples
+    includeApi: []
+    excludeApi: []
+    documentSingleUnderscore: true
+    documentStatic: true
+    documentProtected: true

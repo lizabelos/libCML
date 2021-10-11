@@ -1,0 +1,68 @@
+sidebar:
+  Basic Tutorial:
+  - Getting Started: README.md
+  - License: LICENSE
+  Wiki:
+  - Overview: wiki/ENG-01-Overview.md
+  - Installation: wiki/ENG-02-Installation.md
+  - Quick Start: wiki/ENG-03-Quick-Start.md
+  - Controller Introduction:
+    - index: wiki/ENG-04-0-Controller-Introduction.md
+    - Controller HttpSimpleController: wiki/ENG-04-1-Controller-HttpSimpleController.md
+    - Controller HttpController: wiki/ENG-04-2-Controller-HttpController.md
+    - Controller WebSocketController: wiki/ENG-04-3-Controller-WebSocketController.md
+  - Filter: wiki/ENG-05-Filter.md
+  - View: wiki/ENG-06-View.md
+  - Session: wiki/ENG-07-Session.md
+  - Database General:
+    - index: wiki/ENG-08-0-Database-General.md
+    - DataBase DbClient: wiki/ENG-08-1-DataBase-DbClient.md
+    - DataBase Transaction: wiki/ENG-08-2-DataBase-Transaction.md
+    - DataBase ORM: wiki/ENG-08-3-DataBase-ORM.md
+    - DataBase FastDbClient: wiki/ENG-08-4-DataBase-FastDbClient.md
+  - Plugins: wiki/ENG-09-Plugins.md
+  - Configuration File: wiki/ENG-10-Configuration-File.md
+  - Drogon Ctl Command: wiki/ENG-11-drogon_ctl-Command.md
+  - AOP Aspect Oriented Programming: wiki/ENG-12-AOP-Aspect-Oriented-Programming.md
+  - Benchmarks: wiki/ENG-13-Benchmarks.md
+  - Coz profiling: wiki/ENG-14-Coz.md
+  Important API:
+  - HttpController: api/drogon/HttpController
+  - HttpAppFramework: api/drogon/HttpAppFramework
+  - HttpRequest: api/drogon/HttpRequest
+  - HttpResponse: api/drogon/HttpResponse
+  - HttpClient: api/drogon/HttpClient
+  - CacheMap: api/drogon/CacheMap
+  - Cookie: api/drogon/Cookie
+  - HttpFilter: api/drogon/HttpFilter
+  - HttpSimpleController: api/drogon/HttpSimpleController
+  - WebSocketClient: api/drogon/WebSocketClient
+
+autodocSettings:
+  Public API:
+    baseUrl: api
+    language: cpp
+    INPUT: lib/inc/drogon orm_lib/inc/drogon/orm
+    EXCLUDE: test tests examples
+    EXCLUDE_PATTERNS: '*/tests/* */test/*'
+    EXAMPLE_PATH: ''
+    includeApi: []
+    excludeApi:
+    - drogon/internal
+    - trantor
+    - Json
+    documentSingleUnderscore: true
+    documentStatic: true
+    documentProtected: true
+    extractNonDocComments: false
+    extract_namespace_comments: false
+    ENABLE_PREPROCESSING: 'YES'
+    MACRO_EXPANSION: 'NO'
+    EXPAND_ONLY_PREDEF: 'NO'
+    PREDEFINED: ''
+    SEARCH_INCLUDES: 'YES'
+    INCLUDE_PATH: ''
+    INCLUDE_FILE_PATTERNS: ''
+
+additionalSettings:
+  wiki_repo_path: wiki

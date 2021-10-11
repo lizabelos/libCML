@@ -1,0 +1,54 @@
+sidebar:
+  Basic Tutorial:
+  - Getting Started: README.md
+  Crash Course:
+  - Configuration: wiki/Crash-Course:-configuration.md
+  - Cooperative Scheduler: wiki/Crash-Course:-cooperative-scheduler.md
+  - Core Functionalities: wiki/Crash-Course:-core-functionalities.md
+  - Entity Component System: wiki/Crash-Course:-entity-component-system.md
+  - Events, Signals And Everything In Between: wiki/Crash-Course:-events,-signals-and-everything-in-between.md
+  - Resource Management: wiki/Crash-Course:-resource-management.md
+  - Runtime Reflection System: wiki/Crash-Course:-runtime-reflection-system.md
+  - Service Locator: wiki/Crash-Course:-service-locator.md
+  Additional Info:
+  - EnTT In Action: wiki/EnTT-in-Action.md
+  - Frequently Asked Questions: wiki/Frequently-Asked-Questions.md
+  - Push EnTT Across Boundaries: wiki/Push-EnTT-across-boundaries.md
+  - Similar Projects: wiki/Similar-projects.md
+  - Github Issues: https://github.com/skypjack/entt/issues
+  - License: LICENSE
+  - Contributing: CONTRIBUTING.md
+  Important API:
+  - basic_registry: api/entt/basic_registry
+  - basic_view: api/entt/basic_view
+  - basic_group: api/entt/basic_group
+  - delegate: api/entt/delegate
+  - sigh: api/entt/sigh
+  - sink: api/entt/sink
+  - type_info: api/entt/type_info
+
+autodocSettings:
+  Public API:
+    baseUrl: api
+    language: cpp
+    INPUT: src
+    EXCLUDE: test tests examples
+    EXCLUDE_PATTERNS: '*/tests/* */test/*'
+    includeApi: []
+    excludeApi: []
+    documentSingleUnderscore: true
+    documentStatic: true
+    documentProtected: true
+    extractNonDocComments: false
+    ENABLE_PREPROCESSING: 'YES'
+    MACRO_EXPANSION: 'YES'
+    EXPAND_ONLY_PREDEF: 'NO'
+    PREDEFINED: ''
+    SEARCH_INCLUDES: 'YES'
+    INCLUDE_PATH: ''
+    INCLUDE_FILE_PATTERNS: ''
+    ALIASES: ''
+    EXAMPLE_PATH: ''
+
+additionalSettings:
+  wiki_repo_path: wiki

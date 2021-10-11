@@ -1,0 +1,40 @@
+{
+    "sidebar": {
+        "Basic Tutorial": [
+            {"pageName": "Getting Started","filePath": "readme.md"}
+        ],
+        "Important API": [
+            {
+                "File API": [
+                    {"apiPath": "api/tinyxml2/XMLDocument/LoadFile"},
+                    {"apiPath": "api/tinyxml2/XMLDocument/SaveFile"}
+                ],
+                "Print API": [
+                    {"apiPath": "api/tinyxml2/XMLPrinter/Print"},
+                    {"apiPath": "api/tinyxml2/XMLPrinter/OpenElement"},
+                    {"apiPath": "api/tinyxml2/XMLPrinter/PushAttribute"}
+                ],
+                "Parse XML API": [
+                    {"apiPath": "api/tinyxml2/XMLNode/FirstChildElement"},
+                    {"apiPath": "api/tinyxml2/XMLElement/GetText"}
+                ]
+            }
+        ]
+    },
+    "autodocSettings": [
+        {
+            "sectionName": "Public API",
+            "baseUrl": "api",
+            "language": "cpp",
+            "INPUT": "",
+            "EXCLUDE": "test tests examples",
+            "EXCLUDE_PATTERNS": "*/tests/* */test/*",
+            "EXAMPLE_PATH": "examples",
+            "includeApi": [],
+            "excludeApi": [],
+            "documentSingleUnderscore": true,
+            "documentStatic": true,
+            "documentProtected": true
+        }
+    ]
+}

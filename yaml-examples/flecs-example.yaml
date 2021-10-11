@@ -1,0 +1,52 @@
+sidebar:
+  Documentation:
+  - Readme: README.md
+  - FAQ: docs/FAQ.md
+  - Quickstart: docs/Quickstart.md
+  - Manual: docs/Manual.md
+  - MigrationGuide: docs/MigrationGuide.md
+
+autodocSettings:
+  C API:
+    language: c
+    INPUT: include/flecs.h
+    EXCLUDE_PATTERNS: '*/tests/* */test/* include/flecs/util/*'
+    EXAMPLE_PATH: examples
+    includeApi: []
+    excludeApi: []
+    documentSingleUnderscore: true
+    documentStatic: false
+    documentProtected: true
+    extractNonDocComments: false
+    sort_by_type: false
+    sort_alphabetically: false
+    ENABLE_PREPROCESSING: 'YES'
+    MACRO_EXPANSION: 'NO'
+    EXPAND_ONLY_PREDEF: 'NO'
+    PREDEFINED: ''
+    SEARCH_INCLUDES: 'YES'
+    INCLUDE_PATH: ''
+    INCLUDE_FILE_PATTERNS: ''
+  C++ API:
+    baseUrl: api-cpp
+    language: cpp
+    INPUT: include/flecs/flecs.hpp
+    EXCLUDE: 'test templates'
+    EXCLUDE_PATTERNS: '*/tests/* */test/*'
+    EXAMPLE_PATH: examples
+    includeApi: []
+    excludeApi: []
+    documentSingleUnderscore: true
+    documentStatic: true
+    documentProtected: true
+    extractNonDocComments: false
+    ENABLE_PREPROCESSING: 'YES'
+    MACRO_EXPANSION: 'NO'
+    EXPAND_ONLY_PREDEF: 'NO'
+    PREDEFINED: ''
+    SEARCH_INCLUDES: 'YES'
+    INCLUDE_PATH: ''
+    INCLUDE_FILE_PATTERNS: ''
+
+additionalSettings:
+  markdown_fenced_code_tabs: true
