@@ -1,0 +1,3 @@
+ModSLAM "../cmake-build-release/modslam"
+TUM "/home/thomas/Datasets/TUM"
+KITTI "/home/thomas/Datasets/KITTI"

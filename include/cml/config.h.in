@@ -1,0 +1,24 @@
+#ifndef CML_CONFIG_H
+#define CML_CONFIG_H
+
+#cmakedefine01 CML_HAVE_AVFORMAT
+#cmakedefine01 CML_HAVE_AVCODEC
+#cmakedefine01 CML_HAVE_AVUTIL
+#cmakedefine01 CML_HAVE_SWSCALE
+#cmakedefine01 CML_HAVE_LIBZIP
+#cmakedefine01 CML_HAVE_CERES
+#cmakedefine01 CML_HAVE_G2O
+#cmakedefine01 CML_USE_OPENMP
+#cmakedefine01 CML_ENABLE_GUI
+
+namespace CML {
+
+    const int FRAME_GROUP_MAXSIZE = 32;
+    const int MAPOBJECT_GROUP_MAXSIZE = 32;
+
+}
+
+#include "cml/types.h"
+#include "cml/utils/Logger.h"
+
+#endif

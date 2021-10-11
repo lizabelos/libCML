@@ -1,0 +1,262 @@
+cmake_minimum_required(VERSION 3.9)
+project(CML
+        VERSION 1.0
+        LANGUAGES C CXX
+        )
+
+#######################################################################################################################
+# # # # # # CMAKE SETTINGS  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
+
+cmake_policy(SET CMP0072 NEW)
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # THIRDPARTY  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+add_subdirectory(thirdparty/g2o)
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # OPTIONS # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+option(ENABLE_GUI "Enable GUI" ON)
+option(USE_OPENMP "Use OpenMP" OFF)
+option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # FIND ALL THE PACKAGES # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+find_package(Threads REQUIRED)
+
+if (USE_OPENMP)
+    find_package(OpenMP REQUIRED)
+endif()
+
+# set(BLA_VENDOR Intel10_64lp)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+
+if (NOT EIGEN3_FOUND)
+    find_package(Eigen3 REQUIRED)
+endif()
+
+find_package(Sophus REQUIRED)
+
+if (NOT FLANN_FOUND)
+    find_package(FLANN REQUIRED)
+    set(FLANN_LIBRARIES FLANN::FLANN)
+endif()
+
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(AVFORMAT REQUIRED "libavformat")
+pkg_check_modules(AVCODEC REQUIRED "libavcodec")
+pkg_check_modules(AVUTIL REQUIRED "libavutil")
+pkg_check_modules(SWSCALE REQUIRED "libswscale")
+
+# pkg_check_modules(TURBOJPEG REQUIRED "libturbojpeg")
+
+
+if (NOT CHOLMOD_FOUND)
+    find_package(CHOLMOD QUIET)
+endif()
+
+#if (NOT g2o_FOUND)
+#    find_package(g2o REQUIRED)
+#endif()
+
+if (NOT SUITESPARSE_FOUND)
+    find_package(SuiteSparse QUIET)
+endif()
+
+if (NOT CERES_FOUND)
+    find_package(Ceres QUIET)
+endif()
+
+if (CERES_FOUND)
+    find_package(GLOG QUIET)
+endif()
+
+if (NOT LIBZIP_FOUND)
+    find_package(LibZip QUIET)
+endif()
+
+# if (NOT TORCH_FOUND)
+#     find_package(Torch QUIET)
+# endif()
+
+if (NOT OPENCV_FOUND)
+    find_package(OpenCV 4.0 QUIET)
+endif()
+
+if (NOT YAML_CPP_FOUND)
+    find_package(Yaml-cpp REQUIRED)
+endif()
+
+if (ENABLE_GUI)
+    set(OpenGL_GL_PREFERENCE GLVND)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets OpenGL PrintSupport Multimedia)
+    file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+endif()
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # SET C++ PREFERENCES # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_EXTENSIONS ON)
+set(OpenGL_GL_PREFERENCE LEGACY)
+
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-fPIC COMPILER_SUPPORTS_FPIC)
+
+if (COMPILER_SUPPORTS_FPIC)
+    set(COMPILER_FLAG_FPIC "-fPIC")
+else()
+    set(COMPILER_FLAG_FPIC "")
+endif()
+
+set(CMAKE_EXE_LINKER_FLAGS "-export-dynamic")
+
+include_directories(${CMAKE_BINARY_DIR})
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # CML CONFIGURATION  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+# Configuration file
+set(CML_HAVE_AVFORMAT ${AVFORMAT_FOUND})
+set(CML_HAVE_AVCODEC ${AVCODEC_FOUND})
+set(CML_HAVE_AVUTIL ${AVUTIL_FOUND})
+set(CML_HAVE_SWSCALE ${SWSCALE_FOUND})
+set(CML_HAVE_LIBZIP ${LIBZIP_FOUND})
+set(CML_HAVE_CERES ${CERES_FOUND})
+set(CML_HAVE_G2O ${G2O_FOUND})
+set(CML_USE_OPENMP ${USE_OPENMP})
+set(CML_ENABLE_GUI ${ENABLE_GUI})
+configure_file(include/cml/config.h.in include/cml/config.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # CML SOURCE CODE  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+include_directories(CML include)
+include_directories(CML src)
+
+add_subdirectory(src)
+
+target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
+
+target_compile_options(CML PUBLIC -march=native)
+target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=64)
+target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)
+#target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)
+
+# target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
+target_compile_options(CML PUBLIC -flto)
+target_link_options(CML PUBLIC -flto -fopenmp)
+# target_link_options(CML PUBLIC -mllvm)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(CML PUBLIC -DDEBUG=1)
+    target_compile_options(CML PUBLIC -g)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(CML PUBLIC -O3 -fno-math-errno)
+elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    target_compile_options(CML PUBLIC -Og -fno-math-errno -g)
+    target_compile_definitions(CML PUBLIC -DNDEBUG=1)
+endif()
+
+if (USE_OPENMP)
+    target_compile_options(CML PUBLIC ${OpenMP_CXX_FLAGS})
+    target_link_options(CML PUBLIC ${OpenMP_CXX_FLAGS})
+endif()
+
+if (ENABLE_ASSERT)
+    target_compile_definitions(CML PUBLIC ENABLE_ASSERTTHROW_ON_RELEASE=1)
+endif()
+
+file(COPY resources DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+
+
+
+#######################################################################################################################
+# # # # # # CML DOCUMENTATION  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
+
+# Only do these if this is the main project, and not if it is included through add_subdirectory
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+
+    # Find Doxygen
+    find_package(Doxygen)
+    if(Doxygen_FOUND)
+        message("Doxygen build started")
+        # note the option ALL which allows to build the docs together with the application
+        add_custom_target(doc_doxygen ALL COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMENT "Generating API documentation with Doxygen" VERBATIM )
+    else()
+        message(STATUS "Doxygen not found, not building docs")
+    endif()
+
+endif()
+
+#######################################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#######################################################################################################################
