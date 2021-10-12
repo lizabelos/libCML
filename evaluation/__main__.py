@@ -58,7 +58,7 @@ def main():
                 print("RPE of " + datasets[i].name() + ": " + str(rpe))
 
                 table.set("ate of " + name, datasets[i].name(), ate)
-                table.set("rpe of " + name, datasets[i].name(), ate)
+                table.set("rpe of " + name, datasets[i].name(), rpe)
             except:
                 print("Unable to evaluate " + datasets[i].name())
 
