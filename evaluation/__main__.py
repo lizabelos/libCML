@@ -1,3 +1,4 @@
+import os
 import sys
 import csv
 
@@ -35,7 +36,9 @@ def main():
             print("Unknown dataset type : " + line[0])
 
     datasets_names = [x.name() for x in datasets]
-    table = FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names, "result.csv")
+
+    os.makedirs("result", exist_ok=True)
+    table = FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names, "result/table.csv")
 
     print("Found " + str(len(datasets)) + " videos")
 
@@ -50,17 +53,18 @@ def main():
 
             context.run(datasets[i])
 
-            try:
-                evaluation = evaluator.fromslam(context)
-                ate = evaluation.ape_rmse()
-                rpe = evaluation.rpe_rmse()
-                print("ATE of " + datasets[i].name() + ": " + str(ate))
-                print("RPE of " + datasets[i].name() + ": " + str(rpe))
+            # try:
+            evaluation = evaluator.fromslam(context)
+            ate = evaluation.ape_rmse()
+            rpe = evaluation.rpe_rmse()
+            evaluation.plot(datasets[i].name(), "result/" + datasets[i].name() + "_" + name + ".pdf")
+            print("ATE of " + datasets[i].name() + ": " + str(ate))
+            print("RPE of " + datasets[i].name() + ": " + str(rpe))
 
-                table.set("ate of " + name, datasets[i].name(), ate)
-                table.set("rpe of " + name, datasets[i].name(), rpe)
-            except:
-                print("Unable to evaluate " + datasets[i].name())
+            table.set("ate of " + name, datasets[i].name(), ate)
+            table.set("rpe of " + name, datasets[i].name(), rpe)
+            #except:
+            #    print("Unable to evaluate " + datasets[i].name())
 
 
 if __name__ == "__main__":

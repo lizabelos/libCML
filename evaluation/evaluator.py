@@ -8,6 +8,7 @@ from evo.core.metrics import PoseRelation
 from evo.tools import file_interface
 from evo.core.trajectory import PoseTrajectory3D
 from evo.tools.file_interface import csv_read_matrix
+from evo.tools.settings import SETTINGS
 
 
 class Evaluator:
@@ -33,6 +34,78 @@ class Evaluator:
         rpe_metric = metrics.RPE(PoseRelation.full_transformation)
         rpe_metric.process_data(data)
         return rpe_metric.get_statistic(StatisticsType.rmse)
+
+    def plot(self, dataset_name, filename):
+        import numpy as np
+        from evo.tools import plot
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+
+        plot_collection = plot.PlotCollection("evo_traj - trajectory plot")
+        fig_xyz, axarr_xyz = plt.subplots(3, sharex="col", figsize=tuple(SETTINGS.plot_figsize))
+        fig_rpy, axarr_rpy = plt.subplots(3, sharex="col", figsize=tuple(SETTINGS.plot_figsize))
+        fig_traj = plt.figure(figsize=tuple(SETTINGS.plot_figsize))
+
+        plot_mode = plot.PlotMode[SETTINGS.plot_mode_default]
+        ax_traj = plot.prepare_axis(fig_traj, plot_mode)
+
+        # for x-axis alignment starting from 0 with --plot_relative_time
+        start_time = None
+        trajectories = [self.t]
+
+        short_traj_name = dataset_name
+        plot.traj(ax_traj, plot_mode, self.g,
+                      style=SETTINGS.plot_reference_linestyle,
+                      color=SETTINGS.plot_reference_color,
+                      label=short_traj_name,
+                      alpha=SETTINGS.plot_reference_alpha)
+        plot.draw_coordinate_axes(ax_traj, self.g, plot_mode,
+                                      SETTINGS.plot_axis_marker_scale)
+        plot.traj_xyz(
+                axarr_xyz, self.g, style=SETTINGS.plot_reference_linestyle,
+                color=SETTINGS.plot_reference_color, label=short_traj_name,
+                alpha=SETTINGS.plot_reference_alpha,
+                start_timestamp=start_time)
+        plot.traj_rpy(
+                axarr_rpy, self.g, style=SETTINGS.plot_reference_linestyle,
+                color=SETTINGS.plot_reference_color, label=short_traj_name,
+                alpha=SETTINGS.plot_reference_alpha,
+                start_timestamp=start_time)
+
+        cmap_colors = None
+        if SETTINGS.plot_multi_cmap.lower() != "none":
+            cmap = getattr(cm, SETTINGS.plot_multi_cmap)
+            cmap_colors = iter(cmap(np.linspace(0, 1, len(trajectories))))
+
+        for traj in trajectories:
+            if cmap_colors is None:
+                color = next(ax_traj._get_lines.prop_cycler)['color']
+            else:
+                color = next(cmap_colors)
+
+            short_traj_name = "estimate"
+            plot.traj(ax_traj, plot_mode, traj,
+                      SETTINGS.plot_trajectory_linestyle, color,
+                      short_traj_name, alpha=SETTINGS.plot_trajectory_alpha)
+            plot.draw_coordinate_axes(ax_traj, traj, plot_mode,
+                                      SETTINGS.plot_axis_marker_scale)
+            plot.traj_xyz(axarr_xyz, traj, SETTINGS.plot_trajectory_linestyle,
+                          color, short_traj_name,
+                          alpha=SETTINGS.plot_trajectory_alpha,
+                          start_timestamp=start_time)
+            plot.traj_rpy(axarr_rpy, traj, SETTINGS.plot_trajectory_linestyle,
+                          color, short_traj_name,
+                          alpha=SETTINGS.plot_trajectory_alpha,
+                          start_timestamp=start_time)
+            if not SETTINGS.plot_usetex:
+                fig_rpy.text(0., 0.005, "euler_angle_sequence: {}".format(
+                    SETTINGS.euler_angle_sequence), fontsize=6)
+
+        plot_collection.add_figure("trajectories", fig_traj)
+        plot_collection.add_figure("xyz_view", fig_xyz)
+        plot_collection.add_figure("rpy_view", fig_rpy)
+
+        plot_collection.export(filename, confirm_overwrite=False)
 
 
 def read_tum_trajectory_file2(file_path, groundtruth_path):
