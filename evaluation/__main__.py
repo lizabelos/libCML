@@ -7,7 +7,7 @@ from evo.tools.file_interface import csv_read_matrix
 import dataset
 import evaluator
 import slam
-from table import FileTable
+from table import FileTable, MedianTableProxy
 
 
 def main():
@@ -38,7 +38,7 @@ def main():
     datasets_names = [x.name() for x in datasets]
 
     os.makedirs("result", exist_ok=True)
-    table = FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names, "result/table.csv")
+    table = MedianTableProxy(FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names, "result/table.csv"))
 
     print("Found " + str(len(datasets)) + " videos")
 

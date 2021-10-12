@@ -1,3 +1,6 @@
+import statistics
+
+
 class Table:
 
     def __init__(self, xabs, yabs):
@@ -37,6 +40,8 @@ class Table:
 class FileTable:
 
     def __init__(self, xabs, yabs, filename):
+        self.xabs = xabs
+        self.yabs = yabs
         self.table = Table(xabs, yabs)
         self.filenamme = filename
 
@@ -60,8 +65,25 @@ class FileTable:
             f.write(";")
             for value in line:
                 if value is not None:
-                    f.write(str(value).replace(".",","))
+                    f.write(str(value).replace(".", ","))
                 f.write(";")
             f.write("\n")
             y = y + 1
         f.close()
+
+
+class MedianTableProxy:
+
+    def __init__(self, table):
+        self.table = table
+        self.mediantable = Table(table.xabs, table.yabs)
+
+    def set(self, x, y, value):
+        if self.mediantable.get(x, y) is None:
+            self.mediantable.set(x, y, [value])
+        else:
+            self.mediantable.get(x, y).append(value)
+        self.table.set(x, y, statistics.median(self.mediantable.get(x, y)))
+
+    def get(self, x, y):
+        return self.table.get(x, y)

@@ -3,10 +3,7 @@ import tempfile
 import os
 import time
 from utils import system
-import concurrent
-import concurrent.futures
 
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 class SLAM(ABC):
 
@@ -17,9 +14,6 @@ class SLAM(ABC):
         if self.tmp is None:
             self.tmp = tempfile.mkdtemp()
         return self.tmp
-
-    #def run(self, d, onfinish=None):
-    #    executor.submit(self.runthread, d, onfinish)
 
     def run(self, d, onfinish=None):
         self.d = d
