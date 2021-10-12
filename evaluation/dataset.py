@@ -28,14 +28,15 @@ def tumGroundtruthPath(tumFolder, i):
 
 def kittiGroundtruthPath(kittiFolder, i):
     i = str(int(i)).zfill(2)
-    return kittiFolder + "/%s.txt" % i
+    return kittiFolder + "/poses/%s.txt" % i
 
 
 def KITTI(folder, r=range(0, 11)):
     result = []
+    folder = os.path.join(folder, "dataset")
     for i in r:
         name = "kitti_" + str(i).zfill(2)
-        dataset_folder = os.path.join(folder, str(i).zfill(2))
+        dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
         result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i))]
     return result
 
