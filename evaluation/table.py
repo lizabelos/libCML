@@ -87,3 +87,20 @@ class MedianTableProxy:
 
     def get(self, x, y):
         return self.table.get(x, y)
+
+
+class SumTableProxy:
+
+    def __init__(self, table):
+        self.table = table
+        self.mediantable = Table(table.xabs, table.yabs)
+
+    def set(self, x, y, value):
+        if self.mediantable.get(x, y) is None:
+            self.mediantable.set(x, y, value)
+        else:
+            self.mediantable.set(value + self.mediantable.get(x, y))
+        self.table.set(x, y, statistics.median(self.mediantable.get(x, y)))
+
+    def get(self, x, y):
+        return self.table.get(x, y)

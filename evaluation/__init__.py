@@ -1,3 +1,3 @@
 from evaluator import Evaluator
 from dataset import Dataset
-from table import FileTable, MedianTableProxy
+from table import FileTable, MedianTableProxy, SumTableProxy

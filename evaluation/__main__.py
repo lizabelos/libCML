@@ -2,12 +2,16 @@ import os
 import sys
 import csv
 
+import concurrent
+import concurrent.futures
+import multiprocessing
+
 from evo.tools.file_interface import csv_read_matrix
 
 import dataset
 import evaluator
 import slam
-from table import FileTable, MedianTableProxy
+from table import FileTable, MedianTableProxy, SumTableProxy
 
 
 def parse_config():
@@ -90,38 +94,38 @@ def ablationstudy():
     num_execution = 10
 
     table_ate = MedianTableProxy(FileTable(valuesToTry, datasets_names, "result/ate.csv"))
-    table_error = FileTable(valuesToTry, datasets_names, "result/error.csv")
+    table_error = SumTableProxy(FileTable(valuesToTry, datasets_names, "result/error.csv"))
 
-    for v in valuesToTry:
-        for i in range(0, len(datasets)):
-            num_error = 0
+    def process(i, v, n):
+        print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
+
+        s = slams[0]
+        name = slams_names[0]
+        context = s[0](s[1])
+
+        context.setconfig("trackcondUncertaintyWeight", trackcondUncertaintyWeight)
+        context.setconfig("bacondScoreWeight", bacondScoreWeight)
+        context.setconfig(param_name, v)
+
+        context.run(datasets[i])
+
+        try:
+            evaluation = evaluator.fromslam(context)
+            ate = evaluation.ape_rmse()
+            table_ate.set(v, datasets[i].name(), ate)
+        except:
+            table_error.set(v, datasets[i].name(), 1)
+
+    # Each SLAM instance will use 2 thread
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
+    futures = []
+
+    for i in range(0, len(datasets)):
+        for v in valuesToTry:
             for n in range(0, num_execution):
+                futures = futures + [executor.submit(process, i, v, n)]
 
-                print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
-
-                s = slams[0]
-                name = slams_names[0]
-                context = s[0](s[1])
-
-                context.setconfig("trackcondUncertaintyWeight", trackcondUncertaintyWeight)
-                context.setconfig("bacondScoreWeight", bacondScoreWeight)
-                context.setconfig(param_name, v)
-
-                # print("Evaluating on " + datasets[i].name())
-                # print("Result folder : " + context.outputdir())
-
-                context.run(datasets[i])
-
-                try:
-                    evaluation = evaluator.fromslam(context)
-                    ate = evaluation.ape_rmse()
-
-                    table_ate.set(v, datasets[i].name(), ate)
-
-                except:
-                    num_error = num_error + 1
-
-            table_error.set(v, datasets[i].name(), num_error)
+    concurrent.futures.wait(futures)
 
 
 if __name__ == "__main__":
