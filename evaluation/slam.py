@@ -3,6 +3,7 @@ import tempfile
 import os
 import time
 from utils import system
+import yaml
 
 
 class SLAM(ABC):
@@ -53,11 +54,22 @@ class ModSLAM(SLAM):
         if modslampath is not None:
             self.modslampath = modslampath
 
+        f = open("modslam.yaml", "r")
+        self.config = yaml.load(f, Loader=yaml.FullLoader)
+        f.close()
+
     def start(self, d):
         output = self.outputdir()
 
+        config_file, config_filename = tempfile.mkstemp()
+        config_file = os.fdopen(config_file, 'w')
+        yaml.dump(self.config, config_file)
+        config_file.close()
+
+        print("Configuration file : " + config_filename)
+
         executable = self.modslampath
-        args = "-c " + self.modslampath + ".yaml -t -d " + d.folder() + " -r " + os.path.join(output, "result")
+        args = "-c " + config_filename + " -t -d " + d.folder() + " -r " + os.path.join(output, "result")
         command = executable + " " + args
 
         system(command, self.outputlog(), "w")
@@ -73,3 +85,6 @@ class ModSLAM(SLAM):
 
     def elapsed(self):
         return self.e
+
+    def setconfig(self, name, value):
+        self.config[name] = value
