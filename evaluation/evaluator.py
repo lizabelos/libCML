@@ -175,4 +175,6 @@ def loadtrajectories(context):
 
 def fromslam(context):
     reference, estimate = loadtrajectories(context)
-    return Evaluator(reference, estimate)
+    evaluation = Evaluator(reference, estimate)
+    evaluation.align()
+    return evaluation
