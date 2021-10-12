@@ -66,7 +66,7 @@ class ModSLAM(SLAM):
         yaml.dump(self.config, config_file)
         config_file.close()
 
-        print("Configuration file : " + config_filename)
+        # print("Configuration file : " + config_filename)
 
         executable = self.modslampath
         args = "-c " + config_filename + " -t -d " + d.folder() + " -r " + os.path.join(output, "result")

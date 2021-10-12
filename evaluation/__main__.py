@@ -10,7 +10,7 @@ import slam
 from table import FileTable, MedianTableProxy
 
 
-def main():
+def parse_config():
     if len(sys.argv) <= 1:
         print("python3 evaluation [config_file]")
         exit(0)
@@ -37,8 +37,16 @@ def main():
 
     datasets_names = [x.name() for x in datasets]
 
+    return datasets, datasets_names, slams, slams_names
+
+
+def main():
+    datasets, datasets_names, slams, slams_names = parse_config()
+
     os.makedirs("result", exist_ok=True)
-    table = MedianTableProxy(FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names, "result/table.csv"))
+    table = MedianTableProxy(
+        FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names,
+                  "result/table.csv"))
 
     print("Found " + str(len(datasets)) + " videos")
 
@@ -70,5 +78,51 @@ def main():
                     print("Unable to evaluate " + datasets[i].name())
 
 
+def ablationstudy():
+    datasets, datasets_names, slams, slams_names = parse_config()
+
+    param_name = "numOrbCorner"
+    valuesToTry = [250, 500, 750, 1000, 1250, 1500]
+
+    trackcondUncertaintyWeight = 1.5  # Privilege ORB
+    bacondScoreWeight = 0.0125 / 10  # Privilege ORB
+
+    num_execution = 10
+
+    table_ate = MedianTableProxy(FileTable(valuesToTry, datasets_names, "result/ate.csv"))
+    table_error = FileTable(valuesToTry, datasets_names, "result/error.csv")
+
+    for v in valuesToTry:
+        for i in range(0, len(datasets)):
+            num_error = 0
+            for n in range(0, num_execution):
+
+                print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
+
+                s = slams[0]
+                name = slams_names[0]
+                context = s[0](s[1])
+
+                context.setconfig("trackcondUncertaintyWeight", trackcondUncertaintyWeight)
+                context.setconfig("bacondScoreWeight", bacondScoreWeight)
+                context.setconfig(param_name, v)
+
+                # print("Evaluating on " + datasets[i].name())
+                # print("Result folder : " + context.outputdir())
+
+                context.run(datasets[i])
+
+                try:
+                    evaluation = evaluator.fromslam(context)
+                    ate = evaluation.ape_rmse()
+
+                    table_ate.set(v, datasets[i].name(), ate)
+
+                except:
+                    num_error = num_error + 1
+
+            table_error.set(v, datasets[i].name(), num_error)
+
+
 if __name__ == "__main__":
-    main()
+    ablationstudy()
