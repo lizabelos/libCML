@@ -42,29 +42,32 @@ def main():
 
     print("Found " + str(len(datasets)) + " videos")
 
-    for i in range(0, len(datasets)):
-        for j in range(0, len(slams)):
-            s = slams[j]
-            name = slams_names[j]
-            context = s[0](s[1])
+    num_execution = 10
 
-            print("Evaluating on " + datasets[i].name())
-            print("Result folder : " + context.outputdir())
+    for n in range(0, num_execution):
+        for i in range(0, len(datasets)):
+            for j in range(0, len(slams)):
+                s = slams[j]
+                name = slams_names[j]
+                context = s[0](s[1])
 
-            context.run(datasets[i])
+                print("Evaluating on " + datasets[i].name())
+                print("Result folder : " + context.outputdir())
 
-            # try:
-            evaluation = evaluator.fromslam(context)
-            ate = evaluation.ape_rmse()
-            rpe = evaluation.rpe_rmse()
-            evaluation.plot(datasets[i].name(), "result/" + datasets[i].name() + "_" + name + ".pdf")
-            print("ATE of " + datasets[i].name() + ": " + str(ate))
-            print("RPE of " + datasets[i].name() + ": " + str(rpe))
+                context.run(datasets[i])
 
-            table.set("ate of " + name, datasets[i].name(), ate)
-            table.set("rpe of " + name, datasets[i].name(), rpe)
-            #except:
-            #    print("Unable to evaluate " + datasets[i].name())
+                try:
+                    evaluation = evaluator.fromslam(context)
+                    ate = evaluation.ape_rmse()
+                    rpe = evaluation.rpe_rmse()
+                    evaluation.plot(datasets[i].name(), "result/" + datasets[i].name() + "_" + name + ".pdf")
+                    print("ATE of " + datasets[i].name() + ": " + str(ate))
+                    print("RPE of " + datasets[i].name() + ": " + str(rpe))
+
+                    table.set("ate of " + name, datasets[i].name(), ate)
+                    table.set("rpe of " + name, datasets[i].name(), rpe)
+                except:
+                    print("Unable to evaluate " + datasets[i].name())
 
 
 if __name__ == "__main__":
