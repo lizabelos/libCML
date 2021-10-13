@@ -84,6 +84,8 @@ def main():
 
 def ablationstudy():
     datasets, datasets_names, slams, slams_names = parse_config()
+    for d in datasets:
+        d.setuseramdisk(True)
 
     param_name = "numOrbCorner"
     valuesToTry = [250, 500, 750, 1000, 1250, 1500]
@@ -99,26 +101,28 @@ def ablationstudy():
     def process(i, v, n):
         datasets[i].use()
 
-        print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
-
-        s = slams[0]
-        name = slams_names[0]
-        context = s[0](s[1])
-
-        context.setconfig("bacondForce", bacondForce)
-        context.setconfig("trackcondForce", trackcondForce)
-        context.setconfig(param_name, v)
-
-        context.run(datasets[i])
-
         try:
-            evaluation = evaluator.fromslam(context)
-            ate = evaluation.ape_rmse()
-            table_ate.set(v, datasets[i].name(), ate)
-        except:
-            table_error.set(v, datasets[i].name(), 1)
+            print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
 
-        datasets[i].unuse()
+            s = slams[0]
+            name = slams_names[0]
+            context = s[0](s[1])
+
+            context.setconfig("bacondForce", bacondForce)
+            context.setconfig("trackcondForce", trackcondForce)
+            context.setconfig(param_name, v)
+
+            context.run(datasets[i])
+
+            try:
+                evaluation = evaluator.fromslam(context)
+                ate = evaluation.ape_rmse()
+                table_ate.set(v, datasets[i].name(), ate)
+            except:
+                table_error.set(v, datasets[i].name(), 1)
+
+        finally:
+            datasets[i].unuse()
 
     # Each SLAM instance will use 2 thread
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)

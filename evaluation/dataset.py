@@ -31,6 +31,8 @@ class Dataset:
         return self.g
 
     def use(self):
+        if not self.useramdisk:
+            return
         self.lock.acquire()
         if self.nuse == 0:
             self.copytoramdisk()
@@ -38,6 +40,8 @@ class Dataset:
         self.lock.release()
 
     def unuse(self):
+        if not self.useramdisk:
+            return
         self.lock.acquire()
         self.nuse = self.nuse - 1
         if self.nuse == 0:
@@ -46,6 +50,10 @@ class Dataset:
 
     def copytoramdisk(self):
         print("Copying " + self.f + " to " + self.ramdiskfolder)
+        try:
+            shutil.rmtree(self.ramdiskfolder)
+        except:
+            pass
         shutil.copytree(self.f, self.ramdiskfolder)
 
     def removefromramdisk(self):
