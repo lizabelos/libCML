@@ -52,21 +52,22 @@ class FileTable:
     def get(self, x, y):
         return self.table.get(x, y)
 
-    def save(self):
+    def save(self, separator = "\t"):
         f = open(self.filenamme, "w")
-        f.write(";")
+        f.write(separator)
         for value in self.table.xabs:
             f.write(str(value))
-            f.write(";")
+            f.write(separator)
         f.write("\n")
         y = 0
         for line in self.table.data:
             f.write(str(self.table.yabs[y]))
-            f.write(";")
+            f.write(separator)
             for value in line:
                 if value is not None:
-                    f.write(str(value).replace(".", ","))
-                f.write(";")
+                    f.write(str(value))
+                    # f.write(str(value).replace(".", ","))
+                f.write(separator)
             f.write("\n")
             y = y + 1
         f.close()
