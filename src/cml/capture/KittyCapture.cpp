@@ -88,7 +88,7 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
 
         posesFile.close();
     } else {
-        throw std::runtime_error("Missing " + path + "/../../poses/" + id + ".txt" + " for Kitty Dataset");
+        //throw std::runtime_error("Missing " + path + "/../../poses/" + id + ".txt" + " for Kitty Dataset");
     }
 
     mImages[0].resize(mTimes.size());
