@@ -100,7 +100,7 @@ class SumTableProxy:
             self.mediantable.set(x, y, value)
         else:
             self.mediantable.set(value + self.mediantable.get(x, y))
-        self.table.set(x, y, statistics.median(self.mediantable.get(x, y)))
+        self.table.set(x, y, self.mediantable.get(x, y))
 
     def get(self, x, y):
         return self.table.get(x, y)
