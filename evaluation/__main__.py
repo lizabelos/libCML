@@ -88,8 +88,8 @@ def ablationstudy():
     param_name = "numOrbCorner"
     valuesToTry = [250, 500, 750, 1000, 1250, 1500]
 
-    trackcondUncertaintyWeight = 1.5  # Privilege ORB
-    bacondScoreWeight = 0.0125 / 10  # Privilege ORB
+    bacondForce = 1  # Privilege ORB
+    trackcondForce = 1  # Privilege ORB
 
     num_execution = 10
 
@@ -97,14 +97,16 @@ def ablationstudy():
     table_error = SumTableProxy(FileTable(valuesToTry, datasets_names, "result/error.csv"))
 
     def process(i, v, n):
+        datasets[i].use()
+
         print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
 
         s = slams[0]
         name = slams_names[0]
         context = s[0](s[1])
 
-        context.setconfig("trackcondUncertaintyWeight", trackcondUncertaintyWeight)
-        context.setconfig("bacondScoreWeight", bacondScoreWeight)
+        context.setconfig("bacondForce", bacondForce)
+        context.setconfig("trackcondForce", trackcondForce)
         context.setconfig(param_name, v)
 
         context.run(datasets[i])
@@ -115,6 +117,8 @@ def ablationstudy():
             table_ate.set(v, datasets[i].name(), ate)
         except:
             table_error.set(v, datasets[i].name(), 1)
+
+        datasets[i].unuse()
 
     # Each SLAM instance will use 2 thread
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)

@@ -1,4 +1,7 @@
 import os
+import threading
+import shutil
+
 
 class Dataset:
 
@@ -7,6 +10,10 @@ class Dataset:
         self.t = t
         self.f = f
         self.g = g
+        self.useramdisk = False
+        self.lock = threading.Lock()
+        self.nuse = 0
+        self.ramdiskfolder = "/ramdisk/" + n
 
     def name(self):
         return self.n
@@ -15,10 +22,38 @@ class Dataset:
         return self.t
 
     def folder(self):
-        return self.f
+        if self.useramdisk:
+            return self.ramdiskfolder
+        else:
+            return self.f
 
     def groundtruth(self):
         return self.g
+
+    def use(self):
+        self.lock.acquire()
+        if self.nuse == 0:
+            self.copytoramdisk()
+        self.nuse = self.nuse + 1
+        self.lock.release()
+
+    def unuse(self):
+        self.lock.acquire()
+        self.nuse = self.nuse - 1
+        if self.nuse == 0:
+            self.removefromramdisk()
+        self.lock.release()
+
+    def copytoramdisk(self):
+        print("Copying " + self.f + " to " + self.ramdiskfolder)
+        shutil.copytree(self.f, self.ramdiskfolder)
+
+    def removefromramdisk(self):
+        print("Removing " + self.ramdiskfolder)
+        shutil.rmtree(self.ramdiskfolder)
+
+    def setuseramdisk(self, v):
+        self.useramdisk = v
 
 
 def tumGroundtruthPath(tumFolder, i):
