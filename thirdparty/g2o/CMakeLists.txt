@@ -387,12 +387,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${g2o_C_FLAGS}")
 # Find Eigen3. If it defines the target, this is used. If not,
 # fall back to the using the module form.
 # See https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html for details
-find_package(Eigen3 REQUIRED)
-if (TARGET Eigen3::Eigen)
-  set(G2O_EIGEN3_EIGEN_TARGET Eigen3::Eigen)
-else()
+#find_package(Eigen3 REQUIRED)
+#if (TARGET Eigen3::Eigen)
+  set(G2O_EIGEN3_EIGEN_TARGET ${EIGEN3_LIBRARY})
+#else()
   include_directories(${EIGEN3_INCLUDE_DIR})
-endif ()
+#endif ()
 
 # Set up the top-level include directories
 include_directories(${g2o_SOURCE_DIR} ${PROJECT_BINARY_DIR})
