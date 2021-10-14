@@ -78,7 +78,7 @@ add_library(CML SHARED
         fast/nonmax.c
 )
 
-target_link_libraries(CML Threads::Threads Eigen3::Eigen ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} yaml-cpp)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} yaml-cpp)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR} ${YAML_CPP_INCLUDE_DIR})
 
 if (USE_OPENMP)

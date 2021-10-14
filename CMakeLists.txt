@@ -75,7 +75,12 @@ else()
     set(EIGEN3_LIBRARY Eigen3::Eigen)
 endif()
 
-find_package(Sophus REQUIRED)
+option(USE_INTERNAL_SOPUHS "Use Internal Eigen" ON)
+if (USE_INTERNAL_EIGEN)
+    set(SOPHUS_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/Sophus")
+else()
+    find_package(Sophus REQUIRED)
+endif()
 
 if (NOT FLANN_FOUND)
     find_package(FLANN REQUIRED)
