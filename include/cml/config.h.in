@@ -8,6 +8,7 @@
 #cmakedefine01 CML_HAVE_LIBZIP
 #cmakedefine01 CML_HAVE_CERES
 #cmakedefine01 CML_HAVE_G2O
+#cmakedefine01 CML_HAVE_YAML_CPP
 #cmakedefine01 CML_USE_OPENMP
 #cmakedefine01 CML_ENABLE_GUI
 

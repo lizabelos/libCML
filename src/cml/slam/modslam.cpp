@@ -196,11 +196,13 @@ int main(int argc, char *argv[])
     program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(false);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
 #endif
+#if CML_HAVE_YAML_CPP
     program.add_argument("-c", "--config").nargs(1).help("Configuration file for the slam").action([&configuration, &slam, &executionPath](const std::string &value){
         logger.info("Parsing : " + value);
         configuration = YAML::LoadFile(value);
         slam->setConfiguration(configuration);
     });
+#endif
     program.add_argument("-r", "--result").nargs(1).help("Result path").action([&resultPath](const std::string &value){
         resultPath = value;
     });

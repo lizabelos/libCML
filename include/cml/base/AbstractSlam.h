@@ -20,7 +20,9 @@
 #include <dlfcn.h>
 #endif
 
+#if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
+#endif
 #include <argparse/argparse.hpp>
 
 namespace CML {
@@ -70,6 +72,7 @@ namespace CML {
             return OK;
         }
 
+#if CML_HAVE_YAML_CPP
         void setConfiguration(const YAML::Node &node) {
             mConfiguration = node;
             for (auto p : mConfiguration) {
@@ -88,6 +91,7 @@ namespace CML {
         const YAML::Node &getConfiguration() {
             return mConfiguration;
         }
+#endif
 
         void setArgument(const argparse::ArgumentParser &args) {
             mArguments = args;
@@ -98,6 +102,7 @@ namespace CML {
         }
 
         inline void onNewParameter(std::string name, Parameter &parameter) {
+#if CML_HAVE_YAML_CPP
             if (!getConfiguration()[name].IsDefined()) {
                 return;
             }
@@ -121,8 +126,8 @@ namespace CML {
             } catch (...) {
                 throw std::runtime_error("Invalid parameter value : " + name + "=" + getConfiguration()[name].as<std::string>());
             }
+#endif
         }
-
     protected:
         virtual void onReset() = 0;
 
@@ -133,7 +138,9 @@ namespace CML {
         void addFrame(PFrame frame);
 
     private:
+#if CML_HAVE_YAML_CPP
         YAML::Node mConfiguration;
+#endif
         argparse::ArgumentParser mArguments;
 
         Map mMap;

@@ -78,11 +78,16 @@ add_library(CML SHARED
         fast/nonmax.c
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} yaml-cpp)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR} ${YAML_CPP_INCLUDE_DIR})
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES})
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR})
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)
+endif()
+
+if (YAML_CPP_FOUND)
+    target_link_libraries(CML yaml-cpp)
+    target_include_directories(CML PUBLIC ${YAML_CPP_INCLUDE_DIR})
 endif()
 
 if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
