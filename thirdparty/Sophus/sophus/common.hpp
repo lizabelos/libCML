@@ -14,54 +14,10 @@
 
 #undef SOPHUS_COMPILE_TIME_FMT
 
-#ifdef SOPHUS_USE_BASIC_LOGGING
-
 #define SOPHUS_FMT_CSTR(description, ...) description
 #define SOPHUS_FMT_STR(description, ...) std::string(description)
 #define SOPHUS_FMT_PRINT(description, ...) std::printf("%s\n", description)
 
-#else  // !SOPHUS_USE_BASIC_LOGGING
-
-#ifdef __linux__
-#define SOPHUS_COMPILE_TIME_FMT
-#endif
-
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#ifdef TARGET_OS_MAC
-#define SOPHUS_COMPILE_TIME_FMT
-#endif
-#endif
-
-#undef FMT_STRING_ALIAS
-#ifdef SOPHUS_COMPILE_TIME_FMT
-// enable compile time FMT feature
-#define FMT_STRING_ALIAS 1
-#endif
-
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-
-#ifdef SOPHUS_COMPILE_TIME_FMT
-// compile-time format check on x
-#define SOPHUS_FMT_STRING(x) FMT_STRING(x)
-#else  // ! SOPHUS_COMPILE_TIME_FMT
-// identity, hence no compile-time check on x
-#define SOPHUS_FMT_STRING(x) x
-#endif  // ! SOPHUS_COMPILE_TIME_FMT
-
-#define SOPHUS_FMT_CSTR(description, ...) \
-  fmt::format(SOPHUS_FMT_STRING(description), ##__VA_ARGS__).c_str()
-
-#define SOPHUS_FMT_STR(description, ...) \
-  fmt::format(SOPHUS_FMT_STRING(description), ##__VA_ARGS__)
-
-#define SOPHUS_FMT_PRINT(description, ...)                   \
-  fmt::print(SOPHUS_FMT_STRING(description), ##__VA_ARGS__); \
-  fmt::print("\n")
-
-#endif  // !SOPHUS_USE_BASIC_LOGGING
 
 // following boost's assert.hpp
 #undef SOPHUS_ENSURE
