@@ -114,18 +114,6 @@ public:
     	}
     }
 
-    void saveIndex(FILE* stream)
-    {
-    	serialization::SaveArchive sa(stream);
-    	sa & *this;
-    }
-
-    void loadIndex(FILE* stream)
-    {
-    	serialization::LoadArchive la(stream);
-    	la & *this;
-    }
-
     void findNeighbors(ResultSet<DistanceType>& resultSet, const ElementType* vec, const SearchParams& /*searchParams*/) const
     {
     	if (removed_) {

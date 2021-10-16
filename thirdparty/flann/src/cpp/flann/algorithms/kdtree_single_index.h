@@ -184,21 +184,6 @@ public:
         }
     }
 
-
-    void saveIndex(FILE* stream)
-    {
-        serialization::SaveArchive sa(stream);
-        sa & *this;
-    }
-
-
-    void loadIndex(FILE* stream)
-    {
-        freeIndex();
-        serialization::LoadArchive la(stream);
-        la & *this;
-    }
-
     /**
      * Computes the inde memory usage
      * Returns: memory used by the index

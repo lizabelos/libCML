@@ -257,19 +257,6 @@ public:
     	}
     }
 
-    void saveIndex(FILE* stream)
-    {
-    	serialization::SaveArchive sa(stream);
-    	sa & *this;
-    }
-
-    void loadIndex(FILE* stream)
-    {
-    	freeIndex();
-    	serialization::LoadArchive la(stream);
-    	la & *this;
-    }
-
     /**
      * Find set of nearest neighbors to vec. Their indices are stored inside
      * the result object.
