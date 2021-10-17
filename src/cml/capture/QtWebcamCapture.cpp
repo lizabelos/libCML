@@ -8,60 +8,20 @@
 #include "cml/map/InternalCalibration.h"
 #include <unistd.h>
 
-QtWebcamCapture::QtWebcamCapture(size_t poolSize, QObject *parent) : QAbstractVideoSurface(parent)
+QtWebcamCapture::QtWebcamCapture(size_t poolSize, QObject *parent) : QVideoSink(parent)
 {
-    mCamera = new QCamera(QCamera::BackFace);
+    mMediaCaptureSession = new QMediaCaptureSession();
+    mCamera = new QCamera(QCameraDevice::BackFace);
 
-    QCameraViewfinderSettings viewfinderSettings;
-    viewfinderSettings.setResolution(640, 480);
-    viewfinderSettings.setMaximumFrameRate(30);
-    mCamera->setViewfinderSettings(viewfinderSettings);
+    mMediaCaptureSession->setCamera(mCamera);
+    mMediaCaptureSession->setVideoSink(this);
 
-    mCamera->setViewfinder(this);
-
-    mVignette = CML::Array2D<float>(640, 480, 1);
-    mCaptureImageGenerator = new CML::CaptureImageGenerator(640, 480);
-
+    mCamera->start();
 }
 
-QList<QVideoFrame::PixelFormat> QtWebcamCapture::supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
-{
-    Q_UNUSED(handleType);
-    return QList<QVideoFrame::PixelFormat>() << QVideoFrame::Format_RGB32;
-}
-
-bool QtWebcamCapture::present(const QVideoFrame &frame)
-{
-    if (frame.isValid()) {
-        QVideoFrame cloneFrame(frame);
-        cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
-
-        CML::Image image(cloneFrame.width(), cloneFrame.height());
-        memcpy(image.data(), cloneFrame.bits(), cloneFrame.width() * cloneFrame.height() * 4);
-
-        if (mCalibration == nullptr) {
-            mCalibration = new CML::InternalCalibration();
-            // *mCalibration = CML::getAndroidCameraParameters(cloneFrame.width(), cloneFrame.height(), "unknown"); // TODO
-        }
-
-
-        // todo : get exposure
-        CML::Ptr<CML::CaptureImage, CML::Nullable> nextFrame = mCaptureImageGenerator->create()
-                .setImage(image.resize(640, 480))
-                .setTime( (float)frame.startTime() / 1e6f)
-                .setCalibration(mCalibration)
-                .setLut(&mLookupTable)
-                .setInverseVignette(mVignette)
-                .generate();
-
-        mFrameMutex.lock();
-        mFrame = nextFrame;
-        mFrameMutex.unlock();
-
-        cloneFrame.unmap();
-        return true;
-    }
-    return false;
+QtWebcamCapture::~QtWebcamCapture() {
+    delete mMediaCaptureSession;
+    delete mCamera;
 }
 
 bool QtWebcamCapture::isInit() {
@@ -69,13 +29,10 @@ bool QtWebcamCapture::isInit() {
 }
 
 void QtWebcamCapture::play() {
-    CML::logger.info("Starting camera...");
-    mCamera->start();
 }
 
 void QtWebcamCapture::stop() {
-    CML::logger.info("Stoping camera...");
-    mCamera->stop();
+
 }
 
 inline int QtWebcamCapture::remaining() {
@@ -83,38 +40,72 @@ inline int QtWebcamCapture::remaining() {
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> QtWebcamCapture::next() {
-    while (mFrame.isNull()) {
-        usleep(10);
+    QVideoFrame frame;
+    while (!frame.isValid() || frame.width() == 0 || frame.height() == 0) {
+        frame = videoFrame();
     }
-    mFrameMutex.lock();
-    CML::Ptr<CML::CaptureImage, CML::Nullable> frame = mFrame;
-    mFrame = nullptr;
-    mFrameMutex.unlock();
-    return frame;
+    if (frame.isValid()) {
+
+        frame.map(QVideoFrame::ReadOnly);
+
+        CML::logger.important("Webcam new frame : " + std::to_string(frame.width()) + "x" + std::to_string(frame.height()));
+
+        QImage qimage = frame.toImage();
+        qimage.convertTo(QImage::Format_RGBA8888);
+        qimage = qimage.scaledToWidth(640);
+
+        CML::Image image(qimage.width(), qimage.height());
+        memcpy(image.data(), qimage.bits(), qimage.width() * qimage.height() * 4);
+
+        if (mCalibration == nullptr) {
+            // Todo : this is the parameters for a google pixel 3a
+            CML::Vector2 originalSize(qimage.width(), qimage.height());
+            CML::PinholeUndistorter undistorter(CML::Vector2(1.0, 1.7778), CML::Vector2(0.5, 0.5));
+            undistorter = undistorter.scaleAndRecenter(originalSize, CML::Vector2(-0.5, -0.5));
+            mCalibration = new CML::InternalCalibration(undistorter, originalSize);
+
+
+            mVignette = CML::Array2D<float>(qimage.width(), qimage.height(), 1);
+            mCaptureImageGenerator = new CML::CaptureImageGenerator(qimage.width(), qimage.height());
+
+        }
+
+        CML::Ptr<CML::CaptureImage, CML::Nullable> nextFrame = mCaptureImageGenerator->create()
+                .setImage(image)
+                .setTime( (float)frame.startTime() / 1e6f)
+                .setCalibration(mCalibration)
+                .setLut(&mLookupTable)
+                .setInverseVignette(mVignette)
+                .setExposure(mCamera->exposureTime())
+                .generate();
+
+        return nextFrame;
+
+    } else {
+        return nullptr;
+    }
 }
 
 void QtWebcamCapture::setExposure(float exposure) {
-    mCamera->exposure()->setManualShutterSpeed(exposure);
+    mCamera->setManualExposureTime(exposure);
 }
 
 float QtWebcamCapture::getMinimumExposure() {
-    QList<qreal> supportedShutterSpeeds = mCamera->exposure()->supportedShutterSpeeds();
-    return *std::min_element(supportedShutterSpeeds.begin(), supportedShutterSpeeds.end());
+    return mCamera->minimumExposureTime();
 }
 
 float QtWebcamCapture::getMaximumExposure() {
-    QList<qreal> supportedShutterSpeeds = mCamera->exposure()->supportedShutterSpeeds();
-    return *std::max_element(supportedShutterSpeeds.begin(), supportedShutterSpeeds.end());
+    return mCamera->maximumExposureTime();
 }
 
 void QtWebcamCapture::setAutoExposure(bool value) {
     if (value) {
-        mCamera->exposure()->setExposureMode(QCameraExposure::ExposureAuto);
+        mCamera->setExposureMode(QCamera::ExposureMode::ExposureAuto);
     } else {
-        mCamera->exposure()->setExposureMode(QCameraExposure::ExposureManual);
+        mCamera->setExposureMode(QCamera::ExposureMode::ExposureManual);
     }
 }
 
 bool QtWebcamCapture::isAutoExposure() {
-    return mCamera->exposure()->exposureMode() == QCameraExposure::ExposureAuto;
+    return mCamera->exposureMode() == QCamera::ExposureMode::ExposureAuto;
 }

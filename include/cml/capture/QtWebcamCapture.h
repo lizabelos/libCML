@@ -9,22 +9,20 @@
 #include <QList>
 #include <mutex>
 #include <QtMultimedia/QCamera>
-#include <QtMultimedia/QAbstractVideoSurface>
-#include <QtMultimedia/QCameraExposure>
+#include <QtMultimedia/QVideoSink>
+#include <QtMultimedia/QMediaCaptureSession>
 
 #include "cml/config.h"
 #include "cml/capture/AbstractCapture.h"
 #include "cml/image/LookupTable.h"
 
-class QtWebcamCapture : public CML::AbstractRealtimeCapture, public QAbstractVideoSurface {
+class QtWebcamCapture : public CML::AbstractRealtimeCapture, public QVideoSink {
 
 
 public:
     explicit QtWebcamCapture(size_t poolSize = 10, QObject *parent = 0);
 
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
-
-    bool present(const QVideoFrame &frame);
+    ~QtWebcamCapture();
 
     bool isInit();
 
@@ -47,6 +45,7 @@ public:
     bool isAutoExposure() final;
 
 private:
+    QMediaCaptureSession *mMediaCaptureSession;
     QCamera *mCamera;
 
     std::mutex mFrameMutex;
