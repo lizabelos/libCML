@@ -123,7 +123,7 @@ endif()
 
 #if (g2o_FOUND)
     target_sources(CML PRIVATE cml/optimization/g2o/IndirectBundleAdjustment.cpp cml/optimization/g2o/IndirectCameraOptimizer.cpp)
-target_link_libraries(CML core solver_csparse csparse_extension types_sba types_slam3d)
+target_link_libraries(CML core types_sba types_slam3d)
 target_include_directories(CML PUBLIC ../thirdparty/g2o)
 target_include_directories(CML PUBLIC ${G2O_INCLUDE_DIRECTORY})
 #    target_link_libraries(CML g2o::stuff g2o::core g2o::g2o_hierarchical_library g2o::g2o_hierarchical_library g2o::types_slam2d g2o::types_slam2d_addons g2o::types_data g2o::types_sclam2d g2o::types_slam3d  g2o::types_slam3d_addons g2o::types_sba g2o::types_icp g2o::types_sim3 g2o::solver_pcg g2o::solver_dense g2o::solver_slam2d_linear g2o::solver_structure_only g2o::solver_csparse g2o::csparse_extension g2o::solver_cholmod g2o::solver_eigen)
@@ -193,7 +193,7 @@ if (ENABLE_GUI)
             cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
             cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
             )
-    target_link_libraries(CML Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia ${OPENGL_LIBRARIES})
+    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia ${OPENGL_LIBRARIES})
 
 
 endif()

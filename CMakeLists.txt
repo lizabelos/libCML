@@ -147,7 +147,9 @@ find_package(Yaml-cpp QUIET)
 
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGL OpenGLWidgets PrintSupport Multimedia)
+    # https://bugreports.qt.io/browse/QTCREATORBUG-25793
+    find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
@@ -225,7 +227,9 @@ add_subdirectory(src)
 
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 
+if (NOT ANDROID)
 target_compile_options(CML PUBLIC -march=native)
+endif()
 target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=64)
 target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)
 #target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)

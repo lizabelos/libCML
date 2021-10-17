@@ -2,7 +2,6 @@
 #define CML_SIMD_M128
 
 #include <cml/config.h>
-#include <xmmintrin.h>
 
 namespace CML {
 

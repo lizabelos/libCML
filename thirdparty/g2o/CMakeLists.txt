@@ -142,14 +142,14 @@ if (BUILD_LGPL_SHARED_LIBS)
 endif()
 
 # For building the CSparse based solvers. Note this depends on an LGPL library.
-option(G2O_USE_CSPARSE "Build g2o with CSParse support" OFF)
-find_package(CSparse)
-if (${G2O_USE_CSPARSE} AND ${CSPARSE_FOUND} AND ${G2O_USE_LGPL_LIBS})
-  message(STATUS "Enable support for CSparse")
-else()
-  message(STATUS "Disable support for CSparse")
+#option(G2O_USE_CSPARSE "Build g2o with CSParse support" OFF)
+#find_package(CSparse)
+#if (${G2O_USE_CSPARSE} AND ${CSPARSE_FOUND} AND ${G2O_USE_LGPL_LIBS})
+#  message(STATUS "Enable support for CSparse")
+#else()
+#  message(STATUS "Disable support for CSparse")
   set(G2O_USE_CSPARSE FALSE)
-endif()
+#endif()
 
 
 # Eigen library parallelise itself, though, presumably due to performance issues
@@ -366,8 +366,9 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG=1")
 endif()
 
+if (NOT ANDROID)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 # activate warnings !!!
 set(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
 set(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
