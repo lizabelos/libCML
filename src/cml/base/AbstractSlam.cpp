@@ -181,7 +181,18 @@ void CML::AbstractSlam::addFrame(PFrame currentFrame) {
         currentFrame->setExposureParameters(mMap.getLastFrame()->getExposure());
     }
     mMap.addFrame(currentFrame);
-    logger.setPrefix("frame " + std::to_string(currentFrame->getId()) + "; " + std::to_string(currentFrame->getId() * 100 / (currentFrame->getId() + getCapture()->remaining() + 1)) + "%; ram : " + std::to_string(memoryUsage()) + "mb; fps : " + std::to_string(getTimer().fps(currentFrame->getId())));
+
+    std::string strFrame = "frame " + std::to_string(currentFrame->getId());
+    std::string strPercentage;
+    if (getCapture()->remaining() > 0) {
+        strPercentage = std::to_string(currentFrame->getId() * 100 / (currentFrame->getId() + getCapture()->remaining() + 1)) + "%";
+    } else {
+        strPercentage = "realtime";
+    }
+    std::string strRam = "ram : " + std::to_string(memoryUsage()) + "mb";
+    std::string strFps = "fps : " + std::to_string(getTimer().fps(currentFrame->getId()));
+
+    logger.setPrefix(strFrame + "; " + strPercentage + "; " + strRam + "; " + strFps);
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> CML::AbstractSlam::getLastCaptureFrame() {
