@@ -96,14 +96,14 @@ namespace CML {
 
             bool solveSystem(int iteration, double lambda);
 
-            Vectord<Dynamic> solveLevenbergMarquardt(const Matrixd<Dynamic, Dynamic> &HL_top,
-                                                    const Matrixd<Dynamic, Dynamic> &HA_top,
-                                                    const Matrixd<Dynamic, Dynamic> &HM_top,
-                                                    const Matrixd<Dynamic, Dynamic> &H_sc,
-                                                    const Vectord<Dynamic> &bL_top,
-                                                    const Vectord<Dynamic> &bA_top,
-                                                    const Vectord<Dynamic> &bM_top,
-                                                    const Vectord<Dynamic> &b_sc,
+            Vector<Dynamic> solveLevenbergMarquardt(const Matrix<Dynamic, Dynamic> &HL_top,
+                                                    const Matrix<Dynamic, Dynamic> &HA_top,
+                                                    const Matrix<Dynamic, Dynamic> &HM_top,
+                                                    const Matrix<Dynamic, Dynamic> &H_sc,
+                                                    const Vector<Dynamic> &bL_top,
+                                                    const Vector<Dynamic> &bA_top,
+                                                    const Vector<Dynamic> &bM_top,
+                                                    const Vector<Dynamic> &b_sc,
                                                     double lambda,
                                                     bool mustOrthogonalize);
 
@@ -129,13 +129,13 @@ namespace CML {
 
             int addToHessianTop(PPoint point, Ptr<DSOPoint, NonNullable> p, DSOResidualMode mode);
 
-            void stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrixd<Dynamic, Dynamic> &H, Vectord<Dynamic> &b, bool usePrior);
+            void stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrix<Dynamic, Dynamic> &H, Vector<Dynamic> &b, bool usePrior);
 
             void addToHessianSC(PPoint point, Ptr<DSOPoint, NonNullable> p, bool shiftPriorToZero);
 
-            void stitchDoubleSC(Matrixd<Dynamic, Dynamic> &H, Vectord<Dynamic> &b);
+            void stitchDoubleSC(Matrix<Dynamic, Dynamic> &H, Vector<Dynamic> &b);
 
-            void orthogonalize(Vectord<Dynamic>& b);
+            void orthogonalize(Vector<Dynamic>& b);
 
             void setNewFrameEnergyTH();
 
@@ -172,11 +172,11 @@ namespace CML {
             List<Matrix<8,8>> mAdHost, mAdTarget;
 
             bool mDeltaValid = false;
-            List<Matrixf<1,8>> mAdHTdeltaF;
+            List<Matrix<1,8>> mAdHTdeltaF;
 
             //Vector<Dynamic> mLastX;
 
-            Vector4f mCDeltaF;
+            Vector4 mCDeltaF;
             Vector4 mCPrior;
             Vector4 mCalibStep, mCalibBackup, mCalibZero;
             bool mCalibHaveZero = false;
@@ -186,8 +186,8 @@ namespace CML {
             List<Vector<Dynamic>> mLastNullspaces_affA;
             List<Vector<Dynamic>> mLastNullspaces_affB;
 
-            Matrixd<Dynamic, Dynamic> mMarginalizedHessian;
-            Vectord<Dynamic> mMarginalizedB;
+            Matrix<Dynamic, Dynamic> mMarginalizedHessian;
+            Vector<Dynamic> mMarginalizedB;
 
             Set<PPoint, Hasher> mOutliers;
 

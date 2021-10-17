@@ -52,7 +52,16 @@ namespace CML {
             return get<bool>();
         }
 
-        void set(ParameterFloatingType v) {
+        void set(float v) {
+            assertThrow(mType == FLOATING, "The type of the parameter is not floating");
+            logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
+            get<ParameterFloatingType>() = v;
+            for (auto observer : mObservers) {
+                observer->onValueChange(*this);
+            }
+        }
+
+        void set(double v) {
             assertThrow(mType == FLOATING, "The type of the parameter is not floating");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<ParameterFloatingType>() = v;
@@ -104,7 +113,17 @@ namespace CML {
 
     protected:
  //   public:
-        Parameter(std::string name, ParameterFloatingType value) {
+        Parameter(std::string name, float value) {
+            //mObservers.set_empty_key((Observer*)1);
+            //mObservers.set_deleted_key((Observer*)2);
+            mName = name;
+            mType = FLOATING;
+            mData = (void*)new ParameterFloatingType[1];
+            ((ParameterFloatingType*)mData)[0] = value;
+            mObserversMutex = new Mutex;
+        }
+
+        Parameter(std::string name, double value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
             mName = name;

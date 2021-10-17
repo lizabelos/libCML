@@ -2,8 +2,8 @@
 #include "cml/optimization/dso/DSOTracer.h"
 
 CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent) : AbstractFunction(parent), DSOContext(parent->getMap()) {
-    mMarginalizedHessian = Matrixd<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
-    mMarginalizedB = Vectord<Dynamic>(CPARS + 8);
+    mMarginalizedHessian = Matrix<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
+    mMarginalizedB = Vector<Dynamic>(CPARS + 8);
 
     mMarginalizedHessian.setZero();
     mMarginalizedB.setZero();
@@ -36,7 +36,7 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
     scalar_t Ku = projectedcurp_Distorted.x();
     scalar_t Kv = projectedcurp_Distorted.y();
 
-    r->setCenterProjectedTo(Vector3f(Ku, Kv, new_idepth));
+    r->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
 
     if (frame->isInside(projectedcurp_Distorted, 0, 0)) {
         r->state_NewEnergy = r->state_energy = 0;
@@ -84,7 +84,7 @@ void CML::Optimization::DSOBundleAdjustment::addPoints(Set<PPoint, Hasher> point
         DistortedVector2d distortedReferenceCorner = point->getReferenceCorner().point(0);
         for (size_t i = 0; i < 8; i++) {
             const Vector2 &shift = PredefinedPattern::star8(i);
-            Vector2 grad = point->getReferenceFrame()->getCaptureFrame().getDerivativeImage(0).interpolate(Vector2f(distortedReferenceCorner.x() + shift.x(), distortedReferenceCorner.y() + shift.y())).tail<2>().cast<scalar_t>();
+            Vector2 grad = point->getReferenceFrame()->getCaptureFrame().getDerivativeImage(0).interpolate(Vector2(distortedReferenceCorner.x() + shift.x(), distortedReferenceCorner.y() + shift.y())).tail<2>().cast<scalar_t>();
             pointData->gradH += grad * grad.transpose();
             pointData->weights[i] = sqrt(mSettingOutlierTHSumComponent.f() / (mSettingOutlierTHSumComponent.f() + grad.squaredNorm()));
         }
@@ -170,51 +170,51 @@ void CML::Optimization::DSOBundleAdjustment::marginalizeFrame(PFrame frame) {
         int ntail = 8*(getFrames().size()-frameData->id-1);
         assert((io+8+ntail) == (int)getFrames().size()*8+CPARS);
 
-        Vector8d bTmp = mMarginalizedB.segment<8>(io);
-        Vectord<Dynamic> tailTMP = mMarginalizedB.tail(ntail);
+        Vector8 bTmp = mMarginalizedB.segment<8>(io);
+        Vector<Dynamic> tailTMP = mMarginalizedB.tail(ntail);
         mMarginalizedB.segment(io,ntail) = tailTMP;
         mMarginalizedB.tail<8>() = bTmp;
 
-        Matrixd<Dynamic, Dynamic> HtmpCol = mMarginalizedHessian.block(0,io,odim,8);
-        Matrixd<Dynamic, Dynamic> rightColsTmp = mMarginalizedHessian.rightCols(ntail);
+        Matrix<Dynamic, Dynamic> HtmpCol = mMarginalizedHessian.block(0,io,odim,8);
+        Matrix<Dynamic, Dynamic> rightColsTmp = mMarginalizedHessian.rightCols(ntail);
         mMarginalizedHessian.block(0,io,odim,ntail) = rightColsTmp;
         mMarginalizedHessian.rightCols(8) = HtmpCol;
 
-        Matrixd<Dynamic, Dynamic> HtmpRow = mMarginalizedHessian.block(io,0,8,odim);
-        Matrixd<Dynamic, Dynamic> botRowsTmp = mMarginalizedHessian.bottomRows(ntail);
+        Matrix<Dynamic, Dynamic> HtmpRow = mMarginalizedHessian.block(io,0,8,odim);
+        Matrix<Dynamic, Dynamic> botRowsTmp = mMarginalizedHessian.bottomRows(ntail);
         mMarginalizedHessian.block(io,0,ntail,odim) = botRowsTmp;
         mMarginalizedHessian.bottomRows(8) = HtmpRow;
     }
 
 
 //	// marginalize. First add prior here, instead of to active.
-    mMarginalizedHessian.bottomRightCorner<8,8>().diagonal() += frameData->prior.cast<double>();
-    mMarginalizedB.tail<8>() += frameData->prior.cwiseProduct(frameData->delta_prior).cast<double>();
+    mMarginalizedHessian.bottomRightCorner<8,8>().diagonal() += frameData->prior.cast<scalar_t>();
+    mMarginalizedB.tail<8>() += frameData->prior.cwiseProduct(frameData->delta_prior).cast<scalar_t>();
 
 
 
 //	std::cout << std::setprecision(16) << "HMPre:\n" << HM << "\n\n";
 
 
-    Vectord<Dynamic> SVec = (mMarginalizedHessian.diagonal().cwiseAbs() + Vectord<Dynamic>::Constant(mMarginalizedHessian.cols(), 10)).cwiseSqrt();
-    Vectord<Dynamic> SVecI = SVec.cwiseInverse();
+    Vector<Dynamic> SVec = (mMarginalizedHessian.diagonal().cwiseAbs() + Vector<Dynamic>::Constant(mMarginalizedHessian.cols(), 10)).cwiseSqrt();
+    Vector<Dynamic> SVecI = SVec.cwiseInverse();
 
 
 //	std::cout << std::setprecision(16) << "SVec: " << SVec.transpose() << "\n\n";
 //	std::cout << std::setprecision(16) << "SVecI: " << SVecI.transpose() << "\n\n";
 
     // scale!
-    Matrixd<Dynamic, Dynamic> HMScaled = SVecI.asDiagonal() * mMarginalizedHessian * SVecI.asDiagonal();
-    Vectord<Dynamic> bMScaled =  SVecI.asDiagonal() * mMarginalizedB;
+    Matrix<Dynamic, Dynamic> HMScaled = SVecI.asDiagonal() * mMarginalizedHessian * SVecI.asDiagonal();
+    Vector<Dynamic> bMScaled =  SVecI.asDiagonal() * mMarginalizedB;
 
     // invert bottom part!
-    Matrixd<8, 8> hpi = HMScaled.bottomRightCorner<8,8>();
+    Matrix<8, 8> hpi = HMScaled.bottomRightCorner<8,8>();
     hpi = 0.5f*(hpi+hpi);
     hpi = hpi.inverse();
     hpi = 0.5f*(hpi+hpi);
 
     // schur-complement!
-    Matrixd<Dynamic, Dynamic> bli = HMScaled.bottomLeftCorner(8,ndim).transpose() * hpi;
+    Matrix<Dynamic, Dynamic> bli = HMScaled.bottomLeftCorner(8,ndim).transpose() * hpi;
     HMScaled.topLeftCorner(ndim,ndim).noalias() -= bli * HMScaled.bottomLeftCorner(8,ndim);
     bMScaled.head(ndim).noalias() -= bli*bMScaled.tail<8>();
 
@@ -336,7 +336,7 @@ void CML::Optimization::DSOBundleAdjustment::flagFramesForMarginalization(PFrame
         for(PFrame reference : getFrames())
         {
             auto referenceData = get(reference);
-            
+
             if(referenceData->keyid > latestData->keyid - minFrameAge.i() || referenceData->keyid == 0) {
                 logger.debug("Not computing distance score because reference id (" + std::to_string(referenceData->keyid) + ") > last id (" + std::to_string(latestData->keyid) + ") - " + std::to_string(minFrameAge.i()));
                 continue;
@@ -859,7 +859,7 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
     mDeltaValid = true;
 }
 
-void CML::Optimization::DSOBundleAdjustment::orthogonalize(Vectord<Dynamic>& b)
+void CML::Optimization::DSOBundleAdjustment::orthogonalize(Vector<Dynamic>& b)
 {
 //	Vector<Dynamic> eigenvaluesPre = H.eigenvalues().real();
 //	std::sort(eigenvaluesPre.data(), eigenvaluesPre.data()+eigenvaluesPre.size());
@@ -880,17 +880,17 @@ void CML::Optimization::DSOBundleAdjustment::orthogonalize(Vectord<Dynamic>& b)
 
 
     // make Nullspaces matrix
-    Matrixd<Dynamic, Dynamic> N(ns[0].rows(), ns.size());
+    Matrix<Dynamic, Dynamic> N(ns[0].rows(), ns.size());
     for(unsigned int i=0;i<ns.size();i++) {
-        N.col(i) = ns[i].normalized().cast<double>();
+        N.col(i) = ns[i].normalized().cast<scalar_t>();
     }
 
 
 
     // compute Npi := N * (N' * N)^-1 = pseudo inverse of N.
-    Eigen::JacobiSVD<Matrixd<Dynamic, Dynamic>> svdNN(N, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Matrix<Dynamic, Dynamic>> svdNN(N, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-    Vectord<Dynamic> SNN = svdNN.singularValues();
+    Vector<Dynamic> SNN = svdNN.singularValues();
     double minSv = 1e10, maxSv = 0;
     for(int i=0;i<SNN.size();i++)
     {
@@ -910,9 +910,9 @@ void CML::Optimization::DSOBundleAdjustment::orthogonalize(Vectord<Dynamic>& b)
         }
     }
 
-    Matrixd<Dynamic, Dynamic> Npi = svdNN.matrixU() * SNN.asDiagonal() * svdNN.matrixV().transpose(); 	// [dim] x 9.
-    Matrixd<Dynamic, Dynamic> NNpiT = N*Npi.transpose(); 	// [dim] x [dim].
-    Matrixd<Dynamic, Dynamic> NNpiTS = 0.5*(NNpiT + NNpiT.transpose());	// = N * (N' * N)^-1 * N'.
+    Matrix<Dynamic, Dynamic> Npi = svdNN.matrixU() * SNN.asDiagonal() * svdNN.matrixV().transpose(); 	// [dim] x 9.
+    Matrix<Dynamic, Dynamic> NNpiT = N*Npi.transpose(); 	// [dim] x [dim].
+    Matrix<Dynamic, Dynamic> NNpiTS = 0.5*(NNpiT + NNpiT.transpose());	// = N * (N' * N)^-1 * N'.
 
     b -= NNpiTS * b;
     // H -= NNpiTS * H * NNpiTS;
@@ -947,20 +947,20 @@ void CML::Optimization::DSOBundleAdjustment::setZero() {
     }
 }
 
-CML::Vectord<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenbergMarquardt(const Matrixd<Dynamic, Dynamic> &HL_top,
-                                                                                                         const Matrixd<Dynamic, Dynamic> &HA_top,
-                                                                                                         const Matrixd<Dynamic, Dynamic> &HM_top,
-                                                                                                         const Matrixd<Dynamic, Dynamic> &H_sc,
-                                                                                                         const Vectord<Dynamic> &bL_top,
-                                                                                                         const Vectord<Dynamic> &bA_top,
-                                                                                                         const Vectord<Dynamic> &bM_top,
-                                                                                                         const Vectord<Dynamic> &b_sc,
+CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenbergMarquardt(const Matrix<Dynamic, Dynamic> &HL_top,
+                                                                                                         const Matrix<Dynamic, Dynamic> &HA_top,
+                                                                                                         const Matrix<Dynamic, Dynamic> &HM_top,
+                                                                                                         const Matrix<Dynamic, Dynamic> &H_sc,
+                                                                                                         const Vector<Dynamic> &bL_top,
+                                                                                                         const Vector<Dynamic> &bA_top,
+                                                                                                         const Vector<Dynamic> &bM_top,
+                                                                                                         const Vector<Dynamic> &b_sc,
                                                                                                          double lambda,
                                                                                                          bool mustOrthogonalize) {
 
     // Compute final hessian
-    Matrixd<Dynamic, Dynamic> HFinal_top;
-    Vectord<Dynamic> bFinal_top;
+    Matrix<Dynamic, Dynamic> HFinal_top;
+    Vector<Dynamic> bFinal_top;
 
     HFinal_top = HL_top + HM_top + HA_top;
     bFinal_top = bL_top + bM_top + bA_top - b_sc;
@@ -974,9 +974,9 @@ CML::Vectord<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenber
     HFinal_top -= H_sc * (1.0f/(1+lambda));
 
     // Solve the system
-    Vectord<Dynamic> SVecI = (HFinal_top.diagonal() + Vectord<Dynamic>::Constant(HFinal_top.cols(), 10)).cwiseSqrt().cwiseInverse();
-    Matrixd<Dynamic, Dynamic> HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
-    Vectord<Dynamic> x = Vectord<Dynamic>::Zero(HFinalScaled.rows());
+    Vector<Dynamic> SVecI = (HFinal_top.diagonal() + Vector<Dynamic>::Constant(HFinal_top.cols(), 10)).cwiseSqrt().cwiseInverse();
+    Matrix<Dynamic, Dynamic> HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
+    Vector<Dynamic> x = Vector<Dynamic>::Zero(HFinalScaled.rows());
     if (mOptimizeCalibration.b()) {
         x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
     } else {
@@ -1000,7 +1000,7 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
 
     //tex:
     // We solve one system for all the camera parameters, and one problem per points.
-    // To solve $\textbf{H} \textbf{x} = \textbf{b}$ for the camera parameters, 
+    // To solve $\textbf{H} \textbf{x} = \textbf{b}$ for the camera parameters,
     // we decompose $\textbf{H}$ and $\textbf{b}$ for the active points, the linearized points, the marginalized points, and the schur complement.
 
     assertThrow(mDeltaValid, "Delta not computed");
@@ -1014,8 +1014,8 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
         lambda = mFixedLambda.f();
     }
 
-    Matrixd<Dynamic, Dynamic> HL_top, HA_top, H_sc;
-    Vectord<Dynamic> bL_top, bA_top, bM_top, b_sc;
+    Matrix<Dynamic, Dynamic> HL_top, HA_top, H_sc;
+    Vector<Dynamic> bL_top, bA_top, bM_top, b_sc;
 
     List<Pair<PPoint, Ptr<DSOPoint, NonNullable>>> points = getPointsAsList();
 
@@ -1047,10 +1047,10 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
     stitchDoubleSC(H_sc, b_sc);
 
     // stitched Delta
-    Vectord<Dynamic> d = Vectord<Dynamic>(CPARS+getFrames().size()*8);
-    d.head<CPARS>() = mCDeltaF.cast<double>();
+    Vector<Dynamic> d = Vector<Dynamic>(CPARS+getFrames().size()*8);
+    d.head<CPARS>() = mCDeltaF.cast<scalar_t>();
     for(size_t h = 0; h < getFrames().size(); h++) {
-        d.segment<8>(CPARS+8*h) = get(getFrames()[h])->delta.cast<double>();
+        d.segment<8>(CPARS+8*h) = get(getFrames()[h])->delta.cast<scalar_t>();
     }
 
     // Compute bM_top
@@ -1216,13 +1216,13 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
             {
                 auto p = get(r->elements.mapPoint);
 
-                Matrix33f K = r->elements.frame->getK(0).cast<float>();
+                Matrix33 K = r->elements.frame->getK(0).cast<float>();
 
-                Matrix33f PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
-                Vector3f PRE_KtTll = K * precomputed.PRE_tTll;
+                Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
+                Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
 
-                Vector3f ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().cast<float>().homogeneous();	// projected point assuming infinite depth.
-                Vector3f ptp = ptp_inf + PRE_KtTll * r->elements.mapPoint->getReferenceInverseDepth();	// projected point with real depth.
+                Vector3 ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().cast<float>().homogeneous();	// projected point assuming infinite depth.
+                Vector3 ptp = ptp_inf + PRE_KtTll * r->elements.mapPoint->getReferenceInverseDepth();	// projected point with real depth.
                 float relBS = 0.01*((ptp_inf.head<2>() / ptp_inf[2])-(ptp.head<2>() / ptp[2])).norm();	// 0.01 = one pixel.
 
                 if(relBS > p->getMaxRelBaseline()) {
@@ -1320,18 +1320,18 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
     float energyLeft = 0;
 
-    Vector2f refcorner_Distorted_center = point->getReferenceCorner().point0().cast<float>();
+    Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0().cast<float>();
 
-    Matrix33f R = precomputed.trialRefToTarget.getRotationMatrix().cast<float>();
-    Vector3f t = precomputed.trialRefToTarget.getTranslation().cast<float>();
+    Matrix33 R = precomputed.trialRefToTarget.getRotationMatrix().cast<float>();
+    Vector3 t = precomputed.trialRefToTarget.getTranslation().cast<float>();
 
 
     {
 
-        Vector2f refcorner = mPinhole.undistort(refcorner_Distorted_center).cast<float>();
+        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted_center).cast<float>();
 
-        Vector3f projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2f projectedcurp_Distorted = mPinhole.distort((Vector2f)projectedcurp.hnormalized());
+        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
+        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
         float drescale = 1.0 / projectedcurp[2];
 
         if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < mWidth - 2 && projectedcurp_Distorted.y() < mHeight - 2)) {
@@ -1339,8 +1339,8 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
             return pair->state_energy;
         }
 
-        Vectorf<6> d_xi_x, d_xi_y;
-        Vectorf<4> d_C_x, d_C_y;
+        Vector<6> d_xi_x, d_xi_y;
+        Vector<4> d_C_x, d_C_y;
         float d_d_x, d_d_y;
 
         float new_idepth = drescale * pointIdepth;
@@ -1348,13 +1348,13 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
         float v = projectedcurp.y();
         float Ku = projectedcurp_Distorted.x();
         float Kv = projectedcurp_Distorted.y();
-        Vector3f KliP = refcorner.homogeneous(); // todo : check this
+        Vector3 KliP = refcorner.homogeneous(); // todo : check this
 
-        Matrix33f K = frameToTrack->getK(0).cast<float>();
+        Matrix33 K = frameToTrack->getK(0).cast<float>();
         float fx = K(0,0);
         float fy = K(1,1);
 
-        pair->setCenterProjectedTo(Vector3f(Ku, Kv, new_idepth));
+        pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
 
         // diff d_idepth
         d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
@@ -1409,12 +1409,12 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
     for (int idx = 0; idx < 8; idx++) {
 
-        Vector2f shift = PredefinedPattern::star8(idx).cast<float>();
+        Vector2 shift = PredefinedPattern::star8(idx).cast<float>();
 
-        Vector2f refcorner_Distorted = refcorner_Distorted_center + shift;
-        Vector2f refcorner = mPinhole.undistort(refcorner_Distorted);
-        Vector3f projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2f projectedcurp_Distorted = mPinhole.distort((Vector2f)projectedcurp.hnormalized());
+        Vector2 refcorner_Distorted = refcorner_Distorted_center + shift;
+        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted);
+        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
+        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
 
         // Check that the projection is finite
         //if (!std::isfinite(projectedcurp_Distorted.x()) || !std::isfinite(projectedcurp_Distorted.y())) {
@@ -1436,7 +1436,7 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
 
         float curColor = curColorWithGradient(0);
-        Vector2f curColorGradient = curColorWithGradient.tail<2>();
+        Vector2 curColorGradient = curColorWithGradient.tail<2>();
 
         float curRealColor = curColor;
         float refRealColor = precomputed.exposureTransition(refColor);
@@ -1455,7 +1455,7 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
             float b0 = hostData->getB0(mScaleLightB.f());
 
-            Vector3f hitColor = Vector3f(curColor, curColorGradient(0) * hw, curColorGradient(1) * hw);
+            Vector3 hitColor = Vector3(curColor, curColorGradient(0) * hw, curColorGradient(1) * hw);
             float drdA = curColor - b0;
 
             pair->rJ.resF[idx] = residual*hw;
@@ -1536,13 +1536,13 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
     int nres = 0;
 
-    Vector4f dc = mCDeltaF;
+    Vector4 dc = mCDeltaF;
 
     float dd = p->deltaF;
 
     float bd_acc = 0;
     float Hdd_acc = 0;
-    Vector4f Hcd_acc = Vector4f::Zero();
+    Vector4 Hcd_acc = Vector4::Zero();
 
     for(auto r : p->getResiduals()) {
 
@@ -1559,16 +1559,16 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
             if(!r->isActiveAndIsGoodNEW) continue;
             assert(r->isLinearized);
         }
-        
+
         DSORawResidualJacobian &rJ = r->efsJ;
         int htIDX = get(point->getReferenceFrame())->id + get(r->elements.frame)->id * getFrames().size();
-        Vector8f dp = mAdHTdeltaF[htIDX];
+        Vector8 dp = mAdHTdeltaF[htIDX];
 
 
         List<dso::AccumulatorApprox> *acc = nullptr;
 
 
-        Vector8f resApprox; // todo : pattern number
+        Vector8 resApprox; // todo : pattern number
         if(mode == DSORES_ACTIVE) {
             resApprox = rJ.resF;
             acc = &mAccumulatorActive;
@@ -1603,8 +1603,8 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
 
         // need to compute JI^T * r, and Jab^T * r. (both are 2-vectors).
-        Vector2f JI_r(0,0);
-        Vector2f Jab_r(0,0);
+        Vector2 JI_r(0,0);
+        Vector2 Jab_r(0,0);
         float rr=0;
         for(int i=0;i<8;i++)
         {
@@ -1631,7 +1631,7 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
                 rJ.JabJIdx(1,0), rJ.JabJIdx(1,1),
                 JI_r[0], JI_r[1]);
 
-        Vector2f Ji2_Jpdd = rJ.JIdx2 * rJ.Jpdd;
+        Vector2 Ji2_Jpdd = rJ.JIdx2 * rJ.Jpdd;
         bd_acc +=  JI_r[0]*rJ.Jpdd[0] + JI_r[1]*rJ.Jpdd[1];
         Hdd_acc += Ji2_Jpdd.dot(rJ.Jpdd);
         Hcd_acc += rJ.Jpdc[0] * Ji2_Jpdd[0] + rJ.Jpdc[1] * Ji2_Jpdd[1];
@@ -1665,10 +1665,10 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrixd<Dynamic, Dynamic> &fH, Vectord<Dynamic> &fb, bool usePrior) {
+void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrix<Dynamic, Dynamic> &fH, Vector<Dynamic> &fb, bool usePrior) {
 
-    fH = Matrixd<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-    fb = Vectord<Dynamic>::Zero(getFrames().size()*8+4);
+    fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+    fb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
 
     Mutex mutex;
 
@@ -1678,8 +1678,8 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
-            Matrixd<Dynamic, Dynamic> tH = Matrixd<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-            Vectord<Dynamic> tb = Vectord<Dynamic>::Zero(getFrames().size()*8+4);
+            Matrix<Dynamic, Dynamic> tH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+            Vector<Dynamic> tb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
 
             int hIdx = 4 + h * 8;
             int tIdx = 4 + t * 8;
@@ -1770,7 +1770,7 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
     self->HdiF = 1.0 / H;
     self->bdSumF = self->bd_accAF + self->bd_accLF;
     if(shiftPriorToZero) self->bdSumF += self->priorF*self->deltaF;
-    Vector4f Hcd = self->Hcd_accAF + self->Hcd_accLF;
+    Vector4 Hcd = self->Hcd_accAF + self->Hcd_accLF;
     mAccHcc.update(Hcd,Hcd,self->HdiF);
     mAccbc.update(Hcd, self->bdSumF * self->HdiF);
 
@@ -1800,11 +1800,11 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
     }
 }
 
-void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrixd<Dynamic, Dynamic> &fH, Vectord<Dynamic> &fb) {
+void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dynamic> &fH, Vector<Dynamic> &fb) {
     int nframes2 = getFrames().size() *getFrames().size();
 
-    fH = Matrixd<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-    fb = Vectord<Dynamic>::Zero(getFrames().size()*8+4);
+    fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+    fb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
 
     Mutex mutex;
 
@@ -1814,8 +1814,8 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrixd<Dynamic, Dyn
     for(size_t i=0;i<getFrames().size();i++) {
         for (size_t j = 0; j < getFrames().size(); j++) {
 
-            Matrixd<Dynamic, Dynamic> tH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-            Vectord<Dynamic> tb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+            Matrix<Dynamic, Dynamic> tH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+            Vector<Dynamic> tb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
 
             int iIdx = 4 + i * 8;
             int jIdx = 4 + j * 8;
@@ -1861,8 +1861,8 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrixd<Dynamic, Dyn
 
     mAccHcc.finish();
     mAccbc.finish();
-    fH.topLeftCorner<4,4>() = mAccHcc.A1m.cast<double>();
-    fb.head<4>() = mAccbc.A1m.cast<double>();
+    fH.topLeftCorner<4,4>() = mAccHcc.A1m.cast<scalar_t>();
+    fb.head<4>() = mAccbc.A1m.cast<scalar_t>();
 
     // ----- new: copy transposed parts for calibration only.
     for(size_t h=0; h < getFrames().size(); h++)
@@ -1898,7 +1898,7 @@ void CML::Optimization::DSOBundleAdjustment::applyRes(Ptr<DSOResidual, NonNullab
 
             std::swap(residual->rJ, residual->efsJ);
 
-            Vector2f JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
+            Vector2 JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
 
             for(int i=0;i<6;i++) {
                 residual->JpJdF[i] = residual->efsJ.Jpdxi[0][i] * JI_JI_Jd[0] + residual->efsJ.Jpdxi[1][i] * JI_JI_Jd[1];
@@ -1924,15 +1924,15 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcMEnergy() {
 
     return 0;
 
-    Vectord<Dynamic> delta = Vectord<Dynamic>(4 + getFrames().size() * 8);
-    delta.head<4>() = mCDeltaF.cast<double>();
+    Vector<Dynamic> delta = Vector<Dynamic>(4 + getFrames().size() * 8);
+    delta.head<4>() = mCDeltaF.cast<scalar_t>();
     for(size_t h = 0; h < getFrames().size(); h++) {
-        delta.segment<8>(4 + 8 * h) = get(getFrames()[h])->delta.cast<double>();
+        delta.segment<8>(4 + 8 * h) = get(getFrames()[h])->delta.cast<scalar_t>();
     }
 
     //std::cout << "M Energy : " << delta.dot(2 * mMarginalizedB + mMarginalizedHessian * delta) << std::endl;
 
-    scalar_t energy = abs(delta.dot(2 * mMarginalizedB + mMarginalizedHessian * delta.cast<double>()));
+    scalar_t energy = abs(delta.dot(2 * mMarginalizedB + mMarginalizedHessian * delta.cast<scalar_t>()));
 
     return energy;
 }
@@ -1957,12 +1957,12 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
     float setting_initialCalibHessian = 5e9;
     mCPrior = Vector4::Constant(setting_initialCalibHessian);
 
-    F += mCDeltaF.cwiseProduct(Vector4f::Constant(5e9)).dot(mCDeltaF);
+    F += mCDeltaF.cwiseProduct(Vector4::Constant(5e9)).dot(mCDeltaF);
 
 
     dso::Accumulator11 E;
     E.initialize();
-    Vector4f dc = mCDeltaF;
+    Vector4 dc = mCDeltaF;
 
     for(auto point : getPoints())
     {
@@ -1978,7 +1978,7 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
 
             auto selfTarget = get(r->elements.frame);
 
-            Matrixf<1, 8> dp = mAdHTdeltaF[selfHost->id + getFrames().size() * selfTarget->id];
+            Matrix<1, 8> dp = mAdHTdeltaF[selfHost->id + getFrames().size() * selfTarget->id];
             DSORawResidualJacobian& rJ = r->efsJ;
 
 
@@ -2035,7 +2035,7 @@ void CML::Optimization::DSOBundleAdjustment::fixLinearization(Ptr<DSOResidual, N
 
     auto &J = residual->efsJ;
 
-    Vector8f dp = mAdHTdeltaF[ selfHost->id + getFrames().size() * selfTarget->id ];
+    Vector8 dp = mAdHTdeltaF[ selfHost->id + getFrames().size() * selfTarget->id ];
 
     // compute Jp*delta
     __m128 Jp_delta_x = _mm_set1_ps(J.Jpdxi[0].dot(dp.head<6>()) + J.Jpdc[0].dot(mCDeltaF) + J.Jpdd[0] * selfPoint->deltaF);
@@ -2314,14 +2314,14 @@ void CML::Optimization::DSOBundleAdjustment::marginalizePointsF()
         removePoint(point, true);
     }
 
-    Matrixd<Dynamic, Dynamic> M, Msc;
-    Vectord<Dynamic> Mb, Mbsc;
+    Matrix<Dynamic, Dynamic> M, Msc;
+    Vector<Dynamic> Mb, Mbsc;
 
     stitchDoubleTop(mAccumulatorActive, M, Mb, false);
     stitchDoubleSC(Msc, Mbsc);
 
-    Matrixd<Dynamic, Dynamic> H =  M-Msc;
-    Vectord<Dynamic> b =  Mb-Mbsc;
+    Matrix<Dynamic, Dynamic> H =  M-Msc;
+    Vector<Dynamic> b =  Mb-Mbsc;
 
     scalar_t setting_margWeightFac = 0.5*0.5; // todo;
 
