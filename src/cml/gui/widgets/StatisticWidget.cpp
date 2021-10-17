@@ -6,7 +6,7 @@
 
 CML::StatisticWidget::StatisticWidget(PStatistic statistic, QWidget *parent) : QWidget(parent), mStatistic(statistic) {
 
-    setMinimumHeight(200.0f / 96.0f * QDesktopWidget().logicalDpiX());
+    setMinimumHeight(200.0f / 96.0f * logicalDpiX());
 
     mLayout = new QGridLayout();
     setLayout(mLayout);

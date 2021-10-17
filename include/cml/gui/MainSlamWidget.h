@@ -7,7 +7,6 @@
 #include <QMainWindow>
 #include <QGridLayout>
 #include <QWidget>
-#include <QDesktopWidget>
 #include <QToolBar>
 #include <QMenuBar>
 #include <QFileDialog>

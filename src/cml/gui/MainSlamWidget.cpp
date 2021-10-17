@@ -15,6 +15,8 @@
 #include "cml/base/AbstractSlam.h"
 // #include "cml/gui/capture/QtWebcamCapture.h"
 
+#include <QScreen>
+
 
 CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool renderMode):
     mSLAM(slam),
@@ -28,16 +30,24 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
     setWindowTitle("CML by Thomas Belos");
 
+    logger.important("Available geometry width : " + std::to_string(screen()->availableGeometry().width()));
+    logger.important("DPI X : " + std::to_string(logicalDpiX()));
+
     bool isBigScreen;
-    if (QDesktopWidget().availableGeometry(this).width() > 1200) {
-        if (QDesktopWidget().logicalDpiX() < 300) {
+    /*if (screen()->availableGeometry().width() > 1200) {
+        if (logicalDpiX() < 300) {
             isBigScreen = true;
         } else {
             isBigScreen = false;
         }
     } else {
         isBigScreen = false;
-    }
+    }*/
+#if CML_IS_ANDROID
+    isBigScreen = false;
+#else
+    isBigScreen = true;
+#endif
 
 
     mButtonPlay.setText("Play");
@@ -69,7 +79,7 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     //    }
     //} else {
         mCameraViewerWidgets.emplace_back(new CameraViewerWidget(slam.p(), -1));
-    mCameraViewerWidgets[0]->setMinimumHeight(200.0f / 96.0f * QDesktopWidget().logicalDpiX());
+    mCameraViewerWidgets[0]->setMinimumHeight(200.0f / 96.0f * logicalDpiX());
     mCameraViewerLayout.addWidget(mCameraViewerWidgets[0]);
     //}
 
@@ -93,7 +103,7 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
         setLayout(&mLayout);
 
-        resize(QDesktopWidget().availableGeometry(this).size() * 0.95);
+        resize(screen()->availableGeometry().size() * 0.95);
 
     } else {
 

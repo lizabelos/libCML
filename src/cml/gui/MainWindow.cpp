@@ -3,14 +3,15 @@
 //
 
 #include "cml/gui/MainWindow.h"
+#include <QScreen>
 
 CML::MainWindow::MainWindow() {
 
     setObjectName("MainWindow");
 
     bool isBigScreen;
-    if (QDesktopWidget().availableGeometry(this).width() > 1200) {
-        if (QDesktopWidget().logicalDpiX() < 300) {
+    if (screen()->availableGeometry().width() > 1200) {
+        if (logicalDpiX() < 300) {
             isBigScreen = true;
         } else {
             isBigScreen = false;

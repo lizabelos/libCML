@@ -64,7 +64,7 @@ void CML::ModelWidget::initializeGL() {
 
     QOpenGLWidget::initializeGL();
 
-    mUpdateTimer.start(1000 / 60, this);
+    mUpdateTimer.start(1000 / 15, this);
     mGroundtruthTimer.start(5000, this);
 
     mGCInstance = mSLAM->getMap().getGarbageCollector().newInstance();
