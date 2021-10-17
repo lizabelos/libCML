@@ -44,6 +44,7 @@ class FileTable:
         self.yabs = yabs
         self.table = Table(xabs, yabs)
         self.filenamme = filename
+        self.save()
 
     def set(self, x, y, value):
         self.table.set(x, y, value)
@@ -100,7 +101,7 @@ class SumTableProxy:
         if self.mediantable.get(x, y) is None:
             self.mediantable.set(x, y, value)
         else:
-            self.mediantable.set(value + self.mediantable.get(x, y))
+            self.mediantable.set(x, y, value + self.mediantable.get(x, y))
         self.table.set(x, y, self.mediantable.get(x, y))
 
     def get(self, x, y):
