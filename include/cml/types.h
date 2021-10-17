@@ -15,8 +15,10 @@
 
 // #define SPP_DEFAULT_ALLOCATOR Eigen::aligned_allocator
 #include <sparsepp/spp.h>
+#if CML_USE_GOOGLE_HASH
 #include <sparsehash/dense_hash_map>
 #include <sparsehash/dense_hash_set>
+#endif
 
 #include <vector>
 #include <list>
@@ -182,8 +184,13 @@ namespace CML {
     template <typename T, typename U, typename H = std::hash<T>>
             using HashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
 
+#if CML_USE_GOOGLE_HASH
     template <typename T, typename U, typename H = std::hash<T>>
         using DenseHashMap = google::dense_hash_map<T, U, H, std::equal_to<T>>;
+#else
+    template <typename T, typename U, typename H = std::hash<T>>
+        using DenseHashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
+#endif
 
 
     template <typename T>
@@ -322,8 +329,8 @@ namespace CML {
         return atomicFloat;
     }
 
-#define CML_SCALAR_TYPE double
-#define CML_GL_SCALAR GL_DOUBLE
+#define CML_SCALAR_TYPE float
+#define CML_GL_SCALAR GL_FLOAT
     typedef CML_SCALAR_TYPE scalar_t;
 
     // From : https://github.com/xiezhq-hermann/atan_lookup/blob/master/atan.cpp

@@ -142,7 +142,7 @@ if (BUILD_LGPL_SHARED_LIBS)
 endif()
 
 # For building the CSparse based solvers. Note this depends on an LGPL library.
-option(G2O_USE_CSPARSE "Build g2o with CSParse support" ON)
+option(G2O_USE_CSPARSE "Build g2o with CSParse support" OFF)
 find_package(CSparse)
 if (${G2O_USE_CSPARSE} AND ${CSPARSE_FOUND} AND ${G2O_USE_LGPL_LIBS})
   message(STATUS "Enable support for CSparse")

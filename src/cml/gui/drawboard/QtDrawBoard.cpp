@@ -33,7 +33,7 @@ void CML::QtDrawBoard::color(float r, float g, float b) {
 
 void CML::QtDrawBoard::pointSize(int size) {
     mPointSize = size;
-    glPointSize(size);
+    //glPointSize(size);
 }
 
 void CML::QtDrawBoard::lineWidth(int size) {
@@ -301,7 +301,7 @@ void CML::QtDrawBoard::finish() {
 
 void CML::QtDrawBoard::pointCloud(scalar_t *coords, scalar_t *colors, unsigned int *groups, unsigned int groupsFilter, scalar_t *variance, scalar_t varianceFilter, size_t size) {
 
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     mPCProgram.bind();
     mPCProgram.setUniformValue(mPCMVPLocation, EigenToQt(mProjectionMatrix * mCameraMatrix * mModelMatrix));
@@ -368,7 +368,7 @@ void CML::QtDrawBoard::cameraPath(scalar_t *coords, size_t size) {
         return;
     }
 
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     mPathProgram.bind();
     mPathProgram.setUniformValue(mPathMVPLocation, EigenToQt(mProjectionMatrix * mCameraMatrix * mModelMatrix));
@@ -380,4 +380,5 @@ void CML::QtDrawBoard::cameraPath(scalar_t *coords, size_t size) {
     glDrawArrays(GL_LINE_STRIP,0,size);
 
     mPathProgram.disableAttributeArray(mPathPositionLocation);
+
 }

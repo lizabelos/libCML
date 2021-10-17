@@ -68,11 +68,13 @@ namespace CML {
 
         Frame(size_t id, Ptr<CaptureImage, NonNullable> captureFrame, scalar_t *cameraCenter) : mId(id), mCaptureFrame(captureFrame), mCalibration(captureFrame->getInternalCalibration()), mExposure(captureFrame->getExposureTime()), mCameraCenter(cameraCenter) {
 
+#if CML_USE_GOOGLE_HASH
             mIndirectCovisibility.set_empty_key(OptPFrame((Frame*)0));
             mIndirectCovisibility.set_deleted_key(OptPFrame((Frame*)1));
 
             mDirectCovisibility.set_empty_key(OptPFrame((Frame*)0));
             mDirectCovisibility.set_deleted_key(OptPFrame((Frame*)1));
+#endif
 
             for (int i = 0; i < FRAME_GROUP_MAXSIZE; i++) {
                 mGroups[i] = false;

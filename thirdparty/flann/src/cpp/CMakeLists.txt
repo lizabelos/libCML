@@ -9,7 +9,6 @@ file(GLOB_RECURSE CPP_SOURCES flann_cpp.cpp)
 file(GLOB_RECURSE CU_SOURCES *.cu)
 
 add_library(flann_cpp_s STATIC ${CPP_SOURCES})
-target_link_libraries(flann_cpp_s ${LZ4_LIBRARIES})
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     set_target_properties(flann_cpp_s PROPERTIES COMPILE_FLAGS -fPIC)
 endif()

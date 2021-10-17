@@ -1,7 +1,7 @@
 #include "cml/optimization/g2o/IndirectCameraOptimizer.h"
 
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
-
+// #include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/eigen/linear_solver_eigen.h>
 
 CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, const Optional<Camera> &camera, const List<Matching> &matchings, List<bool> &outliers) {
 
@@ -10,7 +10,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>()
             );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(
@@ -148,7 +148,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     }
 
     result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(), SE3quat_recov.rotation().matrix().cast<scalar_t>());
-    result.covariance = spinv.block(0,0)->eval().diagonal();
+    result.covariance = spinv.block(0,0)->eval().diagonal().cast<scalar_t>();
     result.isOk = true;
 
     return result;
@@ -162,7 +162,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>()
     );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(
@@ -308,7 +308,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     }
 
     result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(), SE3quat_recov.rotation().matrix().cast<scalar_t>());
-    result.covariance = spinv.block(0,0)->eval().diagonal();
+    result.covariance = spinv.block(0,0)->eval().diagonal().cast<scalar_t>();
     result.isOk = true;
 
     return result;

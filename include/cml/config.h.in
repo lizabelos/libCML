@@ -9,8 +9,11 @@
 #cmakedefine01 CML_HAVE_CERES
 #cmakedefine01 CML_HAVE_G2O
 #cmakedefine01 CML_HAVE_YAML_CPP
+#cmakedefine01 CML_HAVE_OPENCV
 #cmakedefine01 CML_USE_OPENMP
 #cmakedefine01 CML_ENABLE_GUI
+#cmakedefine01 CML_USE_GOOGLE_HASH
+#cmakedefine01 CML_IS_ANDROID
 
 namespace CML {
 

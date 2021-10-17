@@ -38,13 +38,13 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
         return;
     }
 
-    char threadName[1024];
-    pthread_getname_np(pthread_self(), threadName, 1024);
+    //char threadName[1024];
+    //pthread_getname_np(pthread_self(), threadName, 1024);
 
     LoggerMessage loggerMessage;
     loggerMessage.level = level;
     loggerMessage.message = msg;
-    loggerMessage.threadname = threadName;
+    //loggerMessage.threadname = threadName;
 
     time_t rawtime;
     struct tm * timeinfo;

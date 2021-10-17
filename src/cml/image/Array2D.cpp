@@ -1,19 +1,22 @@
 #include "cml/image/Array2D.h"
 
+#if CML_HAVE_AVFORMAT
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
     #include <libswscale/swscale.h>
     #include <libavutil/imgutils.h>
 }
-
 #define DEFAULT_RESIZE_ALGORITHM SWS_FAST_BILINEAR // Bicubic seems to be better than bilinear. Todo : try other algorithm
+#endif
+
 #define CML_IMAGE_HORIZONTALFLIP false
 
 namespace CML {
 
     Atomic<size_t> __array2DCounter = 0;
 
+#if CML_HAVE_AVFORMAT
     class FFMPEGContext {
 
     public:
@@ -41,17 +44,20 @@ namespace CML {
         AVCodec *mCodec = nullptr;
         AVCodecParameters *mCodecParameters = nullptr;
     };
-
+#endif
 }
 
+#if CML_HAVE_AVFORMAT
 inline std::string av_strerror(int errnum) {
     char buffer[1024];
     av_strerror(errnum, buffer, 1024);
     return buffer;
 }
+#endif
 
 CML::Image CML::loadImage(std::string path) {
 
+#if CML_HAVE_AVFORMAT
     logger.debug("Load image " + path);
 
     FFMPEGContext ctx;
@@ -170,12 +176,16 @@ CML::Image CML::loadImage(std::string path) {
     }
 
     throw std::runtime_error("The image file seems to be corrupted : " + path);
+#else
+    throw std::runtime_error("No codec to decode the image. Please recompile with ffmpeg");
+#endif
 
 }
 
 
 CML::GrayImage CML::loadGrayImage(std::string path) {
 
+#if CML_HAVE_AVFORMAT
     logger.debug("Load image " + path);
 
     FFMPEGContext ctx;
@@ -293,10 +303,15 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
     }
 
     throw std::runtime_error("The image file seems to be corrupted : " + path);
+#else
+    throw std::runtime_error("No codec to decode the image. Please recompile with ffmpeg");
+#endif
+
 
 }
 
 template <> CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, int newHeight) const {
+#if CML_HAVE_SWSCALE
     Image result(newWidth, newHeight);
 
     struct SwsContext *resizeContext;
@@ -313,6 +328,27 @@ template <> CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(in
     sws_freeContext(resizeContext);
 
     return result;
+#else
+    if (newWidth == getWidth() && newHeight == getHeight()) {
+        return *this;
+    }
+
+    CML::Array2D<CML::ColorRGBA> result(newWidth, newHeight);
+
+    #if CML_USE_OPENMP
+    #pragma omp parallel for collapse(2) schedule(static)
+    #endif
+    for (int y = 0; y < newHeight; y++) {
+        for (int x = 0; x < newWidth; x++) {
+            result(x, y) = interpolate(Vector2f(
+                    (float)x / (float)newWidth * ((float)getWidth() - 0.5f),
+                    (float)y / (float)newHeight * ((float)getHeight() - 0.5f)
+            ));
+        }
+    }
+
+    return result;
+#endif
 
 }
 

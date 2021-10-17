@@ -4,6 +4,7 @@
 #include "cml/config.h"
 #include "cml/map/MapObject.h"
 #include <flann/flann.hpp>
+#include <flann/algorithms/kdtree_single_index.h>
 
 namespace CML {
 

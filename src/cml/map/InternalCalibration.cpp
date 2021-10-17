@@ -4,7 +4,9 @@
 
 #include <stdexcept>
 #include "cml/map/InternalCalibration.h"
+#if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
+#endif
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -263,6 +265,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
 }
 
 CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path) {
+#if CML_HAVE_YAML_CPP
     std::cout << "Parsing calibration file : " << path << std::endl;
 
     YAML::Node root = YAML::LoadFile(path);
@@ -296,6 +299,9 @@ CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path) {
     auto res = makeOptimalK_crop(pinhole, undistorter, Vector2i(width, height), Vector2i(width, height));
 
     return new InternalCalibration(pinhole, Vector2(width, height), undistorter, res.first, Vector2(width, height));
+#else
+    return nullptr;
+#endif
 
 }
 

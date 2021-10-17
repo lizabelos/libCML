@@ -28,7 +28,10 @@
 #include <cml/image/Filter.h>
 
 #include <argparse/argparse.hpp>
+
+#if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
+#endif
 
 #include <cml/slam/modslam/Hybrid.h>
 
@@ -40,8 +43,10 @@ typedef enum ExecutionMode {
 
 Q_DECLARE_METATYPE(scalar_t)
 
+#if !CML_IS_ANDROID
 Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 
+#if CML_HAVE_AVFORMAT
     if (path == "cam" || path == "webcam" || path == "camera") {
         return new QtWebcamCapture();
     }
@@ -52,13 +57,16 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
     } catch (const std::exception &e) {
 
     }
+#endif
 
+#if CML_HAVE_LIBZIP
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::TUMCapture(path);
         return capture;
     } catch (const std::exception &e) {
 
     }
+#endif
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::KittyCapture(path);
@@ -97,6 +105,7 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 
     return nullptr;
 }
+#endif
 
 void printTypeSize() {
     std::cout << "sizeof(List)=" << sizeof(List<void*>) << std::endl;
@@ -142,6 +151,25 @@ void test3() {
     timer.stopAndPrint("Assignement result");
 }
 
+#if CML_IS_ANDROID
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+
+    QFile f("style.css");
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        QString css = QTextStream(&f).readAll();
+        a.setStyleSheet(css);
+    }
+
+    Ptr<AbstractSlam, Nullable> slam = new Hybrid();
+    MainSlamWidget w(slam);
+
+    w.show();
+    slam->start(new QtWebcamCapture());
+    a.exec();
+}
+#else
 int main(int argc, char *argv[])
 {
 
@@ -181,7 +209,9 @@ int main(int argc, char *argv[])
     Ptr<AbstractSlam, Nullable> slam = new Hybrid();
     Ptr<AbstractCapture, Nullable> capture;
     ExecutionMode executionMode = CONSOLE;
+#if CML_HAVE_YAML_CPP
     YAML::Node configuration;
+#endif
     std::string resultPath = "result";
     std::string resultFormat = "all";
     std::string saveImagePath = "";
@@ -299,3 +329,4 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 
 }
+#endif

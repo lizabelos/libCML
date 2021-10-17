@@ -61,9 +61,6 @@ public:
 
     virtual IndexParams getParameters() const = 0;
 
-    virtual void loadIndex(FILE* stream) = 0;
-
-    virtual void saveIndex(FILE* stream) = 0;
 };
 
 /**

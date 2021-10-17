@@ -193,7 +193,7 @@ if (ENABLE_GUI)
             cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
             cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
             )
-    target_link_libraries(CML Qt6::Widgets Qt6::OpenGL Qt6::PrintSupport Qt6::Multimedia ${OPENGL_LIBRARIES})
+    target_link_libraries(CML Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia ${OPENGL_LIBRARIES})
 
 
 endif()

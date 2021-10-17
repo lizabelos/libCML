@@ -1,9 +1,9 @@
 #include "cml/features/corner/ORB.h"
-//#if CML_ORB_USEOPENCVFAST
+#if CML_HAVE_OPENCV
 #include "cml/features/corner/OpenCV.h"
-//#else
+#else
 #include "cml/features/corner/FAST.h"
-//#endif
+#endif
 
 #include "cml/image/Filter.h"
 #include "ORBPattern.cpp"
@@ -102,8 +102,11 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
     for (int i = 1; i < nlevels; i++) {
         float scale = mvInvScaleFactor[i];
         Vector2i sz(round((float)captureImage.getWidth(0) * scale), round((float)captureImage.getHeight(0) * scale));
+#if CML_HAVE_OPENCV
         mImages[i] = OpenCV::resize(mImages[i - 1], sz.x(), sz.y());
-        //images[i] = images[i - 1].resize(1.0 / mScaleFactor);
+#else
+        mImages[i] = mImages[i - 1].resize(sz.x(), sz.y());
+#endif
     }
 
    // List<List<Corner>> allKeypoints;
@@ -124,7 +127,11 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         // preprocess the resized image
         //mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
         //mBluredImages[level] = OpenCV::gaussianBlur(mImages[level], 7, 7, 2, 2);
+#if CML_HAVE_OPENCV
         mBluredImages[level] = OpenCV::blur(mImages[level], 7, 7);
+#else
+        mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
+#endif
 
         // Compute the descriptors
         List<Binary256Descriptor> desc;
@@ -202,7 +209,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
-#if CML_ORB_USEOPENCVFAST
+#if CML_HAVE_OPENCV
                 List<Corner> vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), iniThFAST, true);
 
                 if(vKeysCell.empty())
