@@ -13,9 +13,9 @@ from evo.tools.settings import SETTINGS
 
 class Evaluator:
 
-    def __init__(self, t, g):
-        self.t = t
-        self.g = g
+    def __init__(self, reference, estimate):
+        self.t = estimate
+        self.g = reference
 
     def associate(self):
         _, self.t = sync.associate_trajectories(self.g, self.t, max_diff=0.01, first_name="reference",snd_name="estimate")
@@ -158,7 +158,7 @@ def loadtrajectories(context):
     estimate = None
     if context.d.type() == "tum":
         if context.d.g is not None:
-            estimate, reference = read_tum_trajectory_file2(context.outputtum(), context.d.g)
+            estimate, reference = read_tum_trajectory_file2(file_path=context.outputtum(), groundtruth_path=context.d.g)
         else:
             estimate = file_interface.read_tum_trajectory_file(context.outputtum())
     elif context.d.type() == "kitti":
@@ -175,6 +175,6 @@ def loadtrajectories(context):
 
 def fromslam(context):
     reference, estimate = loadtrajectories(context)
-    evaluation = Evaluator(reference, estimate)
+    evaluation = Evaluator(reference=reference, estimate=estimate)
     evaluation.align()
     return evaluation
