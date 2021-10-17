@@ -337,8 +337,15 @@ void Hybrid::indirectTrackImmature(PFrame currentFrame) {
         }*/
 
         if (indirectKeyApparition >= 3) {
-            bool result = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true);
-            if (result && point->getUncertainty() < mIndirectUncertaintyThreshold.f()) {
+
+            bool canActivate;
+            if (mIndirectUncertaintyThreshold.f() < 0) {
+                canActivate = true;
+            } else {
+                canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true) && point->getUncertainty() < mIndirectUncertaintyThreshold.f();
+            }
+
+            if (canActivate) {
                 LockGuard lg(toMapMutex);
                 toMap.emplace_back(point);
                 continue;
