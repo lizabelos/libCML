@@ -154,6 +154,10 @@ if (GLOG_FOUND)
     target_link_libraries(CML ${GLOG_LIBRARIES})
 endif()
 
+if (TURBOJPEG_FOUND)
+    target_link_libraries(CML ${TURBOJPEG_LIBRARIES})
+endif()
+
 if (ENABLE_GUI)
     qt6_wrap_cpp(ModelViewerWidgetSRC ../include/cml/gui/widgets/ModelWidget.h)
     qt6_wrap_cpp(FunctionWidgetSRC ../include/cml/gui/widgets/FunctionWidget.h)
