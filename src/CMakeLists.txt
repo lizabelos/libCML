@@ -199,20 +199,34 @@ if (ENABLE_GUI)
 endif()
 
 
+if(ANDROID)
+    add_library(modslam SHARED
+            cml/slam/modslam.cpp
+            cml/slam/modslam/Hybrid.cpp
+            cml/slam/modslam/Research.cpp
+            cml/slam/modslam/Make.cpp
+            cml/slam/modslam/indirect/Tracking.cpp
+            cml/slam/modslam/indirect/Mapping.cpp
+            cml/slam/modslam/direct/Mapping.cpp
+            cml/slam/modslam/direct/Tracking.cpp
+            )
+    target_link_libraries(modslam CML)
+    target_include_directories(modslam PUBLIC ../include/cml/slam/modslam)
 
+    add_qt_android_apk(modslam_apk modslam)
+else()
+    add_executable(modslam
+            cml/slam/modslam.cpp
+            cml/slam/modslam/Hybrid.cpp
+            cml/slam/modslam/Research.cpp
+            cml/slam/modslam/Make.cpp
+            cml/slam/modslam/indirect/Tracking.cpp
+            cml/slam/modslam/indirect/Mapping.cpp
+            cml/slam/modslam/direct/Mapping.cpp
+            cml/slam/modslam/direct/Tracking.cpp
+            )
+    target_link_libraries(modslam CML)
+    target_include_directories(modslam PUBLIC ../include/cml/slam/modslam)
 
-
-add_executable(modslam
-        cml/slam/modslam.cpp
-        cml/slam/modslam/Hybrid.cpp
-        cml/slam/modslam/Research.cpp
-        cml/slam/modslam/Make.cpp
-        cml/slam/modslam/indirect/Tracking.cpp
-        cml/slam/modslam/indirect/Mapping.cpp
-        cml/slam/modslam/direct/Mapping.cpp
-        cml/slam/modslam/direct/Tracking.cpp
-        )
-target_link_libraries(modslam CML)
-target_include_directories(modslam PUBLIC ../include/cml/slam/modslam)
-
-file(COPY ../include/cml/slam/modslam.yaml DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    file(COPY ../include/cml/slam/modslam.yaml DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+endif()

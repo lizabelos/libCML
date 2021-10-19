@@ -22,6 +22,12 @@ namespace CML {
 
 }
 
+#if CML_IS_ANDROID
+#include "sse2neon.h"
+#else
+#include <xmmintrin.h>
+#endif
+
 #include "cml/types.h"
 #include "cml/utils/Logger.h"
 
