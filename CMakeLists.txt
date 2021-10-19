@@ -143,14 +143,27 @@ endif()
 
 
 find_package(OpenCV 4.0 QUIET)
-find_package(Yaml-cpp QUIET)
+
+option(USE_INTERNAL_YAML_CPP "Use Internal Yaml-CPP" ON)
+if (USE_INTERNAL_YAML_CPP)
+    add_subdirectory(thirdparty/yaml-cpp)
+    set(Yaml-cpp_FOUND ON)
+    set(YAML_CPP_INCLUDE_DIR thirdparty/yaml-cpp/include)
+else()
+    find_package(Yaml-cpp QUIET)
+endif()
 
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
     # https://bugreports.qt.io/browse/QTCREATORBUG-25793
-    find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
-    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
+    #find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
+    find_package(Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+endif()
+
+if (ANDROID)
+    set(ANDROID_PLATFORM_LEVEL 30)
+    include(android/AddQtAndroidApk.cmake)
 endif()
 
 #######################################################################################################################
