@@ -2,6 +2,8 @@
 // Created by tbelos on 22/08/19.
 //
 
+#if CML_ENABLE_GUI
+
 #include "cml/capture/QtWebcamCapture.h"
 #include "cml/utils/Logger.h"
 #include "cml/image/Array2D.h"
@@ -109,3 +111,5 @@ void QtWebcamCapture::setAutoExposure(bool value) {
 bool QtWebcamCapture::isAutoExposure() {
     return mCamera->exposureMode() == QCamera::ExposureMode::ExposureAuto;
 }
+
+#endif

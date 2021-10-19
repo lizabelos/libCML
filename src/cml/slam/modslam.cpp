@@ -1,12 +1,14 @@
 #include <iostream>
 #include <filesystem>
 
+#if CML_ENABLE_GUI
 #include <QApplication>
 #include <QSurface>
 #include <QSurfaceFormat>
-
 #include <cml/gui/MainSlamWidget.h>
 #include <cml/gui/MainWindow.h>
+#include <cml/capture/QtWebcamCapture.h>
+#endif
 
 #include <cml/base/AbstractSlam.h>
 
@@ -18,7 +20,6 @@
 #include <cml/capture/TUMCapture.h>
 #endif
 
-#include <cml/capture/QtWebcamCapture.h>
 #include <cml/capture/KittyCapture.h>
 #include <cml/capture/EurocCapture.h>
 #include <cml/capture/TartanairCapture.h>
@@ -41,15 +42,19 @@ typedef enum ExecutionMode {
     GUI, CONSOLE
 } ExecutionMode;
 
+#if CML_ENABLE_GUI
 Q_DECLARE_METATYPE(scalar_t)
+#endif
 
 #if !CML_IS_ANDROID
 Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 
 #if CML_HAVE_AVFORMAT
+#if CML_ENABLE_GUI
     if (path == "cam" || path == "webcam" || path == "camera") {
         return new QtWebcamCapture();
     }
+#endif
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
@@ -202,7 +207,9 @@ int main(int argc, char *argv[])
 
     srand(29071996);
 
+#if CML_ENABLE_GUI
     qRegisterMetaType<scalar_t>("scalar_t");
+#endif
 
     argparse::ArgumentParser program("CML");
 
@@ -287,6 +294,7 @@ int main(int argc, char *argv[])
         slam->startSingleThread(capture);
     }
 
+#if CML_ENABLE_GUI
     else if (executionMode == GUI) {
         QApplication a(argc, argv);
 
@@ -309,6 +317,7 @@ int main(int argc, char *argv[])
 
 
     }
+#endif
 
     if (slam->getCapture()->remaining() == 0) {
 

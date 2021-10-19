@@ -5,6 +5,8 @@
 #ifndef CML_ANDROIDCAPTURE_H
 #define CML_ANDROIDCAPTURE_H
 
+#if CML_ENABLE_GUI
+
 #include <QImage>
 #include <QList>
 #include <mutex>
@@ -59,6 +61,8 @@ private:
     CML::Array2D<float> mVignette;
 
 };
+
+#endif
 
 
 #endif //CML_ANDROIDCAPTURE_H
