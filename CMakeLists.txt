@@ -43,13 +43,19 @@ option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
 # # # # # # FIND ALL THE PACKAGES # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #######################################################################################################################
 
+if (ANDROID)
+    set(ENABLE_DEFAULT_EXTERNAL_LIB OFF)
+else()
+    set(ENABLE_DEFAULT_EXTERNAL_LIB ON)
+endif()
+
 find_package(Threads REQUIRED)
 
 if (USE_OPENMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-option(USE_GOOGLE_HASH "Use Google Hash" OFF)
+option(USE_GOOGLE_HASH "Use Google Hash" ${ENABLE_DEFAULT_EXTERNAL_LIB})
 
 # set(BLA_VENDOR Intel10_64lp)
 find_package(BLAS QUIET)
@@ -95,7 +101,7 @@ if (ANDROID)
 else()
 find_package(PkgConfig QUIET)
 if (PKG_CONFIG_FOUND)
-    option(ENABLE_FFMPEG "Enable FFMPEG" ON)
+    option(ENABLE_FFMPEG "Enable FFMPEG" ${ENABLE_DEFAULT_EXTERNAL_LIB})
     if (ENABLE_FFMPEG)
         pkg_check_modules(AVFORMAT REQUIRED "libavformat")
         pkg_check_modules(AVCODEC REQUIRED "libavcodec")
@@ -107,7 +113,7 @@ if (PKG_CONFIG_FOUND)
         set(AVUTIL_FOUND 0)
         set(SWSCALE_FOUND 0)
     endif()
-    option(ENABLE_TURBOJPEG "Enable FFMPEG" ON)
+    option(ENABLE_TURBOJPEG "Enable TurboJPEG" ${ENABLE_DEFAULT_EXTERNAL_LIB})
     if (ENABLE_TURBOJPEG)
         pkg_check_modules(TURBOJPEG REQUIRED "libturbojpeg")
     else()
@@ -135,7 +141,7 @@ else()
     endif()
 endif()
 
-option(ENABLE_LIBZIP "Enable LibZIP" ON)
+option(ENABLE_LIBZIP "Enable LibZIP" ${ENABLE_DEFAULT_EXTERNAL_LIB})
 if (ENABLE_LIBZIP)
     find_package(LibZip REQUIRED)
 endif()
@@ -145,7 +151,7 @@ endif()
 # endif()
 
 
-option(ENABLE_OPENCV "Enable OpenCV (Version 4)" ON)
+option(ENABLE_OPENCV "Enable OpenCV (Version 4)" ${ENABLE_DEFAULT_EXTERNAL_LIB})
 if (ENABLE_OPENCV)
     find_package(OpenCV 4.0 REQUIRED)
 endif()
@@ -163,14 +169,14 @@ if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
     # https://bugreports.qt.io/browse/QTCREATORBUG-25793
     #find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
-    find_package(Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
+    find_package(Qt6 CONFIG REQUIRED Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
-if (ANDROID)
-    set(ANDROID_PLATFORM_LEVEL 30)
-    include(android/AddQtAndroidApk.cmake)
-endif()
+#if (ANDROID)
+    #set(ANDROID_PLATFORM_LEVEL 30)
+    #include(android/AddQtAndroidApk.cmake)
+#endif()
 
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

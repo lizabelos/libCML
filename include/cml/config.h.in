@@ -23,7 +23,7 @@ namespace CML {
 
 }
 
-#if CML_IS_ANDROID
+#if !defined(__SSE3__) && !defined(__SSE2__) && !defined(__SSE1__)
 #include "sse2neon.h"
 #else
 #include <xmmintrin.h>

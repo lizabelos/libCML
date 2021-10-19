@@ -2,9 +2,11 @@
 // Created by tbelos on 22/08/19.
 //
 
-#if CML_ENABLE_GUI
 
 #include "cml/capture/QtWebcamCapture.h"
+
+#if CML_ENABLE_GUI
+
 #include "cml/utils/Logger.h"
 #include "cml/image/Array2D.h"
 #include "cml/map/InternalCalibration.h"

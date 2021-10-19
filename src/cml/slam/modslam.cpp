@@ -1,6 +1,8 @@
 #include <iostream>
 #include <filesystem>
 
+#include <cml/slam/modslam/Hybrid.h>
+
 #if CML_ENABLE_GUI
 #include <QApplication>
 #include <QSurface>
@@ -33,8 +35,6 @@
 #if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
 #endif
-
-#include <cml/slam/modslam/Hybrid.h>
 
 using namespace CML;
 

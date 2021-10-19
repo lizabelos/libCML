@@ -5,6 +5,8 @@
 #ifndef CML_ANDROIDCAPTURE_H
 #define CML_ANDROIDCAPTURE_H
 
+#include "cml/config.h"
+
 #if CML_ENABLE_GUI
 
 #include <QImage>
@@ -14,7 +16,6 @@
 #include <QtMultimedia/QVideoSink>
 #include <QtMultimedia/QMediaCaptureSession>
 
-#include "cml/config.h"
 #include "cml/capture/AbstractCapture.h"
 #include "cml/image/LookupTable.h"
 
