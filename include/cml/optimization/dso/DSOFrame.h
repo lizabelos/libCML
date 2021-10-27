@@ -259,12 +259,12 @@ namespace CML {
             void precompute() {
 
                 leftToLeft = mTargetData->PRE_worldToCam * mHostData->PRE_camToWorld;
-                PRE_RTll = (leftToLeft.rotationMatrix()).cast<float>();
-                PRE_tTll = (leftToLeft.translation()).cast<float>();
+                PRE_RTll = (leftToLeft.rotationMatrix());
+                PRE_tTll = (leftToLeft.translation());
 
                 leftToLeft_0 = mTargetData->get_worldToCam_evalPT() * mHostData->get_worldToCam_evalPT().inverse();
-                PRE_RTll_0 = (leftToLeft_0.rotationMatrix()).cast<float>();
-                PRE_tTll_0 = (leftToLeft_0.translation()).cast<float>();
+                PRE_RTll_0 = (leftToLeft_0.rotationMatrix());
+                PRE_tTll_0 = (leftToLeft_0.translation());
 
                 trialRefCamera = cameraOf(mHostData->PRE_worldToCam);
                 trialTargetCamera = cameraOf(mTargetData->PRE_worldToCam);
@@ -276,12 +276,12 @@ namespace CML {
             DSOFrame *mTargetData;
 
             SE3 leftToLeft;
-            Matrix33f PRE_RTll;
-            Vector3f PRE_tTll;
+            Matrix33 PRE_RTll;
+            Vector3 PRE_tTll;
 
             SE3 leftToLeft_0;
-            Matrix33f PRE_RTll_0;
-            Vector3f PRE_tTll_0;
+            Matrix33 PRE_RTll_0;
+            Vector3 PRE_tTll_0;
 
             Camera trialRefCamera;
             Camera trialTargetCamera;

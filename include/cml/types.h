@@ -329,8 +329,8 @@ namespace CML {
         return atomicFloat;
     }
 
-#define CML_SCALAR_TYPE float
-#define CML_GL_SCALAR GL_FLOAT
+#define CML_SCALAR_TYPE double
+#define CML_GL_SCALAR GL_DOUBLE
     typedef CML_SCALAR_TYPE scalar_t;
 
     // From : https://github.com/xiezhq-hermann/atan_lookup/blob/master/atan.cpp

@@ -84,11 +84,11 @@ namespace CML {
 
             Vectorf<DSOMAXRESPERPOINT> res_toZeroF;
 
-            void setCenterProjectedTo(Vector3f centerProjectedTo) {
+            void setCenterProjectedTo(const Vector3 &centerProjectedTo) {
                 mCenterProjectedTo = centerProjectedTo;
             }
 
-            Vector3f getCenterProjectedTo() {
+            Vector3 getCenterProjectedTo() {
                 return mCenterProjectedTo;
             }
 
@@ -126,7 +126,7 @@ namespace CML {
 
 
         private:
-            Vector3f mCenterProjectedTo;
+            Vector3 mCenterProjectedTo;
             DSOResidualState state_state = DSORES_OUTLIER;
             DSOResidualState state_NewState = DSORES_OUTLIER;
 

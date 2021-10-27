@@ -84,7 +84,7 @@ void CML::Optimization::DSOBundleAdjustment::addPoints(Set<PPoint, Hasher> point
         DistortedVector2d distortedReferenceCorner = point->getReferenceCorner().point(0);
         for (size_t i = 0; i < 8; i++) {
             const Vector2 &shift = PredefinedPattern::star8(i);
-            Vector2 grad = point->getReferenceFrame()->getCaptureFrame().getDerivativeImage(0).interpolate(Vector2(distortedReferenceCorner.x() + shift.x(), distortedReferenceCorner.y() + shift.y())).tail<2>().cast<scalar_t>();
+            Vector2 grad = point->getReferenceFrame()->getCaptureFrame().getDerivativeImage(0).interpolate(Vector2f(distortedReferenceCorner.x() + shift.x(), distortedReferenceCorner.y() + shift.y())).tail<2>().cast<scalar_t>();
             pointData->gradH += grad * grad.transpose();
             pointData->weights[i] = sqrt(mSettingOutlierTHSumComponent.f() / (mSettingOutlierTHSumComponent.f() + grad.squaredNorm()));
         }
@@ -766,12 +766,12 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
 
             int idx = h + t * getFrames().size();
 
-            mAdHTdeltaF[idx] = selfHost->get_state_minus_stateZero().head<8>().cast<float>().transpose() * mAdHost[idx].cast<float>()
-            + selfTarget->get_state_minus_stateZero().head<8>().cast<float>().transpose() * mAdTarget[idx].cast<float>();
+            mAdHTdeltaF[idx] = selfHost->get_state_minus_stateZero().head<8>().transpose() * mAdHost[idx]
+            + selfTarget->get_state_minus_stateZero().head<8>().transpose() * mAdTarget[idx];
         }
     }
 
-    mCDeltaF = (getFrames()[0]->getCaptureFrame().getInternalCalibration().getParameters(0) - mCalibZero).cast<float>();
+    mCDeltaF = (getFrames()[0]->getCaptureFrame().getInternalCalibration().getParameters(0) - mCalibZero);
 
     for(auto frame : getFrames())
     {
@@ -1216,12 +1216,12 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
             {
                 auto p = get(r->elements.mapPoint);
 
-                Matrix33 K = r->elements.frame->getK(0).cast<float>();
+                Matrix33 K = r->elements.frame->getK(0);
 
                 Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
                 Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
 
-                Vector3 ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().cast<float>().homogeneous();	// projected point assuming infinite depth.
+                Vector3 ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().homogeneous();	// projected point assuming infinite depth.
                 Vector3 ptp = ptp_inf + PRE_KtTll * r->elements.mapPoint->getReferenceInverseDepth();	// projected point with real depth.
                 float relBS = 0.01*((ptp_inf.head<2>() / ptp_inf[2])-(ptp.head<2>() / ptp[2])).norm();	// 0.01 = one pixel.
 
@@ -1320,15 +1320,15 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
     float energyLeft = 0;
 
-    Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0().cast<float>();
+    Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0();
 
-    Matrix33 R = precomputed.trialRefToTarget.getRotationMatrix().cast<float>();
-    Vector3 t = precomputed.trialRefToTarget.getTranslation().cast<float>();
+    Matrix33 R = precomputed.trialRefToTarget.getRotationMatrix();
+    Vector3 t = precomputed.trialRefToTarget.getTranslation();
 
 
     {
 
-        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted_center).cast<float>();
+        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted_center);
 
         Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
         Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
@@ -1350,7 +1350,7 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
         float Kv = projectedcurp_Distorted.y();
         Vector3 KliP = refcorner.homogeneous(); // todo : check this
 
-        Matrix33 K = frameToTrack->getK(0).cast<float>();
+        Matrix33 K = frameToTrack->getK(0);
         float fx = K(0,0);
         float fy = K(1,1);
 
@@ -1409,7 +1409,7 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
     for (int idx = 0; idx < 8; idx++) {
 
-        Vector2 shift = PredefinedPattern::star8(idx).cast<float>();
+        Vector2 shift = PredefinedPattern::star8(idx);
 
         Vector2 refcorner_Distorted = refcorner_Distorted_center + shift;
         Vector2 refcorner = mPinhole.undistort(refcorner_Distorted);
@@ -1432,11 +1432,11 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
         float refColor = pointData->colors[idx];
 
 
-        auto curColorWithGradient = image.interpolate(projectedcurp_Distorted);
+        auto curColorWithGradient = image.interpolate(projectedcurp_Distorted.cast<float>());
 
 
         float curColor = curColorWithGradient(0);
-        Vector2 curColorGradient = curColorWithGradient.tail<2>();
+        Vector2f curColorGradient = curColorWithGradient.tail<2>();
 
         float curRealColor = curColor;
         float refRealColor = precomputed.exposureTransition(refColor);
@@ -1536,13 +1536,13 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
     int nres = 0;
 
-    Vector4 dc = mCDeltaF;
+    Vector4f dc = mCDeltaF.cast<float>();
 
     float dd = p->deltaF;
 
     float bd_acc = 0;
     float Hdd_acc = 0;
-    Vector4 Hcd_acc = Vector4::Zero();
+    Vector4f Hcd_acc = Vector4f::Zero();
 
     for(auto r : p->getResiduals()) {
 
@@ -1562,7 +1562,7 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
         DSORawResidualJacobian &rJ = r->efsJ;
         int htIDX = get(point->getReferenceFrame())->id + get(r->elements.frame)->id * getFrames().size();
-        Vector8 dp = mAdHTdeltaF[htIDX];
+        Vector8f dp = mAdHTdeltaF[htIDX].cast<float>();
 
 
         List<dso::AccumulatorApprox> *acc = nullptr;
@@ -1570,12 +1570,12 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
         Vector8 resApprox; // todo : pattern number
         if(mode == DSORES_ACTIVE) {
-            resApprox = rJ.resF;
+            resApprox = rJ.resF.cast<scalar_t>();
             acc = &mAccumulatorActive;
         }
         if(mode == DSORES_MARGINALIZED) {
             acc = &mAccumulatorActive; // We use the active accumulator for marginalized points
-            resApprox = r->res_toZeroF;
+            resApprox = r->res_toZeroF.cast<scalar_t>();
         }
         if(mode == DSORES_LINEARIZED)
         {
@@ -1631,7 +1631,7 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
                 rJ.JabJIdx(1,0), rJ.JabJIdx(1,1),
                 JI_r[0], JI_r[1]);
 
-        Vector2 Ji2_Jpdd = rJ.JIdx2 * rJ.Jpdd;
+        Vector2f Ji2_Jpdd = rJ.JIdx2 * rJ.Jpdd;
         bd_acc +=  JI_r[0]*rJ.Jpdd[0] + JI_r[1]*rJ.Jpdd[1];
         Hdd_acc += Ji2_Jpdd.dot(rJ.Jpdd);
         Hcd_acc += rJ.Jpdc[0] * Ji2_Jpdd[0] + rJ.Jpdc[1] * Ji2_Jpdd[1];
@@ -1770,7 +1770,7 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
     self->HdiF = 1.0 / H;
     self->bdSumF = self->bd_accAF + self->bd_accLF;
     if(shiftPriorToZero) self->bdSumF += self->priorF*self->deltaF;
-    Vector4 Hcd = self->Hcd_accAF + self->Hcd_accLF;
+    Vector4f Hcd = self->Hcd_accAF + self->Hcd_accLF;
     mAccHcc.update(Hcd,Hcd,self->HdiF);
     mAccbc.update(Hcd, self->bdSumF * self->HdiF);
 
@@ -1898,7 +1898,7 @@ void CML::Optimization::DSOBundleAdjustment::applyRes(Ptr<DSOResidual, NonNullab
 
             std::swap(residual->rJ, residual->efsJ);
 
-            Vector2 JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
+            Vector2f JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
 
             for(int i=0;i<6;i++) {
                 residual->JpJdF[i] = residual->efsJ.Jpdxi[0][i] * JI_JI_Jd[0] + residual->efsJ.Jpdxi[1][i] * JI_JI_Jd[1];
@@ -1962,7 +1962,7 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
 
     dso::Accumulator11 E;
     E.initialize();
-    Vector4 dc = mCDeltaF;
+    Vector4f dc = mCDeltaF.cast<float>();
 
     for(auto point : getPoints())
     {
@@ -1978,7 +1978,7 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
 
             auto selfTarget = get(r->elements.frame);
 
-            Matrix<1, 8> dp = mAdHTdeltaF[selfHost->id + getFrames().size() * selfTarget->id];
+            Matrixf<1, 8> dp = mAdHTdeltaF[selfHost->id + getFrames().size() * selfTarget->id].cast<float>();
             DSORawResidualJacobian& rJ = r->efsJ;
 
 
@@ -2035,11 +2035,11 @@ void CML::Optimization::DSOBundleAdjustment::fixLinearization(Ptr<DSOResidual, N
 
     auto &J = residual->efsJ;
 
-    Vector8 dp = mAdHTdeltaF[ selfHost->id + getFrames().size() * selfTarget->id ];
+    Vector8f dp = mAdHTdeltaF[ selfHost->id + getFrames().size() * selfTarget->id ].cast<float>();
 
     // compute Jp*delta
-    __m128 Jp_delta_x = _mm_set1_ps(J.Jpdxi[0].dot(dp.head<6>()) + J.Jpdc[0].dot(mCDeltaF) + J.Jpdd[0] * selfPoint->deltaF);
-    __m128 Jp_delta_y = _mm_set1_ps(J.Jpdxi[1].dot(dp.head<6>()) + J.Jpdc[1].dot(mCDeltaF) + J.Jpdd[1] * selfPoint->deltaF);
+    __m128 Jp_delta_x = _mm_set1_ps(J.Jpdxi[0].dot(dp.head<6>()) + J.Jpdc[0].dot(mCDeltaF.cast<float>()) + J.Jpdd[0] * selfPoint->deltaF);
+    __m128 Jp_delta_y = _mm_set1_ps(J.Jpdxi[1].dot(dp.head<6>()) + J.Jpdc[1].dot(mCDeltaF.cast<float>()) + J.Jpdd[1] * selfPoint->deltaF);
     __m128 delta_a = _mm_set1_ps((float)(dp[6]));
     __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
