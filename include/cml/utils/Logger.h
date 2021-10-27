@@ -56,6 +56,8 @@ namespace CML {
         void setLogLevel(LoggerLevel level);
 
         void log(LoggerLevel level, const std::string &msg);
+        void raw(const std::string &msg);
+
         void debug(const std::string &msg);
         void info(const std::string &msg);
         void warn(const std::string &msg);

@@ -88,6 +88,10 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
 
 }
 
+void CML::Logger::raw(const std::string &msg) {
+    write(mStdout, msg.c_str(), msg.size());
+}
+
 void CML::Logger::debug(const std::string &msg) {
     log(LoggerLevel::MORE, msg);
 }
