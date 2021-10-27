@@ -1,7 +1,5 @@
 #include "cml/optimization/g2o/IndirectCameraOptimizer.h"
-
-// #include <g2o/solvers/csparse/linear_solver_csparse.h>
-#include <g2o/solvers/eigen/linear_solver_eigen.h>
+#include "cml/optimization/g2o/g2oconfig.h"
 
 CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, const Optional<Camera> &camera, const List<Matching> &matchings, List<bool> &outliers) {
 
@@ -10,7 +8,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new DefaultG2OSolver<g2o::BlockSolver_6_3::PoseMatrixType>()
             );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(
@@ -162,7 +160,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new DefaultG2OSolver<g2o::BlockSolver_6_3::PoseMatrixType>()
     );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(

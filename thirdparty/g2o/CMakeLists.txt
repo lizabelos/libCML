@@ -143,12 +143,12 @@ endif()
 
 # For building the CSparse based solvers. Note this depends on an LGPL library.
 #option(G2O_USE_CSPARSE "Build g2o with CSParse support" OFF)
-#find_package(CSparse)
+find_package(CSparse REQUIRED)
 #if (${G2O_USE_CSPARSE} AND ${CSPARSE_FOUND} AND ${G2O_USE_LGPL_LIBS})
 #  message(STATUS "Enable support for CSparse")
 #else()
 #  message(STATUS "Disable support for CSparse")
-  set(G2O_USE_CSPARSE FALSE)
+  set(G2O_USE_CSPARSE TRUE)
 #endif()
 
 
