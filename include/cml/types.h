@@ -920,6 +920,12 @@ namespace CML {
         }
     }
 
+    template<typename T> std::string matToString(const T & mat){
+        std::stringstream ss;
+        ss << mat;
+        return ss.str();
+    }
+
     typedef enum {
         INDIRECT = 0, DIRECT = 1
     } MapPointType;
