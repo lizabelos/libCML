@@ -96,9 +96,9 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
         mLayout.addLayout(&mCommandsLayout, 0, 0, 1, 3);
         mLayout.addWidget(&mFunctionListWidget, 1, 0);
-        mLayout.addWidget(&mModelWidget, 1, 1);
+        mLayout.addWidget(&mModelWidget, 1, 1, 2, 1);
         mLayout.addWidget(&mGroupsWidget, 1, 2);
-        mLayout.addLayout(&mCameraViewerLayout, 2, 0, 1, 3);
+        mLayout.addLayout(&mCameraViewerLayout, 2, 0, 1, 1);
         mLayout.addLayout(&mInformationsLayout, 3, 0, 1, 3);
 
         setLayout(&mLayout);

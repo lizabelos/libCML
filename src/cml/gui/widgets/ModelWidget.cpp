@@ -113,11 +113,26 @@ void CML::ModelWidget::onAddFrame(CML::Map &map, CML::PFrame lastFrame) {
     lastUp.x() = -lastUp.x();
     lastUp = -lastUp;
 
+    const CML::scalar_t factor = 0.9;
 
-    mCenter = mCenter * 0.9 + (lastCenter.cast<float>()) * 0.1;
-    mLookat = mLookat * 0.9 + (lastLookat.cast<float>()) * 0.1;
-    mLookUp = mLookUp * 0.9 + (lastUp.cast<float>()) * 0.1;
-    mSpeed = mSpeed * 0.9 + (map.getLastFrame(std::min(map.getFramesNumber() - 1, (unsigned int)120))->getCamera().eye() - lastFrame->getCamera().eye()).norm() * 0.1;
+    mCenter = mCenter * factor + lastCenter * (1.0 - factor);
+    mLookat = mLookat * factor + lastLookat * (1.0 - factor);
+    mSpeed = mSpeed * factor + (map.getLastFrame(std::min(map.getFramesNumber() - 1, (unsigned int)120))->getCamera().eye() - lastFrame->getCamera().eye()).norm() * (1.0 - factor);
+
+    if (mType == FOLLOW) {
+        mLookUp = mLookUp * factor + lastUp * (1.0 - factor);
+
+
+        Vector3 direction = lastLookat - lastCenter;
+        Vector3 center = lastCenter - (direction * mSpeed);
+        center = center + (mLookUp * mSpeed); //Eigen::Vector3f(0,mSpeed,0);
+
+
+        mFirstPersonCenter = center * factor + mFirstPersonCenter * (1 - factor);
+        mFirstPersonDirection = mFirstPersonDirection * factor + (mLookat - mFirstPersonCenter) * (1.0 - factor);
+    }
+
+
 
     if (mSaveImages) {
         QMetaObject::invokeMethod(this, "saveImage", Qt::QueuedConnection);
@@ -178,7 +193,7 @@ void CML::ModelWidget::paintCameras() {
         case TRACKBALL:
         case TOP: {
             Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
-            Eigen::Vector3f center = mCenter;
+            Eigen::Vector3f center = mCenter.cast<float>();
             center(0) = -center(0);
             center(2) = -center(2);
             T.col(3) = center.homogeneous();
@@ -266,15 +281,12 @@ Eigen::Matrix4f CML::ModelWidget::getTopCameraMatrix() const {
 /// @brief Returns a view transformation matrix like the one from glu's lookAt
 /// @see http://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
 /// @see glm::lookAt
-template<typename Derived>
-Eigen::Matrix<typename Derived::Scalar,4,4> lookAt(Derived const & eye, Derived const & center, Derived const & up){
-    typedef Eigen::Matrix<typename Derived::Scalar,4,4> Matrix4;
-    typedef Eigen::Matrix<typename Derived::Scalar,3,1> Vector3;
-    Vector3 f = (center - eye).normalized();
-    Vector3 u = up.normalized();
-    Vector3 s = f.cross(u).normalized();
+CML::Matrix44 lookAt(const CML::Vector3 &eye, const CML::Vector3 &center, const CML::Vector3 &up){
+    CML::Vector3 f = (center - eye).normalized();
+    CML::Vector3 u = up.normalized();
+    CML::Vector3 s = f.cross(u).normalized();
     u = s.cross(f);
-    Matrix4 mat = Matrix4::Zero();
+    CML::Matrix44 mat = CML::Matrix44::Zero();
     mat(0,0) = s.x();
     mat(0,1) = s.y();
     mat(0,2) = s.z();
@@ -293,14 +305,15 @@ Eigen::Matrix<typename Derived::Scalar,4,4> lookAt(Derived const & eye, Derived 
 
 
 Eigen::Matrix4f CML::ModelWidget::getFirstPersonCameraMatrix() const {
-    return lookAt(mFirstPersonCenter, (Eigen::Vector3f)(mFirstPersonCenter + mFirstPersonDirection), Eigen::Vector3f(0,1,0));
+    return lookAt(mFirstPersonCenter, mFirstPersonCenter + mFirstPersonDirection, mLookUp).cast<float>();
 }
 
 Eigen::Matrix4f CML::ModelWidget::getFollowMatrix() const {
-    Vector3f direction = mLookat - mCenter;
+    /*Vector3f direction = mLookat - mCenter;
     Vector3f center = mCenter - (direction * mSpeed);
     center = center + (mLookUp * mSpeed); //Eigen::Vector3f(0,mSpeed,0);
-    return lookAt(center, mLookat, mLookUp);
+    return lookAt(center, mLookat, mLookUp);*/
+    return lookAt(mFirstPersonCenter, mFirstPersonCenter + mFirstPersonDirection, mLookUp).cast<float>();
 }
 
 void CML::ModelWidget::moveFront(float delta) {
@@ -309,12 +322,12 @@ void CML::ModelWidget::moveFront(float delta) {
 
 void CML::ModelWidget::rotateLeft(float delta) {
     mLeft += delta;
-    mFirstPersonDirection = Eigen::AngleAxisf(-delta, Eigen::Vector3f(0,1,0)) * mFirstPersonDirection;
+    mFirstPersonDirection = Eigen::AngleAxis<scalar_t>(-delta, Vector3(0,1,0)) * mFirstPersonDirection;
 }
 
 void CML::ModelWidget::rotateUp(float delta) {
     mUp += delta;
-    mFirstPersonDirection = Eigen::AngleAxisf(delta, Eigen::Vector3f(1,0,0)) * mFirstPersonDirection;
+    mFirstPersonDirection = Eigen::AngleAxis<scalar_t>(delta, Vector3(1,0,0)) * mFirstPersonDirection;
 }
 
 void CML::ModelWidget::mousePressEvent(QMouseEvent *event) {
@@ -322,12 +335,18 @@ void CML::ModelWidget::mousePressEvent(QMouseEvent *event) {
     if (event->buttons() & Qt::LeftButton) {
         mGrabbed = !mGrabbed;
         if (mGrabbed) {
+            if (mType == FOLLOW) {
+                mType = FIRSTPERSON;
+            }
             grabKeyboard();
             grabMouse();
             setFocus();
             setCursor(Qt::BlankCursor);
             setMouseTracking(true);
         } else {
+            if (mType == FIRSTPERSON) {
+                mType = FOLLOW;
+            }
             releaseKeyboard();
             releaseMouse();
             setCursor(Qt::ArrowCursor);
@@ -420,13 +439,13 @@ void CML::ModelWidget::timerEvent(QTimerEvent *e) {
                 mFirstPersonCenter += mFirstPersonDirection * ratio;
             }
             if (mKeyPressed[1] == true) { // Left
-                mFirstPersonCenter -= mFirstPersonDirection.cross(Eigen::Vector3f(0,1,0)) * ratio;
+                mFirstPersonCenter -= mFirstPersonDirection.cross(Vector3(0,1,0)) * ratio;
             }
             if (mKeyPressed[2] == true) { // backward
                 mFirstPersonCenter -= mFirstPersonDirection * ratio;
             }
             if (mKeyPressed[3] == true) { // right
-                mFirstPersonCenter += mFirstPersonDirection.cross(Eigen::Vector3f(0,1,0)) * ratio;
+                mFirstPersonCenter += mFirstPersonDirection.cross(Vector3(0,1,0)) * ratio;
             }
             if (mKeyPressed[4] == true) { // up
                 mFirstPersonCenter.y() += ratio;

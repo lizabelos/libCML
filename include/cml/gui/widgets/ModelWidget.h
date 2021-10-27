@@ -102,10 +102,10 @@ namespace CML {
         float mLeft = 0.0f;
         float mUp = 0.0f;
         Eigen::Matrix4f mProjectionMatrix;
-        Eigen::Vector3f mCenter = Eigen::Vector3f(0,0,0), mLookat = Eigen::Vector3f(0,0,0), mLookUp = Eigen::Vector3f(0,1,0);
+        Vector3 mCenter = Vector3(0,0,0), mLookat = Vector3(0,0,0), mLookUp = Vector3(0,1,0);
         float mSpeed = 1;
 
-        Eigen::Vector3f mFirstPersonCenter = Eigen::Vector3f(0,0,-1), mFirstPersonDirection = Eigen::Vector3f(0,0,1);
+        Vector3 mFirstPersonCenter = Vector3(0,0,-1), mFirstPersonDirection = Vector3(0,0,1);
 
         QPoint mLastMousePosition;
 

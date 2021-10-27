@@ -38,7 +38,9 @@ namespace CML {
         QGridLayout *mLayout;
         QCustomPlot *mCustomPlot;
 
-        int mSize = 100;
+        int mMaxSize = 100;
+        int mI = 0;
+        int mSize = 0;
         QVector<double> mX, mY;
 
     };
