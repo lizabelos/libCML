@@ -156,6 +156,16 @@ void test3() {
     timer.stopAndPrint("Assignement result");
 }
 
+class StatisticPrinter : public CML::Statistic::Observer {
+
+    virtual void onNewValue(Statistic *statistic, scalar_t x, scalar_t y) {
+        std::string name = statistic->getName();
+        std::replace( name.begin(), name.end(), ' ', '_');
+        logger.raw("STAT " + name + " " + std::to_string(x) + " " + std::to_string(y) + "\n");
+    }
+
+};
+
 #if CML_IS_ANDROID
 int main(int argc, char *argv[])
 {
@@ -230,7 +240,7 @@ int main(int argc, char *argv[])
         }
     });
 #if CML_ENABLE_GUI
-    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(false);
+    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(true);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
 #endif
 #if CML_HAVE_YAML_CPP
@@ -249,6 +259,7 @@ int main(int argc, char *argv[])
     program.add_argument("-l", "--log").nargs(1).help("Write the log to a file").action([](const std::string &value) {
         logger.redirect(value);
     });
+    program.add_argument("-z", "--stats").nargs(0).help("Print the stats to cout").default_value(false).implicit_value(true);
     program.add_argument("-s", "--save").nargs(1).help("Save the images").action([&saveImagePath](const std::string &value) {
         saveImagePath = value;
     });
@@ -264,6 +275,14 @@ int main(int argc, char *argv[])
 #else
     executionMode = CONSOLE;
 #endif
+
+    if (program["--stats"] == true) {
+
+        StatisticPrinter *sp = new StatisticPrinter;
+        for (auto fn: slam->getStatistics()) {
+            fn->subscribeObserver(sp);
+        }
+    }
 
 
 #if CML_ENABLE_GUI

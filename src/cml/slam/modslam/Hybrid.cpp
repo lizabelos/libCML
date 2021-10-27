@@ -232,9 +232,9 @@ void Hybrid::indirectPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableIndirect.b()) {
         return;
     }
+    logger.important("Indirect postprocess");
     if (needKF || (mBaMode != BAINDIRECT && mLastNumTrackedPoints < 15)) {
         //currentFrame->setGroup(getMap().KEYFRAME, true);
-        mStatisticIndirectNeedKF->addValue(1);
         if (mLinearizeIndirect.b()) {
             indirectMap(currentFrame);
         } else {
@@ -243,7 +243,6 @@ void Hybrid::indirectPostprocess(PFrame currentFrame, bool needKF) {
             mIndirectStopFlag = true;
         }
     } else {
-        mStatisticIndirectNeedKF->addValue(0);
         LockGuard lg(mFrameToFreeMutex);
         mFrameToFree[currentFrame] = 0;
     }
@@ -253,15 +252,14 @@ void Hybrid::directPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableDirect.b()) {
         return;
     }
+    logger.important("Direct postprocess");
     if (needKF) {
-        mStatisticDirectNeedKF->addValue(1);
         if (mLinearizeDirect.b()) {
             directMap(currentFrame);
         } else {
             mDirectNeedKeyframeAfter = currentFrame->getId();
         }
     } else {
-        mStatisticDirectNeedKF->addValue(0);
         if (mLinearizeDirect.b()) {
             directMakeNonKeyFrame(currentFrame);
         }
@@ -334,7 +332,6 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 modeSum = modeSum + 1;
                 mTrackedWithDirect = true;
                 currentFrame->setExposureParameters(exposure);
-                mStatisticDScore->addValue(mLastPhotometricTrackingResidual.numTermsInE[0] - mLastPhotometricTrackingResidual.numSaturated[0]);
             }
         }
     }
@@ -354,9 +351,6 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
         }
     }
 
-    if (modeSum > 0) {
-        mStatisticMode->addValue(mode / modeSum);
-    }
 }
 
 void Hybrid::trackWithDso(PFrame currentFrame) {
@@ -383,9 +377,6 @@ void Hybrid::trackWithDso(PFrame currentFrame) {
         }
     }
 
-    if (modeSum > 0) {
-        mStatisticMode->addValue(mode / modeSum);
-    }
 
 }
 
@@ -417,6 +408,8 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
     }
 
     if (result == 1) {
+        PFrame lastDirectKeyFrame = mLastDirectKeyFrame;
+
         mLastDirectKeyFrame->setGroup(getMap().KEYFRAME, true);
         currentFrame->setGroup(getMap().KEYFRAME, true);
         mLastDirectKeyFrame->setGroup(INDIRECTKEYFRAME, true);
@@ -434,12 +427,20 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
             }
 
             if (mEnableIndirect.b()) {
-                indirectCreateNewImmaturePoint(currentFrame);
+                // indirectCreateNewImmaturePoint(currentFrame);
+                needVocabularyFor(lastDirectKeyFrame);
+                needVocabularyFor(currentFrame);
+                auto lastDirectKeyFrameData = get(lastDirectKeyFrame);
+                auto mCurrentFrameData = get(currentFrame);
+                List<Matching> matchings = mTriangulationTracker->trackForTriangulation({lastDirectKeyFrame, lastDirectKeyFrameData->featureId, lastDirectKeyFrameData->descriptors},{currentFrame, mCurrentFrameData->featureId, mCurrentFrameData->descriptors});
+
+                auto currentNewImmaturePoints = indirectCreateNewImmaturePointFromMatchings(matchings);
+
             }
 
         }
 
-        mReferenceKeyFrame = mLastDirectKeyFrame;
+        mReferenceKeyFrame = lastDirectKeyFrame;
         mLastFrame = currentFrame;
 
         mState = OK;

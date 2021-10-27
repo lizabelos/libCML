@@ -88,18 +88,17 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         );
     }
 
-    logger.info("Found " + std::to_string(matchings.size()) + " matchings from last frame");
-    mStatisticIndirectMotionModelMatching->addValue(matchings.size());
+    logger.important("Found " + std::to_string(matchings.size()) + " matchings from last frame");
 
     if (matchings.size() < 20) {
-        logger.debug("Not accepting the tracking with motion model because of the number of matchings");
+        logger.important("Not accepting the tracking with motion model because of the number of matchings");
         return false;
     }
 
     List<bool> outliers;
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, motionToTry, matchings, outliers);
     if (!mLastIndirectTrackingResult.isOk) {
-        logger.debug("Not accepting the tracking with motion model because the optimization failed");
+        logger.important("Not accepting the tracking with motion model because the optimization failed");
         return false;
     }
 
@@ -124,7 +123,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         }
         return true;
     } else {
-        logger.debug("Not accepting the tracking with motion model because too many outliers");
+        logger.important("Not accepting the tracking with motion model because too many outliers");
         return false;
     }
 }
@@ -134,6 +133,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
     OptPFrame referenceKeyFrame = mReferenceKeyFrame;
 
     if (referenceKeyFrame.isNull()) {
+        logger.important("No reference keyframe");
         return false;
     }
 
@@ -148,18 +148,17 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
             {referenceKeyFrame, referenceKeyFrameData->featureId, referenceKeyFrameData->descriptors}
     );
 
-    mStatisticIndirectReferencePoints->addValue(referenceKeyFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size());
-    mStatisticIndirectReferenceMatching->addValue(matchings.size());
-    logger.info("Found " + std::to_string(matchings.size()) + " matchings from reference");
+    logger.important("Found " + std::to_string(matchings.size()) + " matchings from reference");
 
     if (matchings.size() < 15) {
+        logger.important("Not enough matchings");
         return false;
     }
 
     List<bool> outliers;
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, mLastFrame->getCamera(), matchings, outliers);
     if (!mLastIndirectTrackingResult.isOk) {
-        logger.info("Reference PnP failed");
+        logger.important("Reference PnP failed");
         return false;
     }
 
@@ -219,8 +218,6 @@ bool Hybrid::indirectTrackLocalMap(PFrame currentFrame) {
     }
     mLastNumTrackedPoints = numTrackedPoints;
 
-    mStatisticIScore->addValue(numTrackedPoints);
-
     return numTrackedPoints > 30;
 }
 
@@ -253,9 +250,7 @@ void Hybrid::indirectSearchLocalPoints(PFrame currentFrame) {
         th = 5;
     }
 
-    List<PPoint> mapPoints;
-    auto points = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT);
-    for (auto point : points) mapPoints.emplace_back(point);
+    List<PPoint> mapPoints = getMap().getGroupMapPointsAsList(ACTIVEINDIRECTPOINT);
 
     List<Pair<int, int>> matchings = mLocalPointsTracker->trackByProjection(
             {currentFrame, currentFrameData->featureId, currentFrameData->descriptors},

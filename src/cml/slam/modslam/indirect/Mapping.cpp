@@ -25,7 +25,6 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
         logger.info("Stopping indirect map because one frame is in the queue");
         timer.stop();
-        mStatisticITime->addValue(timer.getValue());
         mIndirectMappingQueue.notifyPop();
         return;
     }
@@ -55,7 +54,6 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
         logger.info("Stopping indirect map because one frame is in the queue");
         timer.stop();
-        mStatisticITime->addValue(timer.getValue());
         mIndirectMappingQueue.notifyPop();
         return;
     }
@@ -65,7 +63,6 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
         logger.info("Stopping indirect map because one frame is in the queue");
         timer.stop();
-        mStatisticITime->addValue(timer.getValue());
         mIndirectMappingQueue.notifyPop();
         return;
     }
@@ -74,7 +71,6 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
         logger.info("Stopping indirect map because one frame is in the queue");
         timer.stop();
-        mStatisticITime->addValue(timer.getValue());
         mIndirectMappingQueue.notifyPop();
         return;
     }
@@ -82,7 +78,6 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     keyframeCulling();
 
     timer.stop();
-    mStatisticITime->addValue(timer.getValue());
 }
 
 void Hybrid::indirectLocalOptimize(PFrame currentFrame) {
@@ -160,6 +155,8 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
     List<PPoint> newImmatures;
     Mutex newImmaturesMutex;
 
+    int scaleConsistencyFailures = 0, frontFailures = 0, parallaxFailures = 0, finiteFailures = 0;
+
     #if CML_USE_OPENMP
     #pragma omp parallel for schedule(dynamic)
     #endif
@@ -174,14 +171,20 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
             // matching.getFrameA()->setMapPoint(matching.getIndexA(matching.getFrameA()), matching.getMapPoint());
         } else {
 
+            scalar_t parallax = matching.getFrameA()->getCamera().parallax(matching.getFrameB()->getCamera(), matching.noAssertGetUndistortedA(0), matching.noAssertGetUndistortedB(0));
+            bool parallaxCondition = parallax < 0.99998;
+
+            if (!parallaxCondition) {
+                parallaxFailures++;
+                continue;
+            }
+
             Vector3 pos = mTriangulator->triangulate(matching.getFrameA()->getCamera(), matching.getFrameB()->getCamera(), matching.getUndistortedA(matching.getFrameA(), 0), matching.getUndistortedB(matching.getFrameB(), 0));
 
-            scalar_t parallax = matching.getFrameA()->getCamera().parallax(matching.getFrameB()->getCamera(), pos);
 
             bool finiteCondition = pos.allFinite();
             bool frontCondition = matching.getFrameA()->getCamera().inFront(pos) && matching.getFrameB()->getCamera().inFront(pos);
 
-            bool parallaxCondition = parallax < 0.99998;
 
 
             //Check scale consistency
@@ -199,6 +202,17 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
 
             bool scaleConsistencyCondition = !(ratioDist * ratioFactor < ratioOctave || ratioDist > ratioOctave * ratioFactor);
 
+            if (!scaleConsistencyCondition) {
+                scaleConsistencyFailures++;
+            }
+
+            if(!frontCondition) {
+                frontFailures++;
+            }
+
+            if (!finiteCondition) {
+                finiteFailures++;
+            }
 
             if (scaleConsistencyCondition && frontCondition && parallaxCondition && finiteCondition) {
 
@@ -226,6 +240,14 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
         }
 
     }
+
+    logger.important("Mapped " + std::to_string(newImmatures.size()) + " 3D points");
+    logger.important("Scale consistency failures : " + std::to_string(scaleConsistencyFailures));
+    logger.important("Front failures : " + std::to_string(frontFailures));
+    logger.important("Parallax failures : " + std::to_string(parallaxFailures));
+    logger.important("Finite failures : " + std::to_string(finiteFailures));
+
+
     return newImmatures;
 }
 
@@ -245,12 +267,17 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePoint(PFrame currentFrame) {
 
     bool isFirst = true;
 
-    auto frames = getMap().processIndirectCovisiblity(currentFrame, 20, INDIRECTKEYFRAME);
+    List<PFrame> frames = getMap().processIndirectCovisiblity(currentFrame, 20, INDIRECTKEYFRAME);
     if (frames.size() == 0) {
-        frames = getMap().processDirectCovisiblity(currentFrame, 20);
+        // frames = getMap().processDirectCovisiblity(currentFrame, 20);
+        frames = getMap().getGroupFrameAsList(mPhotometricBA->ACTIVEKEYFRAME);
     }
 
     for (auto frame : frames) {
+
+        if (frame == currentFrame) {
+            continue;
+        }
 
         if (!isFirst && mIndirectMappingQueue.getCurrentSize() > 1) {
             return newImmaturePoints;

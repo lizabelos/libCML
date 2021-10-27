@@ -15,6 +15,7 @@ namespace CML {
         Matching(scalar_t descriptorDistance, PFrame frameA, PFrame frameB, FeatureIndex indexA, FeatureIndex indexB) :
         mFrameA(frameA), mFrameB(frameB), mIndexA(indexA), mIndexB(indexB), mDescriptorDistance(descriptorDistance)
         {
+            assertThrow(frameA != frameB, "Frame cannot be equal inside the matching");
         }
 
         inline Corner getFeaturePointA(PFrame frame) const {

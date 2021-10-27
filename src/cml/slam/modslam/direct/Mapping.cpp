@@ -76,7 +76,6 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
 
         if (mIndirectMappingQueue.getCurrentSize() > 1) {
             timer.stop();
-            mStatisticITime->addValue(timer.getValue());
             mIndirectMappingQueue.notifyPop();
             return;
         }

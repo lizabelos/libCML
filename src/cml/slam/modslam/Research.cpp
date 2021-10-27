@@ -7,6 +7,14 @@ bool Hybrid::poseEstimationDecision() {
     currentVariance.tail<3>() = mLastPhotometricTrackingResidual.covariance.tail<3>();
     mTrackingDecisionCovariances.add(currentVariance);
 
+    Vector6 v = mTrackingDecisionCovariances.accumulate(mTrackcondUncertaintyWindow.i());
+    scalar_t vnorminv = 1.0 / v.norm();
+
+    scalar_t indirectUncertainty = v.head<3>().norm() * vnorminv;
+    scalar_t directUncertainty = v.tail<3>().norm() * vnorminv;
+
+    mStatTrackORBVar->addValue(indirectUncertainty);
+    mStatTrackDSOVar->addValue(directUncertainty);
 
     if (mTrackcondForce.i() == 1) {
         return false;
@@ -21,12 +29,6 @@ bool Hybrid::poseEstimationDecision() {
     }
 
     if (mTrackcondUncertaintyWeight.f() > 0) {
-
-        Vector6 v = mTrackingDecisionCovariances.accumulate(mTrackcondUncertaintyWindow.i());
-        scalar_t vnorminv = 1.0 / v.norm();
-
-        scalar_t indirectUncertainty = v.head<3>().norm() * vnorminv;
-        scalar_t directUncertainty = v.tail<3>().norm() * vnorminv;
 
         logger.important("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
         logger.important("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
@@ -50,6 +52,18 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     currentVariance.tail<3>() = mLastPhotometricTrackingResidual.covariance.tail<3>();
     mBADecisionCovariances.add(currentVariance);
 
+    scalar_t currentOrbScore = mLastNumTrackedPoints;
+    scalar_t currentDsoScore = mLastPhotometricTrackingResidual.numRobust[0];
+    mBADecisionScores.add(Vector2(currentOrbScore, currentDsoScore));
+
+    Vector2 scores = mBADecisionScores.accumulate(mScoreWindow.i());
+    scalar_t orbScore = scores(0);
+    scalar_t dsoScore = scores(1);
+    scalar_t weightedDsoScore = dsoScore * mScoreWeight.f();
+
+    mStatBAORBNum->addValue(orbScore);
+    mStatBADSONum->addValue(dsoScore);
+
     if (mBacondForce.i() == 1) {
         return BAINDIRECT;
     }
@@ -72,15 +86,6 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     }
 
     if (mScoreWeight.f() >= 0) {
-
-        scalar_t currentOrbScore = mLastNumTrackedPoints;
-        scalar_t currentDsoScore = mLastPhotometricTrackingResidual.numRobust[0];
-        mBADecisionScores.add(Vector2(currentOrbScore, currentDsoScore));
-
-        Vector2 scores = mBADecisionScores.accumulate(mScoreWindow.i());
-        scalar_t orbScore = scores(0);
-        scalar_t dsoScore = scores(1);
-        scalar_t weightedDsoScore = dsoScore * mScoreWeight.f();
 
         logger.important("ORB Score ( BA Decision ) : " + std::to_string(orbScore));
         logger.important("DSO Score ( BA Decision ) : " + std::to_string(dsoScore) + " -> " + std::to_string(weightedDsoScore));

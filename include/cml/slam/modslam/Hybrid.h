@@ -297,21 +297,12 @@ private:
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", -1);
 
-
-    Ptr<Statistic, NonNullable> mStatisticDScore = createStatistic("Direct Score");
-    Ptr<Statistic, NonNullable> mStatisticIScore = createStatistic("Indirect Score");
-    Ptr<Statistic, NonNullable> mStatisticMode = createStatistic("Mode");
-    Ptr<Statistic, NonNullable> mStatisticIndirectMotionModelMatching = createStatistic("Indirect Motion Model Matching");
-
-    Ptr<Statistic, NonNullable> mStatisticIndirectReferencePoints = createStatistic("Indirect Points Number");
-    Ptr<Statistic, NonNullable> mStatisticIndirectReferenceMatching = createStatistic("Indirect Reference Matching");
-
-    Ptr<Statistic, NonNullable> mStatisticDirectNeedKF = createStatistic("Direct Need Key Frame");
-    Ptr<Statistic, NonNullable> mStatisticIndirectNeedKF = createStatistic("Indirect Need Key Frame");
+    Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
+    Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
+    Ptr<Statistic, NonNullable> mStatBAORBNum = createStatistic("BA ORB Num");
+    Ptr<Statistic, NonNullable> mStatBADSONum = createStatistic("BA DSO Num");
 
 
-    Ptr<Statistic, NonNullable> mStatisticDTime = createStatistic("Direct Time");
-    Ptr<Statistic, NonNullable> mStatisticITime = createStatistic("Indirect Time");
 
 };
 
