@@ -95,6 +95,11 @@ namespace CML {
 
         unsigned int getGroupFramesNumber(int groupId);
 
+        inline List<PFrame> getGroupFrameAsList(int groupId) {
+            auto frames = getGroupFrames(groupId);
+            return List<PFrame>(frames.begin(), frames.end());
+        }
+
         OptPFrame getLastGroupFrame(int groupId);
 
         OptPFrame getLastGroupFrame(int groupId, int n);
