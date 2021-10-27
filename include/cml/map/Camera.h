@@ -305,6 +305,13 @@ namespace CML {
 
         }
 
+        EIGEN_STRONG_INLINE scalar_t parallax(const Camera &c2, const UndistortedVector2d &x1, const UndistortedVector2d &x2) const {
+            const Camera &c1 = *this;
+            Vector3 ray1 = c1.getRotationMatrix().transpose() * x1.homogeneous();
+            Vector3 ray2 = c2.getRotationMatrix().transpose() * x2.homogeneous();
+            return ray1.dot(ray2)/(ray1.norm() * ray2.norm());
+        }
+
         EIGEN_STRONG_INLINE Matrix33 essential() const {
 
             Matrix33 S = mRotation.matrix();
