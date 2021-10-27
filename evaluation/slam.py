@@ -1,3 +1,4 @@
+import shutil
 from abc import ABC, abstractmethod
 import tempfile
 import os
@@ -10,6 +11,10 @@ class SLAM(ABC):
 
     def __init__(self):
         self.tmp = None
+        self.stats = {}
+
+    def __del__(self):
+        shutil.rmtree(self.outputdir(), ignore_errors=True)
 
     def outputdir(self):
         if self.tmp is None:
@@ -43,10 +48,22 @@ class SLAM(ABC):
     def elapsed(self):
         pass
 
+    def processLogForStats(self, log):
+        stats_table = [x.split(" ")[1:] for x in log.split("\n") if x.startswith("STAT")]
+        stats = {}
+        for name, x, y in stats_table:
+            if not name in stats:
+                stats[name] = []
+            stats[name].append(float(y))
+        self.stats = stats
+
+    def getStats(self):
+        return self.stats
+
 
 class ModSLAM(SLAM):
 
-    def __init__(self, modslampath = None):
+    def __init__(self, modslampath=None, configpath="modslam.yaml"):
         super().__init__()
         self.e = 0
         self.d = None
@@ -54,7 +71,8 @@ class ModSLAM(SLAM):
         if modslampath is not None:
             self.modslampath = modslampath
 
-        f = open("modslam.yaml", "r")
+        print("Loading config " + configpath)
+        f = open(configpath, "r")
         self.config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
 
@@ -69,13 +87,17 @@ class ModSLAM(SLAM):
         # print("Configuration file : " + config_filename)
 
         executable = self.modslampath
-        args = "-c \"" + config_filename + "\" -t -d \"" + d.folder() + "\" -r \"" + os.path.join(output, "result") + "\""
+        args = "-c \"" + config_filename + "\" -t -z -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
         command = executable + " " + args
 
-        system(command, self.outputlog(), "w")
+        print(command)
+
+        out, err = system(command, self.outputlog(), "w")
+        self.processLogForStats(out)
 
     def outputlog(self):
-        return os.path.join(self.outputdir(), "log.txt")
+        return "/dev/null"
+        # return os.path.join(self.outputdir(), "log.txt")
 
     def outputtum(self):
         return os.path.join(self.outputdir(), "result.tum.txt")

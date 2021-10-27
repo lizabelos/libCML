@@ -11,8 +11,8 @@ dsoInitializer.pointDensity: 2000
 
 # Tracking condition ( -1 to disable )
 trackcondUncertaintyWeight: 0.75
-trackcondUncertaintyWindow: 7
-trackcondForce: 0 # 0 = Nothing; 1 = ORB; 2 = DSO
+trackcondUncertaintyWindow: 1
+trackcondForce: 2 # 0 = Nothing; 1 = ORB; 2 = DSO
 
 # Bundle Adjustment condition ( -1 to disable )
 bacondSaturatedRatio: -1
@@ -21,7 +21,7 @@ bacondScoreWindow: 1
 bacondUncertaintyWeight: -1
 bacondUncertaintyWindow: -1
 bacondMinimumOrbPoint: -1
-bacondForce: 0 # 0 = Nothing; 1 = ORB; 2 = DSO
+bacondForce: 2 # 0 = Nothing; 1 = ORB; 2 = DSO
 
 # Enable Neural Network at initialization
 enableNN: false

@@ -5,6 +5,7 @@ import csv
 import concurrent
 import concurrent.futures
 import multiprocessing
+from statistics import mean
 
 from evo.tools.file_interface import csv_read_matrix
 
@@ -81,19 +82,64 @@ def main():
                 except:
                     print("Unable to evaluate " + datasets[i].name())
 
+def statsOn(configName):
+    datasets, datasets_names, slams, slams_names = parse_config()
+    table = None
+
+    for i in range(0, len(datasets)):
+        s = slams[0]
+        name = slams_names[0]
+        context = s[0](s[1], configName)
+
+        print("Evaluating on " + datasets[i].name())
+        print("Result folder : " + context.outputdir())
+
+        context.run(datasets[i])
+
+        try:
+            evaluation = evaluator.fromslam(context)
+            ate = evaluation.ape_rmse()
+            rpe = evaluation.rpe_rmse()
+
+            stats = context.getStats()
+
+            if table is None:
+                table = FileTable(["ate", "rpe"] + [x + ".avg" for x in stats.keys()] + [x + ".med" for x in stats.keys()] + [x + ".ecl" for x in stats.keys()] + [x + ".ech" for x in stats.keys()], datasets_names, "result/table.csv")
+
+            for k in stats.keys():
+                v = stats[k]
+                v.sort()
+                s = len(v)
+                table.set(k + ".avg", datasets[i].name(), mean(stats[k]))
+                table.set(k + ".med", datasets[i].name(), v[s // 2])
+                table.set(k + ".ecl", datasets[i].name(), v[s // 4])
+                table.set(k + ".ech", datasets[i].name(), v[s // 4 * 3])
+
+            table.set("ate", datasets[i].name(), ate)
+            table.set("rpe", datasets[i].name(), rpe)
+
+        except:
+            print("Unable to evaluate " + datasets[i].name())
+
+
+
+
 
 def ablationstudy():
     datasets, datasets_names, slams, slams_names = parse_config()
-    for d in datasets:
-        d.setuseramdisk(True)
+    #for d in datasets:
+    #    d.setuseramdisk(True)
 
-    param_name = "numOrbCorner"
-    valuesToTry = [250, 500, 750, 1000, 1250, 1500]
+    valuesToTry = [1.25, 1.50, 1.75, 2.0]
+    valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
+    valuesToTry = [x * 0.0125 for x in valuesToTry]
 
-    bacondForce = 1  # Privilege ORB
-    trackcondForce = 1  # Privilege ORB
+    print(valuesToTry)
 
-    num_execution = 10
+    # desiredPointDensity = 2000 // 10
+    # immatureDensity = 1500 // 10
+
+    num_execution = 3
 
     table_ate = MedianTableProxy(FileTable(valuesToTry, datasets_names, "result/ate.csv"))
     table_error = SumTableProxy(FileTable(valuesToTry, datasets_names, "result/error.csv"))
@@ -102,15 +148,15 @@ def ablationstudy():
         datasets[i].use()
 
         try:
-            print("Value : %d ; Dataset : %s ; Execution : %d" % (v, datasets[i].name(), n))
+            print("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
 
             s = slams[0]
             name = slams_names[0]
             context = s[0](s[1])
 
-            context.setconfig("bacondForce", bacondForce)
-            context.setconfig("trackcondForce", trackcondForce)
-            context.setconfig(param_name, v)
+            # context.setconfig("dsoTracer.desiredPointDensity", desiredPointDensity)
+            # context.setconfig("dsoTracer.immatureDensity", immatureDensity)
+            context.setconfig("bacondScoreWeight", v)
 
             context.run(datasets[i])
 
@@ -125,7 +171,8 @@ def ablationstudy():
             datasets[i].unuse()
 
     # Each SLAM instance will use 2 thread
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
+    # executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     futures = []
 
     for i in range(0, len(datasets)):
@@ -137,4 +184,6 @@ def ablationstudy():
 
 
 if __name__ == "__main__":
-    ablationstudy()
+    #main()
+    statsOn("orb.yaml")
+    #ablationstudy()
