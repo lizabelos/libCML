@@ -108,7 +108,7 @@ namespace CML {
 
         void reset();
 
-        List<PFrame> processIndirectCovisiblity(PFrame frame, int max = -1, int groupId = -1, int th = 15);
+        List<PFrame> processIndirectCovisiblity(PFrame frame, int max = -1, int groupId = -1, int th = -1);
 
         List<PFrame> processDirectCovisiblity(PFrame frame, int max = -1, int groupId = -1);
 

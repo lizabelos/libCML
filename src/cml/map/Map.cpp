@@ -409,9 +409,16 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
 
     List<Pair<PFrame, int>> candidatesList;
     for (auto pair : candidates) {
+        if (pair.first == frame) {
+            continue;
+        }
         if (pair.first->isGroup(groupId)) {
             candidatesList.emplace_back(pair);
         }
+    }
+
+    if (candidates.size() == 0) {
+        return List<PFrame>();
     }
 
     std::sort(candidatesList.begin(), candidatesList.end(), [](const auto &a, const auto &b) {
@@ -462,9 +469,16 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
 
     List<Pair<PFrame, int>> candidatesList;
     for (auto pair : candidates) {
+        if (pair.first == frame) {
+            continue;
+        }
         if (pair.first->isGroup(groupId)) {
             candidatesList.emplace_back(pair);
         }
+    }
+
+    if (candidates.size() == 0) {
+        return List<PFrame>();
     }
 
     std::sort(candidatesList.begin(), candidatesList.end(), [](const auto &a, const auto &b) {
