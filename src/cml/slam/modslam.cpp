@@ -239,10 +239,10 @@ int main(int argc, char *argv[])
             logger.error("Can't load dataset '" + value + "'");
         }
     });
-#if CML_ENABLE_GUI
+//#if CML_ENABLE_GUI
     program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(true);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
-#endif
+//#endif
 #if CML_HAVE_YAML_CPP
     program.add_argument("-c", "--config").nargs(1).help("Configuration file for the slam").action([&configuration, &slam, &executionPath](const std::string &value){
         logger.info("Parsing : " + value);
