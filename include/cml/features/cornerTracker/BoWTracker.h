@@ -190,7 +190,7 @@ namespace CML::Features {
 
         List<Matching> trackForInitialization(const BoWFrameAndGroupAndDescriptor &target, const BoWFrameAndGroupAndDescriptor &reference, int windowSize);
 
-        List<Matching> trackForTriangulation(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroupAndDescriptor &B);
+        List<Matching> trackForTriangulation(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroupAndDescriptor &B, int th = 1);
 
         List<Matching> trackByProjection(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroup &B, int th = 1);
 

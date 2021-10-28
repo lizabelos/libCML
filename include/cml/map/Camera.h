@@ -579,7 +579,7 @@ namespace CML {
         // return dsqr<3.84*pKF2->mvLevelSigma2[kp2.octave]; // todo
     }
 
-    inline bool checkDistEpipolarLine(const CML::Corner &kp1, const CML::Corner &kp2, const CML::Matrix33 &F12) {
+    inline bool checkDistEpipolarLine(const CML::Corner &kp1, const CML::Corner &kp2, const CML::Matrix33 &F12, scalar_t threshold = 3.84) {
         // Epipolar line in second image l = x1'F12 = [a b c]
         const scalar_t a = kp1.x() * F12(0, 0) + kp1.y() * F12(1, 0) + F12(2, 0);
         const scalar_t b = kp1.x() * F12(0, 1) + kp1.y() * F12(1, 1) + F12(2, 1);
@@ -594,8 +594,7 @@ namespace CML {
 
         const scalar_t dsqr = num * num / den;
 
-        return dsqr < 3.84;
-        // return dsqr<3.84*pKF2->mvLevelSigma2[kp2.octave]; // todo
+        return dsqr < threshold;
     }
 
     // From ORB SLAM 2

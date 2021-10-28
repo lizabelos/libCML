@@ -432,7 +432,10 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
                 needVocabularyFor(currentFrame);
                 auto lastDirectKeyFrameData = get(lastDirectKeyFrame);
                 auto mCurrentFrameData = get(currentFrame);
-                List<Matching> matchings = mTriangulationTracker->trackForTriangulation({lastDirectKeyFrame, lastDirectKeyFrameData->featureId, lastDirectKeyFrameData->descriptors},{currentFrame, mCurrentFrameData->featureId, mCurrentFrameData->descriptors});
+                List<Matching> matchings = mTriangulationTracker->trackForTriangulation(
+                        {lastDirectKeyFrame, lastDirectKeyFrameData->featureId, lastDirectKeyFrameData->descriptors},
+                        {currentFrame, mCurrentFrameData->featureId, mCurrentFrameData->descriptors},
+                        2);
 
                 auto currentNewImmaturePoints = indirectCreateNewImmaturePointFromMatchings(matchings);
 

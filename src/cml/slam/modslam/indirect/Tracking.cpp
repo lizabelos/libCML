@@ -391,6 +391,10 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
         return true;
     }
 
+    if (mReferenceKeyFrame == currentFrame) {
+        return true; // todo : check this
+    }
+
     int numTrackedRef = indirectNumTrackedRef();
 
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
@@ -399,9 +403,9 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
     //const bool c1b =  currentFrame->getId() >= getMap().getLastGroupFrame(INDIRECTKEYFRAME)->getId() && mIndirectMappingQueue.getCurrentSize() == 0;
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     scalar_t threshold = exp(log(numTrackedRef) * 0.975);
-    logger.info("Num tracked ref : " + std::to_string(numTrackedRef));
-    logger.info("Indirect keyframe threshold : " + std::to_string(threshold));
-    logger.info("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
+    logger.important("Num tracked ref : " + std::to_string(numTrackedRef));
+    logger.important("Indirect keyframe threshold : " + std::to_string(threshold));
+    logger.important("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
 
     /*if (mLastNumTrackedPoints > 200) {
         return false;

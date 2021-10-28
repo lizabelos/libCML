@@ -132,6 +132,8 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
     int nmatches = 0;
 
+    int skippedBecauseNoPoint = 0, skippedBecauseNoMap = 0, skippedBecauseTh = 0, skippedBecauseRatio = 0;
+
     while(KFit != KFend && Fit != Fend)
     {
         if(KFit->first == Fit->first)
@@ -145,13 +147,17 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
                 OptPPoint pMP = B.frame->getMapPoint(FeatureIndex(B.group, realIdxKF));
                 if (pMP.isNull()) {
+                    skippedBecauseNoPoint++;
                     continue;
                 }
 
-                if(!pMP->isGroup(getMap().MAPPED)) // todo : is this right ?
+                if(!pMP->isGroup(getMap().MAPPED)) {
+                    skippedBecauseNoMap++;
                     continue;
+                }
 
                 const Binary256Descriptor &dKF = B.descriptors[realIdxKF];
+                // Binary256Descriptor dKF = pMP->getDescriptor<Binary256Descriptor>();
 
                 int bestDist1 = 256;
                 int bestIdxF = -1;
@@ -200,7 +206,11 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
                             rotHist[bin].push_back(bestIdxF);
                         }
                         nmatches++;
+                    } else {
+                        skippedBecauseRatio++;
                     }
+                } else {
+                    skippedBecauseTh++;
                 }
 
             }
@@ -219,6 +229,7 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
     }
 
 
+    int removeBecauseOrientation = 0;
     if(mCheckOrientation)
     {
         int ind1=-1;
@@ -235,6 +246,7 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
             {
                 vpMapPointMatches[rotHist[i][j]] = -1;
                 nmatches--;
+                removeBecauseOrientation++;
             }
         }
     }
@@ -259,6 +271,15 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
 
     this->getTimer().stop();
+
+    logger.important("Tracked by Bow : " + std::to_string(matchings.size()));
+    logger.important("Skipped because no point : " + std::to_string(skippedBecauseNoPoint));
+    logger.important("Skipped because no map : " + std::to_string(skippedBecauseNoMap));
+    logger.important("Skipped because th : " + std::to_string(skippedBecauseTh));
+    logger.important("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
+    logger.important("Removed because orientation : " + std::to_string(removeBecauseOrientation));
+
+
 
     return matchings;
 
@@ -415,7 +436,7 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
 
 }
 
-List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroupAndDescriptor &B) {
+List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroupAndDescriptor &B, int th) {
     auto cornersA = A.frame->getFeaturePoints(A.group);
     auto bowA = A.frame->getBoW(A.group);
 
@@ -425,6 +446,7 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
     this->getTimer().start();
 
     Matrix33 F12 = computeFundamental(A.camera, A.frame->getK(0), B.camera, B.frame->getK(0));
+
 
     const CML::Features::FeatureVector &vFeatVec1 = bowA->featVec;
     const CML::Features::FeatureVector &vFeatVec2 = bowB->featVec;
@@ -518,7 +540,8 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
                     }
 
 
-                    if(checkDistEpipolarLine(kp1,kp2,F12))
+                    scalar_t scaleFactor = kp2.processScaleFactorFromLevel();
+                    if(checkDistEpipolarLine(kp1, kp2, F12, 3.84 * scaleFactor * scaleFactor * (scalar_t)th)) // todo : check this
                     {
                         bestIdx2 = idx2;
                         bestDist = dist;
