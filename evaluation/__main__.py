@@ -82,7 +82,8 @@ def main():
                 except:
                     print("Unable to evaluate " + datasets[i].name())
 
-def statsOn(configName):
+
+def statsOn(configName, tableName):
     datasets, datasets_names, slams, slams_names = parse_config()
     table = None
 
@@ -104,7 +105,10 @@ def statsOn(configName):
             stats = context.getStats()
 
             if table is None:
-                table = FileTable(["ate", "rpe"] + [x + ".avg" for x in stats.keys()] + [x + ".med" for x in stats.keys()] + [x + ".ecl" for x in stats.keys()] + [x + ".ech" for x in stats.keys()], datasets_names, "result/table.csv")
+                table = FileTable(
+                    ["ate", "rpe"] + [x + ".avg" for x in stats.keys()] + [x + ".med" for x in stats.keys()] + [
+                        x + ".ecl" for x in stats.keys()] + [x + ".ech" for x in stats.keys()], datasets_names,
+                    "result/" + tableName)
 
             for k in stats.keys():
                 v = stats[k]
@@ -122,12 +126,9 @@ def statsOn(configName):
             print("Unable to evaluate " + datasets[i].name())
 
 
-
-
-
 def ablationstudy():
     datasets, datasets_names, slams, slams_names = parse_config()
-    #for d in datasets:
+    # for d in datasets:
     #    d.setuseramdisk(True)
 
     valuesToTry = [1.25, 1.50, 1.75, 2.0]
@@ -184,6 +185,8 @@ def ablationstudy():
 
 
 if __name__ == "__main__":
-    #main()
-    statsOn("orb.yaml")
-    #ablationstudy()
+    statsOn("modslam.yaml", "modslam.csv")
+    statsOn("orb1000.yaml", "orb1000.csv")
+    statsOn("dso2000.yaml", "dso2000.csv")
+    statsOn("dso800.yaml", "dso800.csv")
+    # ablationstudy()

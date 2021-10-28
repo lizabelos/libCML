@@ -1,0 +1,54 @@
+# REQUIRED : Number of orb corner
+numOrbCorner: 625
+
+# Uncertainty threshold to map orb corner
+orbUncertaintyThreshold: 100000
+
+# Number of dso corner / and desired immature points
+dsoTracer.desiredPointDensity: 2000
+dsoTracer.immatureDensity: 1500
+dsoInitializer.pointDensity: 2000
+
+# Tracking condition ( -1 to disable )
+trackcondUncertaintyWeight: 0.75
+trackcondUncertaintyWindow: 1
+trackcondForce: 2 # 0 = Nothing; 1 = ORB; 2 = DSO
+
+# Bundle Adjustment condition ( -1 to disable )
+bacondSaturatedRatio: -1
+bacondScoreWeight: 0.0125
+bacondScoreWindow: 1
+bacondUncertaintyWeight: -1
+bacondUncertaintyWindow: -1
+bacondMinimumOrbPoint: -1
+bacondForce: 2 # 0 = Nothing; 1 = ORB; 2 = DSO
+
+# Enable Neural Network at initialization
+enableNN: false
+
+# Enable Indirect tracking & B.A.
+enableIndirect: true
+
+# Enable Direct tracking & B.A.
+enableDirect: true
+
+# Disable direct keyframe and B.A. thread
+linearizeDirect: true
+
+# Disable indirect keyframe and B.A. thread
+linearizeIndirect: true
+
+# Enable semi-direct points optimized both by direct and indirect part
+enableHybridPoint: false
+
+# Free all direct points after marginalization
+freeAllDirectPoint: false
+
+# DSO Bundle adjustment parameters
+dsoBa.iterations: 4
+dsoBa.maxFrames: 6
+
+# ORB Bundle adjustment parameters
+orbBa.numIteration: 5
+orbBa.refineIteration: 10
+orbBa.removeEdge: true
