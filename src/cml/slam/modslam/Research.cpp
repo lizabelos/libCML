@@ -53,7 +53,10 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     mBADecisionCovariances.add(currentVariance);
 
     scalar_t currentOrbScore = mLastNumTrackedPoints;
-    scalar_t currentDsoScore = mLastPhotometricTrackingResidual.numRobust[0];
+    scalar_t currentDsoScore = 0;
+    if (mLastPhotometricTrackingResidual.numRobust.size() > 0) {
+        currentDsoScore = mLastPhotometricTrackingResidual.numRobust[0];
+    }
     mBADecisionScores.add(Vector2(currentOrbScore, currentDsoScore));
 
     Vector2 scores = mBADecisionScores.accumulate(mScoreWindow.i());
