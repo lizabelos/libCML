@@ -154,16 +154,7 @@ find_package(CSparse REQUIRED)
 
 # Eigen library parallelise itself, though, presumably due to performance issues
 # OPENMP is experimental. We experienced some slowdown with it
-set(G2O_USE_OPENMP ON CACHE BOOL "Build g2o with OpenMP support (EXPERIMENTAL)")
-if(G2O_USE_OPENMP)
-  find_package(OpenMP)
-  if(OPENMP_FOUND)
-    set (G2O_OPENMP 1)
-    set(g2o_C_FLAGS "${g2o_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE ${OpenMP_CXX_FLAGS}")
-    message(STATUS "Compiling with OpenMP support")
-  endif(OPENMP_FOUND)
-endif(G2O_USE_OPENMP)
+set(G2O_USE_OPENMP OFF CACHE BOOL "Build g2o with OpenMP support (EXPERIMENTAL)")
 
 # OpenGL is used in the draw actions for the different types, as well
 # as for creating the GUI itself
