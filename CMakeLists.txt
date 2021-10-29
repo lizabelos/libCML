@@ -55,7 +55,7 @@ if (USE_OPENMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-option(USE_GOOGLE_HASH "Use Google Hash" ${ENABLE_DEFAULT_EXTERNAL_LIB})
+option(USE_GOOGLE_HASH "Use Google Hash" OFF)
 
 # set(BLA_VENDOR Intel10_64lp)
 find_package(BLAS QUIET)
