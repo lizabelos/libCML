@@ -383,15 +383,16 @@ void CML::Map::onMapPointDestroyed(PPoint mapPoint) {
 
 }
 
+#define CML_USE_OLDER_COVISIBLITY_GRAPH 1
 
 CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int max, int groupId, int th) {
 
-    //LockGuard lg(mTmpIndirectApparitionsMutex);
 
- //   mTmpIndirectApparitions.reserve(1000);
-
-    auto candidates = frame->getIndirectCovisibilities();
-   /* for (auto [index, point] : frame->getMapPoints()) {
+#if CML_USE_OLDER_COVISIBLITY_GRAPH
+    HashMap<OptPFrame, int, Hasher> candidates;
+    List<PFrame> mTmpIndirectApparitions;
+    mTmpIndirectApparitions.reserve(1000);
+    for (auto [index, point] : frame->getMapPoints()) {
         point->getIndirectApparitions(mTmpIndirectApparitions);
         for (auto covisibleFrame : mTmpIndirectApparitions) {
             if (groupId != -1 && !covisibleFrame->isGroup(groupId)) {
@@ -402,9 +403,16 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
             }
             candidates[covisibleFrame] += 1;
         }
-    }*/
-    if (candidates.size() == 0) {
-        return List<PFrame>();
+    }
+#else
+    auto candidates = frame->getIndirectCovisibilities();
+#endif
+
+
+
+
+    if (candidates.empty()) {
+        return {};
     }
 
     List<Pair<PFrame, int>> candidatesList;
@@ -417,8 +425,8 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
         }
     }
 
-    if (candidates.size() == 0) {
-        return List<PFrame>();
+    if (candidatesList.empty()) {
+        return {};
     }
 
     std::sort(candidatesList.begin(), candidatesList.end(), [](const auto &a, const auto &b) {
@@ -443,14 +451,12 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
 
 CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max, int groupId) {
 
-    //LockGuard lg(mTmpDirectApparitionsMutex);
 
-  //  mTmpDirectApparitions.reserve(1000);
-
-    // todo : we need to store the covisibility, store the graph
-
-    auto candidates = frame->getDirectCovisibilities();
-    /*for (auto point : frame->getMapPointsApparitions()) {
+#if CML_USE_OLDER_COVISIBLITY_GRAPH
+    HashMap<OptPFrame, int, Hasher> candidates;
+    List<PFrame> mTmpDirectApparitions;
+    mTmpDirectApparitions.reserve(1000);
+    for (auto point : frame->getMapPointsApparitions()) {
         point->getDirectApparitions(mTmpDirectApparitions);
         for (auto covisibleFrame : mTmpDirectApparitions) {
             if (groupId != -1 && !covisibleFrame->isGroup(groupId)) {
@@ -461,7 +467,10 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
             }
             candidates[covisibleFrame] += 1;
         }
-    } */
+    }
+#else
+    auto candidates = frame->getDirectCovisibilities();
+#endif
 
     if (candidates.size() == 0) {
         return List<PFrame>();
