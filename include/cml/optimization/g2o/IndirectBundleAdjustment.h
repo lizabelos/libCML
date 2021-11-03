@@ -48,6 +48,9 @@ namespace CML::Optimization::G2O {
             mRemoveEdge.set(v);
         }
 
+    protected:
+        void startOptimization(int num, bool enableDropout, bool onlyRobust);
+
     private:
         OrderedSet<PFrame, Comparator>  lLocalKeyFrames, lFixedCameras;
         Set<PPoint, Hasher> lLocalIndirectPoints;
@@ -61,6 +64,7 @@ namespace CML::Optimization::G2O {
         Parameter mNumIteration = createParameter("numIteration", 5);
         Parameter mRefineIteration = createParameter("refineIteration", 0);
         Parameter mRemoveEdge = createParameter("removeEdge", true);
+        Parameter mDropout = createParameter("dropout", 0.0);
 
     };
 

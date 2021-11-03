@@ -41,6 +41,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
 
     if (lLocalKeyFrames.size() <= 2) {
         logger.error("G2O BA : Not enough frames");
+        abort();
         return false;
     }
 
@@ -177,7 +178,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     logger.info("G2O is optimizing");
-    mOptimizer->optimize(mNumIteration.i());
+    startOptimization(mNumIteration.i(), true, false);
 
     if (mRefineIteration.i() > 0) {
 
@@ -190,18 +191,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
             }
         }
 
-        for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
-            g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
-
-            if (e->chi2() > 5.991 || !e->isDepthPositive()) {
-                e->setLevel(1);
-            }
-
-            e->setRobustKernel(nullptr);
-        }
-
-        mOptimizer->initializeOptimization(0);
-        mOptimizer->optimize(mRefineIteration.i());
+        startOptimization(mRefineIteration.i(), true, true);
 
     } else {
         logger.important("Not refining : " + std::to_string(mRefineIteration.i()));
@@ -209,6 +199,58 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     return true;
+
+
+}
+
+void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num, bool enableDropout, bool onlyRobust) {
+
+    for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
+        g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
+        e->setLevel(0);
+        // todo : set kernel (memory problem ?)
+    }
+
+    if (onlyRobust) {
+        for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
+            g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
+            e->setLevel(0);
+
+            if (e->chi2() > 5.991 || !e->isDepthPositive()) {
+                e->setLevel(1);
+            }
+
+            e->setRobustKernel(nullptr);
+
+        }
+    }
+
+    if (enableDropout) {
+        std::random_device dev;
+        std::uniform_real_distribution<> dist(0.0, 1.0);
+
+        for (int it = 0; it < num; it++) {
+
+                for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
+                    g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
+                    if (e->level() != 1) {
+                        double v = dist(dev);
+                        if (v < mDropout.f()) {
+                            e->setLevel(2);
+                        } else {
+                            e->setLevel(0);
+                        }
+                    }
+                }
+
+
+            mOptimizer->initializeOptimization(0);
+            mOptimizer->optimize(1);
+        }
+    } else {
+        mOptimizer->initializeOptimization(0);
+        mOptimizer->optimize(num);
+    }
 
 
 }
