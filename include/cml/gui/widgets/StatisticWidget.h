@@ -11,7 +11,9 @@
 #include <QGridLayout>
 #include <QMouseEvent>
 #include <QFileDialog>
-#include <qcustomplot/qcustomplot.h>
+#include <QLineSeries>
+#include <QChart>
+#include <QChartView>
 
 #include "cml/base/AbstractFunction.h"
 
@@ -36,7 +38,9 @@ namespace CML {
     private:
         PStatistic mStatistic;
         QGridLayout *mLayout;
-        QCustomPlot *mCustomPlot;
+        QChart *mChart;
+        QChartView *mChartView;
+        QLineSeries *mLineSeries;
 
         int mMaxSize = 100;
         int mI = 0;

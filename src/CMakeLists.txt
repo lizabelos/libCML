@@ -168,7 +168,6 @@ if (ENABLE_GUI)
     qt6_wrap_cpp(ParameterFloatingSliderSRC ../include/cml/gui/widgets/ParameterFloatingSlider.h)
     qt6_wrap_cpp(ParameterCheckboxSRC ../include/cml/gui/widgets/ParameterCheckbox.h)
     qt6_wrap_cpp(StatisticWidgetSRC ../include/cml/gui/widgets/StatisticWidget.h)
-    qt6_wrap_cpp(QCustomPlotSRC ../include/qcustomplot/qcustomplot.h)
     qt6_wrap_cpp(WebcamCaptureSRC ../include/cml/capture/QtWebcamCapture.h)
     qt6_wrap_cpp(SpoilerSRC ../include/cml/gui/widgets/Spoiler.h)
     qt6_wrap_cpp(GroupsWidgetSRC ../include/cml/gui/widgets/GroupsWidget.h)
@@ -187,7 +186,6 @@ if (ENABLE_GUI)
             cml/gui/widgets/ParameterFloatingSlider.cpp ${ParameterFloatingSliderSRC}
             cml/gui/widgets/ParameterCheckbox.cpp ${ParameterCheckboxSRC}
             cml/gui/widgets/StatisticWidget.cpp ${StatisticWidgetSRC}
-            qcustomplot/qcustomplot.cpp ${QCustomPlotSRC}
             cml/gui/widgets/Spoiler.cpp ${SpoilerSRC}
             cml/gui/widgets/GroupsWidget.cpp ${GroupsWidgetSRC}
             cml/gui/drawboard/QtDrawBoardShaders.cpp
@@ -197,7 +195,7 @@ if (ENABLE_GUI)
             cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
             cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
             )
-    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia ${OPENGL_LIBRARIES})
+    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
 
 
 endif()

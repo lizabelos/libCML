@@ -14,6 +14,11 @@
 #include <QTimerEvent>
 #include <QMouseEvent>
 #include <QCheckBox>
+#include <QPushButton>
+#include <QStyle>
+#include <QPainter>
+#include <QStyleOption>
+
 #include "cml/base/AbstractFunction.h"
 #include "ParameterCheckbox.h"
 #include "ParameterFloatingSlider.h"

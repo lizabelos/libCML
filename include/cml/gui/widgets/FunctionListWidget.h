@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QFrame>
