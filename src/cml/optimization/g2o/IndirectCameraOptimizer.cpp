@@ -8,7 +8,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new DefaultG2OSolver<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new DefaultG2OSolverWithCovariance<g2o::BlockSolver_6_3::PoseMatrixType>()
             );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(
@@ -160,7 +160,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     g2o::SparseOptimizer optimizer;
 
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver(
-            new DefaultG2OSolver<g2o::BlockSolver_6_3::PoseMatrixType>()
+            new DefaultG2OSolverWithCovariance<g2o::BlockSolver_6_3::PoseMatrixType>()
     );
 
     std::unique_ptr<g2o::BlockSolver_6_3> solver_ptr(

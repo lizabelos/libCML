@@ -9,6 +9,9 @@
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 //#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 
-template <typename T> using DefaultG2OSolver = g2o::LinearSolverCSparse<T>;
+template <typename T> using DefaultG2OSolverWithCovariance = g2o::LinearSolverCSparse<T>;
+
+template <typename T> using DefaultG2OSolverForSpeed = g2o::LinearSolverEigen<T>;

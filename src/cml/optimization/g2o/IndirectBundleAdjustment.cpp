@@ -52,7 +52,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
             g2o::make_unique<g2o::BlockSolver_6_3>(
-            g2o::make_unique<DefaultG2OSolver<g2o::BlockSolver_6_3::PoseMatrixType>>())
+            g2o::make_unique<DefaultG2OSolverForSpeed<g2o::BlockSolver_6_3::PoseMatrixType>>())
     );
 
     mOptimizer->setAlgorithm(solver);
@@ -178,6 +178,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     logger.info("G2O is optimizing");
+    mTimer.start();
     startOptimization(mNumIteration.i(), true, false);
 
     if (mRefineIteration.i() > 0) {
@@ -205,6 +206,10 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
 
 void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num, bool enableDropout, bool onlyRobust) {
 
+    if (mDropout.f() <= 0) {
+        enableDropout = false;
+    }
+
     for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
         g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
         e->setLevel(0);
@@ -225,31 +230,38 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num
         }
     }
 
-    if (enableDropout) {
-        std::random_device dev;
-        std::uniform_real_distribution<> dist(0.0, 1.0);
-
-        for (int it = 0; it < num; it++) {
-
-                for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
-                    g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
-                    if (e->level() != 1) {
-                        double v = dist(dev);
-                        if (v < mDropout.f()) {
-                            e->setLevel(2);
-                        } else {
-                            e->setLevel(0);
-                        }
-                    }
-                }
-
-
-            mOptimizer->initializeOptimization(0);
-            mOptimizer->optimize(1);
-        }
-    } else {
+    if (!enableDropout) {
         mOptimizer->initializeOptimization(0);
-        mOptimizer->optimize(num);
+    }
+
+    std::random_device dev;
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+
+    for (int it = 0; it < num; it++) {
+
+        if (enableDropout) for (size_t i = 0, iend = vpEdges.size(); i < iend; i++) {
+            g2o::EdgeSE3ProjectXYZ *e = vpEdges[i];
+            if (e->level() != 1) {
+                double v = dist(dev);
+                if (v < mDropout.f()) {
+                    e->setLevel(2);
+                } else {
+                    e->setLevel(0);
+                }
+            }
+        }
+
+        mTimer.stop();
+        if (mTimer.getValue() > mTimeLimit.f()) {
+            logger.important("IBA time limit reached");
+            return;
+        }
+
+        logger.important("IBA is doing one iteration");
+        if (enableDropout) {
+            mOptimizer->initializeOptimization(0);
+        }
+        mOptimizer->optimize(1);
     }
 
 

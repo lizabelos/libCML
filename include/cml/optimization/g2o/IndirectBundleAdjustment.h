@@ -66,6 +66,9 @@ namespace CML::Optimization::G2O {
         Parameter mRemoveEdge = createParameter("removeEdge", true);
         Parameter mDropout = createParameter("dropout", 0.0);
 
+        Parameter mTimeLimit = createParameter("timeLimit", 0.015);
+
+        Timer mTimer;
     };
 
 }
