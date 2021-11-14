@@ -80,12 +80,12 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         else return BAINDIRECT;
     }
 
-    if (mBaMinimumOrbPoint.i() > 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
-        return BADIRECT;
+    if (mBaMinimumOrbPoint.i() > 0 && mLastNumTrackedPoints > mBaMinimumOrbPoint.i()) {
+        return BAINDIRECT;
     }
 
-    if (mBacondSaturatedRatio.f() > 0 && mLastPhotometricTrackingResidual.saturatedRatio() > mBacondSaturatedRatio.f()) {
-        return BAINDIRECT;
+    if (mBacondSaturatedRatio.f() > 0 && mLastPhotometricTrackingResidual.saturatedRatio() < mBacondSaturatedRatio.f()) {
+        return BADIRECT;
     }
 
     if (mScoreWeight.f() >= 0) {
