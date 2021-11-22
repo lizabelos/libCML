@@ -116,8 +116,6 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
     captureImage->mExposureTime = captureImageMaker.mExposure.valueOrDefault(1);
     captureImage->mPath = captureImageMaker.mPath.valueOrDefault("");
 
-    captureImageMaker.mLut.valueOrAbort();
-
     bool enableColor = captureImageMaker.mColorImage.has_value();
 
     if (enableColor && mColorDefaultMatrixPools.size() == 0) {
@@ -138,8 +136,15 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
         #if CML_USE_OPENMP
         #pragma omp parallel for schedule(static)
         #endif
-        for (int i = 0; i < wh; i++) {
-            undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(undistortedColorImage.data()[i].gray());
+        if (captureImageMaker.mLut.has_value()) {
+            for (int i = 0; i < wh; i++) {
+                undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(
+                        undistortedColorImage.data()[i].gray());
+            }
+        } else {
+            for (int i = 0; i < wh; i++) {
+                undistortedGrayImage.data()[i] = undistortedColorImage.data()[i].gray();
+            }
         }
     } else {
         undistortedGrayImage = captureImageMaker.mGrayImage.value();
@@ -147,8 +152,14 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
         #if CML_USE_OPENMP
         #pragma omp parallel for schedule(static)
         #endif
-        for (int i = 0; i < wh; i++) {
-            undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(undistortedGrayImage.data()[i]);
+        if (captureImageMaker.mLut.has_value()) {
+            for (int i = 0; i < wh; i++) {
+                undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(undistortedGrayImage.data()[i]);
+            }
+        } else {
+            for (int i = 0; i < wh; i++) {
+                undistortedGrayImage.data()[i] = undistortedGrayImage.data()[i];
+            }
         }
     }
 
@@ -221,8 +232,11 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
         //gradientImage->copyToThis(grayImage->gradientImage());
         grayImage->gradientImage(*gradientImage.p());
         //weightedGradientImage->copyToThis(FloatImage::from(WeightedGradientImageProxyFloat(*gradientImage.p(), *grayImage.p(), captureImageMaker.mLut.valueOrAbort())));
-        FloatImage::from(WeightedGradientImageProxy(*gradientImage.p(), captureImageMaker.mLut.valueOrAbort()), *weightedGradientImage.p());
-
+        if (captureImageMaker.mLut.has_value()) {
+            FloatImage::from(WeightedGradientImageProxy(*gradientImage.p(), captureImageMaker.mLut.value()), *weightedGradientImage.p());
+        } else {
+            FloatImage::from(WeightedGradientImageProxy(*gradientImage.p(), &mDefaultLookupTable), *weightedGradientImage.p());
+        }
 
     }
 

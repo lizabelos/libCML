@@ -332,6 +332,8 @@ namespace CML {
 
         bool mEnablePool = true;
 
+        GrayLookupTable mDefaultLookupTable;
+
     };
 
 }
