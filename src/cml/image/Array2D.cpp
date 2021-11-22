@@ -1,11 +1,13 @@
+#include <tiffio.h>
+#include <tiffio.hxx>
 #include "cml/image/Array2D.h"
 
 #if CML_HAVE_AVFORMAT
 extern "C" {
-    #include <libavcodec/avcodec.h>
-    #include <libavformat/avformat.h>
-    #include <libswscale/swscale.h>
-    #include <libavutil/imgutils.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
 }
 #define DEFAULT_RESIZE_ALGORITHM SWS_FAST_BILINEAR // Bicubic seems to be better than bilinear. Todo : try other algorithm
 #endif
@@ -17,6 +19,7 @@ namespace CML {
     Atomic<size_t> __array2DCounter = 0;
 
 #if CML_HAVE_AVFORMAT
+
     class FFMPEGContext {
 
     public:
@@ -44,15 +47,18 @@ namespace CML {
         AVCodec *mCodec = nullptr;
         AVCodecParameters *mCodecParameters = nullptr;
     };
+
 #endif
 }
 
 #if CML_HAVE_AVFORMAT
+
 inline std::string av_strerror(int errnum) {
     char buffer[1024];
     av_strerror(errnum, buffer, 1024);
     return buffer;
 }
+
 #endif
 
 CML::Image CML::loadImage(std::string path) {
@@ -64,19 +70,19 @@ CML::Image CML::loadImage(std::string path) {
 
     // Open video file
     int errorCode = avformat_open_input(&ctx.mFormatCtx, path.c_str(), nullptr, nullptr);
-    if(errorCode != 0) {
+    if (errorCode != 0) {
         throw std::runtime_error("Can't open '" + path + ". " + av_strerror(errorCode));
     }
 
     // Retrieve stream information
-    if(avformat_find_stream_info(ctx.mFormatCtx, nullptr)<0) {
+    if (avformat_find_stream_info(ctx.mFormatCtx, nullptr) < 0) {
         throw std::runtime_error("Could not find stream information for '" + path + "'");
     }
 
     //av_dump_format(mFormatCtx, 0, path.c_str(), 0);
 
     // Find the first video stream
-    for(unsigned int i = 0; i<ctx.mFormatCtx->nb_streams; i++) {
+    for (unsigned int i = 0; i < ctx.mFormatCtx->nb_streams; i++) {
         AVCodecParameters *pLocalCodecParameters = ctx.mFormatCtx->streams[i]->codecpar;
         AVCodec *pLocalCodec = avcodec_find_decoder(pLocalCodecParameters->codec_id);
 
@@ -89,7 +95,7 @@ CML::Image CML::loadImage(std::string path) {
         }
     }
 
-    if(ctx.mVideoStream==-1) {
+    if (ctx.mVideoStream == -1) {
         throw std::runtime_error("Could not find any compatible video stream for '" + path + "'");
     }
 
@@ -106,7 +112,7 @@ CML::Image CML::loadImage(std::string path) {
     }
 
     // Open codec
-    if(avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
+    if (avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
         throw std::runtime_error("Couldn't open codec for '" + path + "'");
     }
 
@@ -122,7 +128,7 @@ CML::Image CML::loadImage(std::string path) {
 
     AVPacket packet;
 
-    while(av_read_frame(ctx.mFormatCtx, &packet)>=0) {
+    while (av_read_frame(ctx.mFormatCtx, &packet) >= 0) {
 
         if (packet.stream_index == ctx.mVideoStream) {
 
@@ -131,8 +137,7 @@ CML::Image CML::loadImage(std::string path) {
                 throw std::runtime_error("Error while sending a packet to the decoder");
             }
 
-            while (response >= 0)
-            {
+            while (response >= 0) {
 
                 response = avcodec_receive_frame(ctx.mCodecCtx, ctx.mFrame);
                 if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
@@ -150,11 +155,15 @@ CML::Image CML::loadImage(std::string path) {
 
                     Image image(width, height);
 
-                    uint8_t *const data[8] = {(uint8_t*)image.data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-                    const int stride[8] = {(int)(width * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
+                    uint8_t *const data[8] = {(uint8_t *) image.data(), nullptr, nullptr, nullptr, nullptr, nullptr,
+                                              nullptr};
+                    const int stride[8] = {(int) (width * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
 
-                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat)ctx.mFrame->format, width, height, AV_PIX_FMT_RGBA, DEFAULT_RESIZE_ALGORITHM, NULL, NULL, NULL);
-                    sws_scale(sws_ctx, (uint8_t const * const *)ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data, stride);
+                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat) ctx.mFrame->format, width,
+                                                         height, AV_PIX_FMT_RGBA, DEFAULT_RESIZE_ALGORITHM, NULL, NULL,
+                                                         NULL);
+                    sws_scale(sws_ctx, (uint8_t const *const *) ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data,
+                              stride);
                     sws_freeContext(sws_ctx);
 
                     av_packet_unref(&packet);
@@ -192,19 +201,19 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
 
     // Open video file
     int errorCode = avformat_open_input(&ctx.mFormatCtx, path.c_str(), nullptr, nullptr);
-    if(errorCode != 0) {
+    if (errorCode != 0) {
         throw std::runtime_error("Can't open '" + path + ". " + av_strerror(errorCode));
     }
 
     // Retrieve stream information
-    if(avformat_find_stream_info(ctx.mFormatCtx, nullptr)<0) {
+    if (avformat_find_stream_info(ctx.mFormatCtx, nullptr) < 0) {
         throw std::runtime_error("Could not find stream information for '" + path + "'");
     }
 
     //av_dump_format(mFormatCtx, 0, path.c_str(), 0);
 
     // Find the first video stream
-    for(unsigned int i = 0; i<ctx.mFormatCtx->nb_streams; i++) {
+    for (unsigned int i = 0; i < ctx.mFormatCtx->nb_streams; i++) {
         AVCodecParameters *pLocalCodecParameters = ctx.mFormatCtx->streams[i]->codecpar;
         AVCodec *pLocalCodec = avcodec_find_decoder(pLocalCodecParameters->codec_id);
 
@@ -217,7 +226,7 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
         }
     }
 
-    if(ctx.mVideoStream==-1) {
+    if (ctx.mVideoStream == -1) {
         throw std::runtime_error("Could not find any compatible video stream for '" + path + "'");
     }
 
@@ -234,7 +243,7 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
     }
 
     // Open codec
-    if(avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
+    if (avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
         throw std::runtime_error("Couldn't open codec for '" + path + "'");
     }
 
@@ -250,7 +259,7 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
 
     AVPacket packet;
 
-    while(av_read_frame(ctx.mFormatCtx, &packet)>=0) {
+    while (av_read_frame(ctx.mFormatCtx, &packet) >= 0) {
 
         if (packet.stream_index == ctx.mVideoStream) {
 
@@ -259,8 +268,7 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
                 throw std::runtime_error("Error while sending a packet to the decoder");
             }
 
-            while (response >= 0)
-            {
+            while (response >= 0) {
 
                 response = avcodec_receive_frame(ctx.mCodecCtx, ctx.mFrame);
                 if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
@@ -277,11 +285,15 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
                     unsigned int height = ctx.mFrame->height;
 
                     GrayImage image(width, height);
-                    uint8_t *const data[8] = {(uint8_t*)image.data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-                    const int stride[8] = {(int)(image.getWidth() * sizeof(uint8_t)), 0, 0, 0, 0, 0, 0, 0};
+                    uint8_t *const data[8] = {(uint8_t *) image.data(), nullptr, nullptr, nullptr, nullptr, nullptr,
+                                              nullptr};
+                    const int stride[8] = {(int) (image.getWidth() * sizeof(uint8_t)), 0, 0, 0, 0, 0, 0, 0};
 
-                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat)ctx.mFrame->format, width, height, AV_PIX_FMT_GRAY8, DEFAULT_RESIZE_ALGORITHM, NULL, NULL, NULL);
-                    sws_scale(sws_ctx, (uint8_t const * const *)ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data, stride);
+                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat) ctx.mFrame->format, width,
+                                                         height, AV_PIX_FMT_GRAY8, DEFAULT_RESIZE_ALGORITHM, NULL, NULL,
+                                                         NULL);
+                    sws_scale(sws_ctx, (uint8_t const *const *) ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data,
+                              stride);
                     sws_freeContext(sws_ctx);
 
                     av_packet_unref(&packet);
@@ -310,20 +322,23 @@ CML::GrayImage CML::loadGrayImage(std::string path) {
 
 }
 
-template <> CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, int newHeight) const {
+template<>
+CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, int newHeight) const {
 #if CML_HAVE_SWSCALE
     Image result(newWidth, newHeight);
 
     struct SwsContext *resizeContext;
-    resizeContext = sws_getContext(getWidth(), getHeight(), AV_PIX_FMT_RGBA, newWidth, newHeight, AV_PIX_FMT_RGBA, DEFAULT_RESIZE_ALGORITHM, NULL, NULL, NULL);
+    resizeContext = sws_getContext(getWidth(), getHeight(), AV_PIX_FMT_RGBA, newWidth, newHeight, AV_PIX_FMT_RGBA,
+                                   DEFAULT_RESIZE_ALGORITHM, NULL, NULL, NULL);
 
-    const uint8_t *const data1[8] = {(const uint8_t*)data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-    uint8_t *const data2[8] = {(uint8_t*)result.data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const uint8_t *const data1[8] = {(const uint8_t *) data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    uint8_t *const data2[8] = {(uint8_t *) result.data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
-    const int stride1[8] = {(int)(getWidth() * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
-    const int stride2[8] = {(int)(newWidth * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
+    const int stride1[8] = {(int) (getWidth() * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
+    const int stride2[8] = {(int) (newWidth * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
 
-    sws_scale(resizeContext, (const uint8_t *const *)data1, stride1, 0, getHeight(), (uint8_t *const *)data2, stride2);
+    sws_scale(resizeContext, (const uint8_t *const *) data1, stride1, 0, getHeight(), (uint8_t *const *) data2,
+              stride2);
 
     sws_freeContext(resizeContext);
 
@@ -335,9 +350,9 @@ template <> CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(in
 
     CML::Array2D<CML::ColorRGBA> result(newWidth, newHeight);
 
-    #if CML_USE_OPENMP
-    #pragma omp parallel for collapse(2) schedule(static)
-    #endif
+#if CML_USE_OPENMP
+#pragma omp parallel for collapse(2) schedule(static)
+#endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
             result(x, y) = interpolate(Vector2f(
@@ -352,45 +367,22 @@ template <> CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(in
 
 }
 
-template <> CML::Array2D<float> CML::Array2D<float>::resize(int newWidth, int newHeight) const {
+template<>
+CML::Array2D<float> CML::Array2D<float>::resize(int newWidth, int newHeight) const {
     if (newWidth == getWidth() && newHeight == getHeight()) {
         return *this;
     }
 
     CML::Array2D<float> result(newWidth, newHeight);
 
-    #if CML_USE_OPENMP
-    #pragma omp parallel for collapse(2) schedule(static)
-    #endif
+#if CML_USE_OPENMP
+#pragma omp parallel for collapse(2) schedule(static)
+#endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
             result(x, y) = interpolate(Vector2f(
-                                        (float)x / (float)newWidth * ((float)getWidth() - 0.5f),
-                                       (float)y / (float)newHeight * ((float)getHeight() - 0.5f)
-                                        ));
-        }
-    }
-
-    return result;
-
-}
-
-
-template <> CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, int newHeight) const {
-    if (newWidth == getWidth() && newHeight == getHeight()) {
-        return *this;
-    }
-
-    CML::Array2D<unsigned char> result(newWidth, newHeight);
-
-    #if CML_USE_OPENMP
-    #pragma omp parallel for collapse(2) schedule(static)
-    #endif
-    for (int y = 0; y < newHeight; y++) {
-        for (int x = 0; x < newWidth; x++) {
-            result(x, y) = interpolate(Vector2f(
-                    (float)x / (float)newWidth * ((float)getWidth() - 0.5f),
-                    (float)y / (float)newHeight * ((float)getHeight() - 0.5f)
+                    (float) x / (float) newWidth * ((float) getWidth() - 0.5f),
+                    (float) y / (float) newHeight * ((float) getHeight() - 0.5f)
             ));
         }
     }
@@ -399,7 +391,33 @@ template <> CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int 
 
 }
 
-template <> CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kernel) const {
+
+template<>
+CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, int newHeight) const {
+    if (newWidth == getWidth() && newHeight == getHeight()) {
+        return *this;
+    }
+
+    CML::Array2D<unsigned char> result(newWidth, newHeight);
+
+#if CML_USE_OPENMP
+#pragma omp parallel for collapse(2) schedule(static)
+#endif
+    for (int y = 0; y < newHeight; y++) {
+        for (int x = 0; x < newWidth; x++) {
+            result(x, y) = interpolate(Vector2f(
+                    (float) x / (float) newWidth * ((float) getWidth() - 0.5f),
+                    (float) y / (float) newHeight * ((float) getHeight() - 0.5f)
+            ));
+        }
+    }
+
+    return result;
+
+}
+
+template<>
+CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kernel) const {
 
     Array2D<float> newImage(*this);
 
@@ -409,16 +427,84 @@ template <> CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<f
     int limitRow = newImage.mMatrix.rows() - KSizeX;
     int limitCol = newImage.mMatrix.cols() - KSizeY;
 
-    #if CML_USE_OPENMP
-    #pragma omp parallel for collapse(2) schedule(static)
-    #endif
-    for ( int col = KSizeY; col < limitCol; col++ )
-    {
-        for ( int row = KSizeX; row < limitRow; row++ )
-        {
-            newImage.mMatrix(row,col) = (static_cast<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>>(mMatrix.block(row,col,KSizeX,KSizeY)).cwiseProduct(kernel.mMatrix)).sum();
+#if CML_USE_OPENMP
+#pragma omp parallel for collapse(2) schedule(static)
+#endif
+    for (int col = KSizeY; col < limitCol; col++) {
+        for (int row = KSizeX; row < limitRow; row++) {
+            newImage.mMatrix(row,
+                             col) = (static_cast<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>>(mMatrix.block(
+                    row, col, KSizeX, KSizeY)).cwiseProduct(kernel.mMatrix)).sum();
         }
     }
 
     return newImage;
+}
+
+CML::FloatImage CML::loadTiffImage(const uint8_t *str, size_t lenght) {
+    std::istringstream input_TIFF_stream(std::string((char*)str, lenght));
+
+//Populate input_TIFF_stream with TIFF image data
+//...
+
+    TIFF* tif = TIFFStreamOpen("MemTIFF", &input_TIFF_stream);
+
+    uint32 width, height, bitspersample, depth;
+
+    TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+    TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bitspersample);
+    //TIFFGetField(tif, TIFFTAG_IMAGEDEPTH, &depth);
+    depth = 3;
+
+    FloatImage image(width, height);
+
+    tdata_t buf = _TIFFmalloc(TIFFScanlineSize(tif));
+    uint8_t *buf8 = (uint8_t*)buf;
+
+    uint32_t mask = 0;
+    for (uint32_t i = 0; i < bitspersample; i++) {
+        mask ^= 1U << i;
+    }
+
+    for (uint32_t y = 0; y < height; y++) {
+        TIFFReadScanline(tif, buf, y);
+        uint32_t currentBitPosition = 0;
+
+        for (uint32_t x = 0; x < width; x++) {
+
+            float avg = 0;
+
+            for (uint32_t c = 0; c < depth; c++) {
+
+                uint32_t pos = currentBitPosition / 8;
+                uint32_t left = currentBitPosition % 8;
+                uint32_t right = (32 - bitspersample) - left;
+
+                uint32_t *pintensity = (uint32_t*)&buf8[pos];
+                uint32_t intensity = *pintensity;
+
+                intensity = intensity >> right;
+                intensity = intensity & mask;
+
+                float value = (float)intensity * 255.0f / (float)pow(2, bitspersample);
+
+                avg += value;
+
+                currentBitPosition += bitspersample;
+
+            }
+
+            avg /= (float)depth;
+
+            image(x,y)=avg;
+
+        }
+    }
+
+
+    TIFFClose(tif);
+
+    return image;
+
 }

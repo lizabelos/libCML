@@ -141,6 +141,8 @@ else()
     endif()
 endif()
 
+find_package(TIFF COMPONENTS CXX REQUIRED)
+
 option(ENABLE_LIBZIP "Enable LibZIP" ${ENABLE_DEFAULT_EXTERNAL_LIB})
 if (ENABLE_LIBZIP)
     find_package(LibZip REQUIRED)

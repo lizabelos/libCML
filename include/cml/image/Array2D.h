@@ -520,6 +520,7 @@ namespace CML {
 
     GrayImage loadGrayImage(std::string fileName);
 
+    FloatImage loadTiffImage(const uint8_t *data, size_t lenght);
 
 
 
