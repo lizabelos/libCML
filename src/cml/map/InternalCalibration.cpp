@@ -346,7 +346,14 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
     if (modunif["TypeModele"][0]=="eModele_FishEye_10_5_5") {
         PinholeUndistorter pinhole{Vector2(params[0], params[0]), Vector2(params[1], params[2])};
         FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[3], params[4], params[5], params[6]}, {params[7], params[8]}, {params[9], params[10]});
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055);
+
+        Vector2i newSize = size.cast<int>() / 4;
+
+
+        auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), newSize);
+
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, res.first, newSize.cast<scalar_t>());
+
     }
     else {
         // todo
