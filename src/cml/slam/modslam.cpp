@@ -73,12 +73,12 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 
     }
 
-    //try {
+    try {
         Ptr<AbstractCapture, Nullable> capture = new CML::StereopolisCapture(path);
         return capture;
-   // } catch (const std::exception &e) {
+    } catch (const std::exception &e) {
 
-  //  }
+    }
 #endif
 
     try {
