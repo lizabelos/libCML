@@ -16,38 +16,11 @@ extern "C" {
 
 
 // Inspired by Direct Spare Odometry
-CML::TUMCapture::TUMCapture(std::string path, int skipFrame) : mSkipFrame(skipFrame) {
+CML::TUMCapture::TUMCapture(std::string path) {
 
     mPath = path;
 
-    int ziperror = 0;
-    mZiparchive = zip_open((path + "/images.zip").c_str(),  ZIP_RDONLY, &ziperror);
-
-    if (ziperror != 0) {
-        throw std::runtime_error("Can't open " + path + "/images.zip");
-    }
-
-    int numEntries = zip_get_num_entries(mZiparchive, 0);
-    logger.info("Found " + std::to_string(numEntries) + " entries");
-    for(int k=0;k<numEntries;k++)
-    {
-        const char* name = zip_get_name(mZiparchive, k,  ZIP_FL_ENC_STRICT);
-        std::string nstr = std::string(name);
-        if(nstr == "." || nstr == "..") continue;
-        mZipFilePath.emplace_back(name);
-    }
-
-    std::sort(mZipFilePath.begin(), mZipFilePath.end());
-
-    #ifdef WIN32
-    mkdir((path + "/images").c_str());
-    #else
-    mkdir((path + "/images").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    #endif
-
-    for (const auto& file : mZipFilePath) {
-        mExtractedFilePath.emplace_back(path + "/images/" + file);
-    }
+    loadZip(path + "/images.zip", ".jpg");
 
     logger.info("Parsing time file...");
     std::ifstream timesFile;
@@ -78,7 +51,7 @@ CML::TUMCapture::TUMCapture(std::string path, int skipFrame) : mSkipFrame(skipFr
     }
     timesFile.close();
 
-    if (mZipFilePath.size() != mTimestamps.size()) {
+    if (imageNumbers() != mTimestamps.size()) {
         throw std::runtime_error("The number of files and the number of timestamps are not equal");
     }
 
@@ -152,12 +125,12 @@ CML::TUMCapture::TUMCapture(std::string path, int skipFrame) : mSkipFrame(skipFr
         mGoodGroundtruth = false;
     }
 
-    mCameraParameters = parseInternalCalibration(path + "/camera.txt", TUM);
+    mCameraParameters = parseInternalTumCalibration(path + "/camera.txt");
     logger.error(mCameraParameters->getPinhole().toString());
 
     mCurrentIndex = 0;
 
-    FloatImage image = loadImage(0);
+    FloatImage image = decompressImage(0).first;
 
     Vector2 size = mCameraParameters->getOutputSize();
 
@@ -193,24 +166,12 @@ CML::TUMCapture::~TUMCapture() {
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> CML::TUMCapture::multithreadNext() {
-    while (true) {
-        if (mCurrentIndex >= mZipFilePath.size()) {
-            return Ptr<CaptureImage, Nullable>(nullptr);
-        }
 
-        if (mSkipFrame > 0 && mCurrentIndex % mSkipFrame != 0) {
-            mCurrentIndex++;
-            continue;
-        }
-
-        break;
-    }
-
-    if (mCurrentIndex >= mExtractedFilePath.size()) {
+    if (mCurrentIndex >= imageNumbers()) {
         return {};
     }
 
-    FloatImage image = loadImage(mCurrentIndex);
+    Pair<FloatImage, Image> image = decompressImage(mCurrentIndex);
     //image = image.toGrayImage().applyLut(mLookupTable).removeVignette(vignette, vignetteMax).cast<ColorRGB>();
 
     //image = image.toGrayImage().cast<ColorRGB>();
@@ -234,8 +195,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::TUMCapture::multithreadNext() {
     }
 
     CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
-    imageMaker.setImage(image)
-            .setPath(mExtractedFilePath[mCurrentIndex])
+    imageMaker.setImage(image.first)
             .setTime(mTimestamps[mCurrentIndex])
             .setCalibration(mCameraParameters)
             .setLut(&mLookupTable);
@@ -258,119 +218,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::TUMCapture::multithreadNext() {
 }
 
 int CML::TUMCapture::remaining() {
-    return mZipFilePath.size() - mCurrentIndex;
-}
-
-
-#if USE_TURBOJPEG
-CML::FloatImage CML::TUMCapture::loadImage(int id) {
-
-    logger.debug("Extracting and opening " + mExtractedFilePath[id]);
-
-    {
-        std::ifstream f(mExtractedFilePath[id]);
-        if (!f.good()) {
-            logger.warn("TUM is extracting the zip file on the fly, it will be faster on the next execution.");
-            extractImage(id);
-        }
-    }
-
-    {
-
-        FILE * file = fopen(mExtractedFilePath[id].c_str(), "r+");
-        if (file == NULL) {
-            throw std::runtime_error("Invalid image !");
-        }
-        fseek(file, 0, SEEK_END);
-        long int size = ftell(file);
-        rewind(file);
-        size = std::max((long)1024*1024, size);
-        if (mBufferSize < size) {
-            if (mBuffer != nullptr) {
-                free(mBuffer);
-            }
-            mBufferSize = size;
-            mBuffer = (unsigned char *)malloc(size);
-        }
-        int bytes_read = fread(mBuffer, sizeof(unsigned char), mBufferSize, file);
-        fclose(file);
-
-        int jpegSubsamp, width, height;
-
-        tjhandle _jpegDecompressor = tjInitDecompress();
-
-        tjDecompressHeader2(_jpegDecompressor, mBuffer, bytes_read, &width, &height, &jpegSubsamp);
-
-        if (mTempImage.getWidth() != width || mTempImage.getHeight() != height) {
-            mTempImage = GrayImage(width, height); // todo : preallocate this
-        }
-
-        tjDecompress2(_jpegDecompressor, mBuffer, bytes_read, mTempImage.data(), width, 0/*pitch*/, height, TJPF_GRAY, TJFLAG_ACCURATEDCT);
-
-        tjDestroy(_jpegDecompressor);
-
-        return mTempImage.cast<float>();
-    }
-
-
-}
-#else
-
-CML::FloatImage CML::TUMCapture::loadImage(int id) {
-
-    logger.debug("Extracting and opening " + mExtractedFilePath[id]);
-
-    {
-        std::ifstream f(mExtractedFilePath[id]);
-        if (!f.good()) {
-            logger.warn("TUM is extracting the zip file on the fly, it will be faster on the next execution.");
-            extractImage(id);
-        }
-    }
-
-    cv::Mat m = cv::imread(mExtractedFilePath[id], cv::IMREAD_GRAYSCALE);
-    if(m.rows * m.cols == 0) {
-        logger.warn("Invalid image data, trying to extract the image again...");
-        std::remove(mExtractedFilePath[id].c_str());
-        extractImage(id);
-        m = cv::imread(mExtractedFilePath[id], cv::IMREAD_GRAYSCALE);
-        if(m.rows * m.cols == 0) {
-            throw std::runtime_error("Invalid image !");
-        }
-    }
-
-    GrayImage image(m.cols, m.rows);
-    memcpy(image.data(), m.data, m.rows * m.cols);
-    return image.cast<float>();
-}
-
-#endif
-
-void CML::TUMCapture::extractImage(int id) {
-
-
-    mZipBuffer.resize(8192);
-
-    zip_file_t *zipFile = zip_fopen(mZiparchive, mZipFilePath[id].c_str(), 0);
-    std::ofstream fout(mExtractedFilePath[id], std::ios::out | std::ios::binary);
-
-    long readBytes = 0;
-
-    while (true) {
-
-        readBytes = zip_fread(zipFile, mZipBuffer.data(), mZipBuffer.size());
-        if (readBytes <= 0) {
-            break;
-        }
-
-        fout.write(mZipBuffer.data(), readBytes);
-
-    }
-
-    zip_fclose(zipFile);
-    fout.close();
-
-
+    return imageNumbers() - mCurrentIndex;
 }
 
 int CML::TUMCapture::imageNumbers() {

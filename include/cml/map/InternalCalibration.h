@@ -216,6 +216,83 @@ namespace CML {
 
     };
 
+    class FishEye10_5_5 : public Undistorter {
+
+    public:
+        FishEye10_5_5(const List<scalar_t> &R, const Vector2 &P, const Vector2 &t) : mR(R), mP(P), mt(t) {
+
+        }
+
+        EIGEN_STRONG_INLINE Vector2d distort(const Vector2d &input) const final {
+            return computeDpol(input.cast<scalar_t>()).cast<double>();
+        }
+
+        EIGEN_STRONG_INLINE Vector2f distort(const Vector2f &input) const final {
+            return computeDpol(input.cast<scalar_t>()).cast<float>();
+        }
+
+        EIGEN_STRONG_INLINE Vector2d undistort(const Vector2d &input) const final {
+            assertThrow(false, "Not implemented");
+            return Vector2d(0, 0);
+        }
+
+        EIGEN_STRONG_INLINE Vector2f undistort(const Vector2f &input) const final {
+            assertThrow(false, "Not implemented");
+            return Vector2f(0, 0);
+        }
+
+        std::string toString() const final {
+            return "[FishEye10_5_5]()";
+        }
+
+    protected:
+        EIGEN_STRONG_INLINE scalar_t epsilon(scalar_t v) const {
+            if (meEuilinear) {
+                return v;
+            } else {
+                return 2 * sin(v / 2);
+            }
+        }
+
+        EIGEN_STRONG_INLINE Vector2 computeDpol(const Vector2 &AB) const {
+            scalar_t R = AB.norm();
+            scalar_t lambda = epsilon(atan(R)) / R;
+            Vector2 ab = AB * lambda;
+            scalar_t a = ab(0);
+            scalar_t b = ab(1);
+            scalar_t p = ab.norm();
+
+            Vector2 result;
+
+            // Left
+            scalar_t left = 1;
+            int power = 2;
+            for (int i = 0; i < mR.size(); i++) {
+                left += pow(mR[i], power);
+                power = power * 2;
+            }
+            result = ab * left;
+
+            // Mid
+            result.x() += mP(0) * (p*p + 2*a*a) + 2 * mP(1) * a * b;
+            result.y() += 2 * mP(0) * a * b + mP(1) * (p*p + 2*b*b);
+
+            // Right
+            result.x() += mt(0) * a + mt(1) * b;
+            result.y() += mt(1) * a;
+
+            return result;
+        }
+
+
+    private:
+        List<scalar_t> mR;
+        Vector2 mP;
+        Vector2 mt;
+        bool meEuilinear = true;
+
+    };
+
     class InternalCalibration {
 
     public:
@@ -379,15 +456,11 @@ namespace CML {
     };
 
 
-    typedef enum InternalCalibrationFileFormat {
-        TUM, EUROC
-    } InternalCalibrationFileFormat;
-
     InternalCalibration* parseInternalTumCalibration(std::string path);
 
     InternalCalibration* parseInternalEurocCalibration(std::string path);
 
-    InternalCalibration* parseInternalCalibration(std::string path, InternalCalibrationFileFormat format);
+    InternalCalibration* parseInternalStereopolisCalibration(std::string path);
 
 }
 

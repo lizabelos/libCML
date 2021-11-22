@@ -7,6 +7,7 @@
 #if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
 #endif
+#include "rapidxml/rapidxml.hpp"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -305,21 +306,52 @@ CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path) {
 
 }
 
-CML::InternalCalibration* CML::parseInternalCalibration(std::string path, CML::InternalCalibrationFileFormat format) {
+CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_node<> *node) {
 
-    setlocale(LC_ALL, "C");
+    CML::HashMap<std::string, CML::List<std::string>> result;
 
-    switch (format) {
-        case TUM:
-            return parseInternalTumCalibration(path);
-        case EUROC:
-            return parseInternalEurocCalibration(path);
-
+    for (; node; node = node->next_sibling()) {
+        result[std::string(node->name(), node->name_size())].emplace_back(std::string(node->value(), node->value_size()));
     }
 
-    throw std::runtime_error("Unknown distortion file format :(");
+    return result;
 
 }
+
+
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path) {
+    rapidxml::xml_document doc;
+
+    std::ifstream file(path);
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    buffer.push_back('\0');
+    doc.parse<0>(buffer.data());
+
+    auto calibinternconique = xmlDocToHashMap( doc.first_node("CalibrationInternConique"));
+    auto modunif = xmlDocToHashMap( doc.first_node("ModUnif"));
+
+    List<scalar_t> params;
+    for (const auto& paramstr : modunif["Params"]) {
+        if (paramstr != "0") {
+            params.emplace_back(atof(paramstr.c_str()));
+        }
+    }
+
+    std::string szimgstr = calibinternconique["SzIm"][0];
+    Vector2d size;
+    std::sscanf(szimgstr.c_str(), "%lf %lf", &size[0], &size[1]);
+
+
+    if (modunif["TypeModele"][0]=="eModele_FishEye_10_5_5") {
+        PinholeUndistorter pinhole{Vector2(params[0], params[0]), Vector2(params[1], params[2])};
+        FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[3], params[4], params[5], params[6]}, {params[7], params[8]}, {params[9], params[10]});
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055);
+    }
+    else {
+        // todo
+    }
+}
+
 
 void CML::InternalCalibration::computeUndistortMap() {
 

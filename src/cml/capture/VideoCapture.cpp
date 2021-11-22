@@ -32,9 +32,9 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
     mPath(path), mHeight(height) {
 
     try {
-        mCameraParameters = parseInternalCalibration(path + ".txt", TUM);
+        mCameraParameters = parseInternalTumCalibration(path + ".txt");
     } catch (...) {
-        mCameraParameters = parseInternalCalibration(dirnameOf(path) + "/calib.txt", TUM);
+        mCameraParameters = parseInternalTumCalibration(dirnameOf(path) + "/calib.txt");
     }
 
     // Open video file
