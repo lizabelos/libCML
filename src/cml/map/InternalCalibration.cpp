@@ -311,6 +311,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
     CML::HashMap<std::string, CML::List<std::string>> result;
 
     for (; node; node = node->next_sibling()) {
+
         result[std::string(node->name(), node->name_size())].emplace_back(std::string(node->value(), node->value_size()));
     }
 
@@ -327,8 +328,8 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
     buffer.push_back('\0');
     doc.parse<0>(buffer.data());
 
-    auto calibinternconique = xmlDocToHashMap( doc.first_node("CalibrationInternConique"));
-    auto modunif = xmlDocToHashMap( doc.first_node("ModUnif"));
+    auto calibinternconique = xmlDocToHashMap( doc.first_node("ExportAPERO")->first_node("CalibrationInternConique")->first_node());
+    auto modunif = xmlDocToHashMap( doc.first_node("ExportAPERO")->first_node("CalibrationInternConique")->first_node("CalibDistortion")->first_node("ModUnif")->first_node());
 
     List<scalar_t> params;
     for (const auto& paramstr : modunif["Params"]) {
