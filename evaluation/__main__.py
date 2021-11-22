@@ -1,4 +1,5 @@
 import os
+import statistics
 import sys
 import csv
 
@@ -131,9 +132,7 @@ def ablationstudy():
     # for d in datasets:
     #    d.setuseramdisk(True)
 
-    valuesToTry = [1.25, 1.50, 1.75, 2.0]
-    valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
-    valuesToTry = [x * 0.0125 for x in valuesToTry]
+    valuesToTry = [0.25, 0.50, 0.75, 1, 1.5, 2, 4]
 
     print(valuesToTry)
 
@@ -142,8 +141,8 @@ def ablationstudy():
 
     num_execution = 3
 
-    table_ate = MedianTableProxy(FileTable(valuesToTry, datasets_names, "result/ate.csv"))
-    table_error = SumTableProxy(FileTable(valuesToTry, datasets_names, "result/error.csv"))
+    table_ate = MedianTableProxy(FileTable(sorted(valuesToTry), datasets_names, "result/ate.csv"))
+    table_error = SumTableProxy(FileTable(sorted(valuesToTry), datasets_names, "result/error.csv"))
 
     def process(i, v, n):
         datasets[i].use()
@@ -157,7 +156,7 @@ def ablationstudy():
 
             # context.setconfig("dsoTracer.desiredPointDensity", desiredPointDensity)
             # context.setconfig("dsoTracer.immatureDensity", immatureDensity)
-            context.setconfig("bacondScoreWeight", v)
+            context.setconfig("trackcondUncertaintyWeight", v)
 
             context.run(datasets[i])
 
@@ -173,20 +172,102 @@ def ablationstudy():
 
     # Each SLAM instance will use 2 thread
     # executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
     futures = []
 
-    for i in range(0, len(datasets)):
-        for v in valuesToTry:
-            for n in range(0, num_execution):
+    for n in range(0, num_execution):
+        for i in range(0, len(datasets)):
+            for v in valuesToTry:
                 futures = futures + [executor.submit(process, i, v, n)]
 
     concurrent.futures.wait(futures)
 
 
+def ablationstudy2d(self):
+    datasets, datasets_names, slams, slams_names = parse_config()
+    # for d in datasets:
+    #    d.setuseramdisk(True)
+
+    toTry = [
+        "trackcondUncertaintyWeight",
+        [0.25, 0.50, 0.75, 1, 1.5, 2, 4],
+        "otherparam",
+        [0.25, 0.50, 0.75, 1, 1.5, 2, 4]
+    ]
+
+
+    # desiredPointDensity = 2000 // 10
+    # immatureDensity = 1500 // 10
+
+    num_execution = 5
+
+    table_ate = FileTable(sorted(toTry[1]), sorted(toTry[3]), "result/ate.csv")
+    table_error = FileTable(sorted(toTry[1]), sorted(toTry[3]), "result/error.csv")
+
+    def process(i, v, n):
+        datasets[i].use()
+
+        result = None
+
+        try:
+            print("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
+
+            s = slams[0]
+            name = slams_names[0]
+            context = s[0](s[1])
+
+            # context.setconfig("dsoTracer.desiredPointDensity", desiredPointDensity)
+            # context.setconfig("dsoTracer.immatureDensity", immatureDensity)
+            context.setconfig(v[0], v[1])
+            context.setconfig(v[2], v[3])
+
+            context.run(datasets[i])
+
+            try:
+                evaluation = evaluator.fromslam(context)
+                result = evaluation.ape_rmse()
+
+        finally:
+            datasets[i].unuse()
+
+        return result
+
+    # Each SLAM instance will use 2 thread
+    # executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+    for v1 in toTry[1]:
+        for v2 in toTry[3]:
+            futures = []
+            for i in range(0, len(datasets)):
+                for n in range(0, num_execution):
+                    futures = futures + [executor.submit(process, i, [toTry[0], v1, toTry[2], v2], n)]
+            concurrent.futures.wait(futures)
+            fi = 0
+            numerr = 0
+            sum = 0
+            for i in range(0, len(datasets)):
+                values = []
+                for n in range(0, num_execution):
+                    r = futures[fi].result()
+                    if r is None:
+                        numerr = numerr + 1
+                    else:
+                        values.append(r)
+                    fi = fi + 1
+                if len(values) == 0:
+                    sum = None
+                if sum is not None:
+                    sum = sum + statistics.median(values)
+            if sum is None:
+                table_ate.set(v1, v2, "Error")
+            else:
+                table_ate.set(v1, v2, sum)
+            table_error.set(v1, v2, numerr)
+
 if __name__ == "__main__":
-    statsOn("modslam.yaml", "modslam.csv")
-    statsOn("orb1000.yaml", "orb1000.csv")
-    statsOn("dso2000.yaml", "dso2000.csv")
-    statsOn("dso800.yaml", "dso800.csv")
-    # ablationstudy()
+    # statsOn("modslam.yaml", "modslam.csv")
+    # statsOn("orb1000.yaml", "orb1000.csv")
+    # statsOn("dso2000.yaml", "dso2000.csv")
+    # statsOn("dso800.yaml", "dso800.csv")
+    ablationstudy()
