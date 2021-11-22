@@ -15,11 +15,14 @@ namespace CML {
         inline StereopolisCapture(const std::string &zipPath) {
             loadZip(zipPath, ".tif");
 
-            Pair<FloatImage, Image> images = decompressImage(0);
+            uint8_t *data;
+            size_t size;
+            decompressFile(1, &data, &size);
+            FloatImage image = loadTiffImage(data, size);
 
-            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
+            mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
 
-            mCameraParameters = new InternalCalibration();
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml");
         }
 
         inline int remaining() final {
@@ -32,11 +35,13 @@ namespace CML {
 
     protected:
         inline Ptr<CaptureImage, Nullable> multithreadNext() {
-            Pair<FloatImage, Image> images = decompressImage(mCurrentImage);
+            uint8_t *data;
+            size_t size;
+            decompressFile(mCurrentImage, &data, &size);
+            FloatImage image = loadTiffImage(data, size);
 
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
-            imageMaker.setImage(images.first)
-                    .setImage(images.second)
+            imageMaker.setImage(image)
                     .setPath(getFilename(mCurrentImage))
                     .setTime((scalar_t)mCurrentImage / 10.0)
                     .setCalibration(mCameraParameters);
@@ -49,7 +54,7 @@ namespace CML {
     private:
         CaptureImageGenerator *mCaptureImageGenerator;
         InternalCalibration *mCameraParameters;
-        int mCurrentImage = 0;
+        int mCurrentImage = 1;
 
 
     };
