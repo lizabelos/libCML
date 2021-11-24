@@ -50,12 +50,12 @@ namespace CML {
 
             cv::Mat fm1;
             m.convertTo(fm1, CV_32FC1);
-            FloatImage i1(fm1.rows, fm1.cols);
+            FloatImage i1(fm1.cols, fm1.rows);
             memcpy(i1.data(), fm1.data, m.rows * m.cols * sizeof(float));
 
             cv::Mat fm4;
             m.convertTo(fm4, CV_32FC4);
-            Image i4(fm4.rows, fm4.cols);
+            Image i4(fm4.cols, fm4.rows);
             memcpy(i4.data(), fm4.data, m.rows * m.cols * 4);
 
             return {i1, i4};
