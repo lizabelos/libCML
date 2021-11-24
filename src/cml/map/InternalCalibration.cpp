@@ -15,9 +15,10 @@
 
 // From OSBRLAM
 namespace CML {
-    Pair<PinholeUndistorter, Array2D<Vector2>> makeOptimalK_crop(PinholeUndistorter originalPinhole, Undistorter *preundistorter, Vector2i originalSize, Vector2i newSize) {
-        Array2D<Vector2> undistortMap(newSize.x(), newSize.y());
-        float remapX[newSize.x() * newSize.y()], remapY[newSize.x() * newSize.y()];
+    Pair<PinholeUndistorter, Array2D<Vector2f>> makeOptimalK_crop(PinholeUndistorter originalPinhole, Undistorter *preundistorter, Vector2i originalSize, Vector2i newSize) {
+        Array2D<Vector2f> undistortMap(newSize.x(), newSize.y());
+        float *remapX = new float[newSize.x() * newSize.y()];
+        float *remapY = new float[newSize.x() * newSize.y()];
 
         // 1. stretch the center lines as far as possible, to get initial coarse quess.
         float *tgX = new float[100000];
@@ -136,13 +137,16 @@ namespace CML {
         }
 
         for (int i = 0; i < newSize.x() * newSize.y(); i++) {
-            undistortMap.data()[i] = Vector2(remapX[i], remapY[i]);
+            undistortMap.data()[i] = Vector2f(remapX[i], remapY[i]);
         }
 
         float fx = ((float) newSize.x() - 1.0f) / (maxX - minX);
         float fy = ((float) newSize.y() - 1.0f) / (maxY - minY);
 
-        return Pair<PinholeUndistorter, Array2D<Vector2>>(
+        delete[] remapX;
+        delete[] remapY;
+
+        return Pair<PinholeUndistorter, Array2D<Vector2f>>(
                 PinholeUndistorter(
                         Vector2(fx,fy),
                         Vector2((-minX * fx),(-minY * fy))
@@ -208,7 +212,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
 
     originalPinhole = originalPinhole.scaleAndRecenter(originalSize, Vector2(-0.5, -0.5));
 
-    Array2D<Vector2> undistortMap;
+    Array2D<Vector2f> undistortMap;
 
     // Read the third line : new camera parameters
     if (line[2] == "crop") {
@@ -349,12 +353,8 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
         PinholeUndistorter pinhole{Vector2(f, f), Vector2(params[0], params[1])};
         FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5]}, {params[6], params[7]}, {params[8], params[9]});
 
-        Vector2i newSize = size.cast<int>() / 4;
 
-
-        auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), newSize);
-
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, res.first, newSize.cast<scalar_t>());
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055);
 
     }
     else {
