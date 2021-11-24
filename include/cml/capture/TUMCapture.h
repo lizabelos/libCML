@@ -11,14 +11,14 @@
 
 #if CML_HAVE_LIBZIP
 
-#include <zip.h>
+#include "ZipCaptureHelper.h"
 
 namespace CML {
 
-    class TUMCapture : public AbstractMultithreadFiniteCapture {
+    class TUMCapture : public AbstractMultithreadFiniteCapture, public ZipCaptureHelper {
 
     public:
-        TUMCapture(std::string path, int skipFrame = 0);
+        TUMCapture(std::string path);
 
         ~TUMCapture();
 
@@ -29,16 +29,9 @@ namespace CML {
     protected:
         Ptr<CaptureImage, Nullable> multithreadNext();
 
-        FloatImage loadImage(int id);
-
-        void extractImage(int id);
-
     private:
         std::string mPath;
-        zip_t *mZiparchive;
-        std::vector<std::string> mZipFilePath, mExtractedFilePath;
 
-        std::vector<Image*> mImages;
         std::vector<scalar_t> mExposures;
         std::vector<scalar_t> mTimestamps;
         std::vector<Vector3> mTranslations;
@@ -58,8 +51,6 @@ namespace CML {
 
         GrayLookupTable mLookupTable;
         FloatImage *mVignette;
-
-        int mSkipFrame;
 
         unsigned char *mBuffer = nullptr;
         size_t mBufferSize = 0;

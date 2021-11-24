@@ -116,6 +116,8 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
     captureImage->mExposureTime = captureImageMaker.mExposure.valueOrDefault(1);
     captureImage->mPath = captureImageMaker.mPath.valueOrDefault("");
 
+    assertThrow(captureImage->mInternalCalibration->getOutputSize().cast<int>() == getOutputSize(), "Invalid calibration output size");
+
     bool enableColor = captureImageMaker.mColorImage.has_value();
 
     if (enableColor && mColorDefaultMatrixPools.size() == 0) {
@@ -214,8 +216,9 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
 
 
         if (level == 0) {
-            if (enableColor) colorImage->copyToThis(undistortedColorImage.resize(mWidths[level], mHeights[level]));
-            grayImage->copyToThis(undistortedGrayImage.resize(mWidths[level], mHeights[level]));
+            assertThrow(undistortedGrayImage.getWidth() == mWidths[0] && undistortedGrayImage.getHeight() == mHeights[0], "Invalid size");
+            if (enableColor) colorImage->copyToThis(undistortedColorImage);
+            grayImage->copyToThis(undistortedGrayImage);
         } else {
 #if CML_CAPTUREIMAGE_REDUCEBYTWO && SCALEFACTOR==2
             if (enableColor) colorImage->copyToThis(lastColorImage->fastReduceByTwo());

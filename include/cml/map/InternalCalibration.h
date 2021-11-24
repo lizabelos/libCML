@@ -456,11 +456,11 @@ namespace CML {
     };
 
 
-    InternalCalibration* parseInternalTumCalibration(std::string path);
+    InternalCalibration* parseInternalTumCalibration(std::string path, Vector2i outputSize);
 
-    InternalCalibration* parseInternalEurocCalibration(std::string path);
+    InternalCalibration* parseInternalEurocCalibration(std::string path, Vector2i outputSize);
 
-    InternalCalibration* parseInternalStereopolisCalibration(std::string path);
+    InternalCalibration* parseInternalStereopolisCalibration(std::string path, Vector2i outputSize);
 
 }
 

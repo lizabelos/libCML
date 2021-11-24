@@ -31,11 +31,6 @@ std::string dirnameOf(const std::string& fname)
 CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, size_t cacheSize) :
     mPath(path), mHeight(height) {
 
-    try {
-        mCameraParameters = parseInternalTumCalibration(path + ".txt");
-    } catch (...) {
-        mCameraParameters = parseInternalTumCalibration(dirnameOf(path) + "/calib.txt");
-    }
 
     // Open video file
     int errorCode = avformat_open_input(&mFormatCtx, path.c_str(), nullptr, nullptr);
@@ -109,6 +104,11 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
     mVignette = Array2D<float>(mWidth, mHeight, 1);
 
     mCaptureImageGenerator = new CaptureImageGenerator(mCameraParameters->getOutputSize()[0], mCameraParameters->getOutputSize()[1]);
+    try {
+        mCameraParameters = parseInternalTumCalibration(path + ".txt", mCaptureImageGenerator->getOutputSize());
+    } catch (...) {
+        mCameraParameters = parseInternalTumCalibration(dirnameOf(path) + "/calib.txt", mCaptureImageGenerator->getOutputSize());
+    }
 
     mThread = std::thread(&CaptureFFMPEG::ffmpegRun, this);
 

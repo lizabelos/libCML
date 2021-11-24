@@ -157,7 +157,7 @@ namespace CML {
     }
 }
 
-CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
+CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path, Vector2i outputSize) {
     std::ifstream f(path.c_str());
     logger << "Reading Photometric Calibration from file " << path << endl;
     if (!f.good())
@@ -174,7 +174,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
     Undistorter *preundistorter = nullptr;
     PinholeUndistorter newPinhole;
     Vector2 originalSize = Vector2(0, 0);
-    Vector2 newSize = Vector2(0, 0);
+    const Vector2 newSize = outputSize.cast<scalar_t>();
 
 
     // Read first line : camera original parameters
@@ -221,7 +221,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
         i = std::sscanf(line[3].c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf", &ic[0], &ic[1], &ic[2], &ic[3], &ic[4], &ic[5], &ic[6], &ic[7]);
 
         if (i == 2) {
-            newSize = Vector2(ic[0], ic[1]);
+            //newSize = Vector2(ic[0], ic[1]);
         } else {
             throw std::runtime_error("Malformed file :(");
         }
@@ -247,7 +247,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
         i = std::sscanf(line[3].c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf", &ic[0], &ic[1], &ic[2], &ic[3], &ic[4], &ic[5], &ic[6], &ic[7]);
 
         if (i == 2) {
-            newSize = Vector2(ic[0], ic[1]);
+            //newSize = Vector2(ic[0], ic[1]);
         } else {
             throw std::runtime_error("Malformed file :(");
         }
@@ -269,7 +269,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path) {
     return result;
 }
 
-CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path) {
+CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path, Vector2i outputSize) {
 #if CML_HAVE_YAML_CPP
     std::cout << "Parsing calibration file : " << path << std::endl;
 
@@ -301,9 +301,9 @@ CML::InternalCalibration* CML::parseInternalEurocCalibration(std::string path) {
         throw std::runtime_error("Invalid distortion model : " + distortionModel);
     }
 
-    auto res = makeOptimalK_crop(pinhole, undistorter, Vector2i(width, height), Vector2i(width, height));
+    auto res = makeOptimalK_crop(pinhole, undistorter, Vector2i(width, height), outputSize);
 
-    return new InternalCalibration(pinhole, Vector2(width, height), undistorter, res.first, Vector2(width, height));
+    return new InternalCalibration(pinhole, Vector2(width, height), undistorter, res.first, outputSize.cast<scalar_t>());
 #else
     return nullptr;
 #endif
@@ -324,7 +324,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
 }
 
 
-CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path) {
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize) {
     rapidxml::xml_document doc;
 
     std::ifstream file(path);
@@ -354,7 +354,10 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
         FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5]}, {params[6], params[7]}, {params[8], params[9]});
 
 
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055);
+        auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), outputSize);
+
+
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, res.first, outputSize.cast<scalar_t>());
 
     }
     else {

@@ -52,7 +52,7 @@ CML::TUMCapture::TUMCapture(std::string path) {
     timesFile.close();
 
     if (imageNumbers() != mTimestamps.size()) {
-        throw std::runtime_error("The number of files and the number of timestamps are not equal");
+        throw std::runtime_error("The number of files and the number of timestamps are not equal : " + std::to_string(imageNumbers()) + " and " + std::to_string(mTimestamps.size()));
     }
 
     mGoodExposure = true;
@@ -125,18 +125,16 @@ CML::TUMCapture::TUMCapture(std::string path) {
         mGoodGroundtruth = false;
     }
 
-    mCameraParameters = parseInternalTumCalibration(path + "/camera.txt");
+    FloatImage image = decompressImage(0).first;
+    mWidth = image.getWidth();
+    mHeight = image.getHeight();
+    mCaptureImageGenerator = new CaptureImageGenerator(mWidth, mHeight);
+    mCameraParameters = parseInternalTumCalibration(path + "/camera.txt", mCaptureImageGenerator->getOutputSize());
     logger.error(mCameraParameters->getPinhole().toString());
 
     mCurrentIndex = 0;
 
-    FloatImage image = decompressImage(0).first;
 
-    Vector2 size = mCameraParameters->getOutputSize();
-
-    mWidth = size.x();
-    mHeight = size.y();
-    mCaptureImageGenerator = new CaptureImageGenerator(mWidth, mHeight);
 
     {
         cv::Mat m = cv::imread(mPath + "/vignette.png", cv::IMREAD_UNCHANGED);
@@ -222,7 +220,7 @@ int CML::TUMCapture::remaining() {
 }
 
 int CML::TUMCapture::imageNumbers() {
-    return mImages.size();
+    return getImageNumber();
 }
 
 #endif

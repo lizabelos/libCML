@@ -300,7 +300,7 @@ namespace CML {
         friend class CaptureImageMaker;
 
     public:
-        CaptureImageGenerator(int width, int height, int defaultPoolSize = 8, int keyPoolSize = 8, int pyramidLevel = -1);
+        CaptureImageGenerator(int width, int height, int defaultPoolSize = 64, int keyPoolSize = 64, int pyramidLevel = -1);
 
         ~CaptureImageGenerator() override;
 
@@ -311,6 +311,10 @@ namespace CML {
         void makeKey(CaptureImage &captureFrame);
 
         void makeUnactive(CaptureImage &captureFrame);
+
+        EIGEN_STRONG_INLINE Vector2i getOutputSize() {
+            return Vector2i(mWidths[0], mHeights[0]);
+        }
 
     protected:
         Ptr<CaptureImage, NonNullable> generate(const CaptureImageMaker &captureImageMaker) final;

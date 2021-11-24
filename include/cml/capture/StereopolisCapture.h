@@ -22,7 +22,7 @@ namespace CML {
 
             mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
 
-            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml");
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
 
             mMask = loadGrayImage(zipPath + ".mask.bmp");
 
@@ -35,7 +35,7 @@ namespace CML {
                     histogram[(int)image(x,y)]+=1;
                 }
             }
-            int threshold = (image.getWidth() * image.getHeight()) * 0.99995;
+            int threshold = (image.getWidth() * image.getHeight()) * 0.999;
             for (int i = 1; i < 256; i++) {
                 histogram[i] += histogram[i - 1];
                 if (histogram[i] > threshold) {
