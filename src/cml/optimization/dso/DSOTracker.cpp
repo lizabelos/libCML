@@ -296,6 +296,10 @@ void CML::Optimization::DSOTracker::computeResidual(PFrame frameToTrack, DSOTrac
         float y = dataLevel.PCv(i);
         float refColor = dataLevel.PCcolor(i);
 
+        if (!std::isfinite(refColor)) {
+            continue;
+        }
+
 
         Vector3f pt = RKi * Vector3f(x, y, 1) + t*id;
         float u = pt[0] / pt[2];
@@ -344,7 +348,9 @@ void CML::Optimization::DSOTracker::computeResidual(PFrame frameToTrack, DSOTrac
         Vector3f hitColor = frameToTrack->getCaptureFrame().getDerivativeImage(level).interpolate(Vector2f(Ku, Kv));
 
         // Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
-        if(!std::isfinite((float)hitColor[0])) continue;
+        if(!hitColor.allFinite()) {
+            continue;
+        }
         float residual = hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
     //    if (i < 100) std::cout << "residual with light : " << residual << " ; without light : " << hitColor[0] - refColor << std::endl;
         float hw = fabs(residual) < mHuberThreshold.f() ? 1 : mHuberThreshold.f() / fabs(residual);
