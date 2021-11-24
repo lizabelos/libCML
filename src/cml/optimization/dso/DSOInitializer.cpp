@@ -45,7 +45,8 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
         for(int y=patternPadding+1;y<hl-patternPadding-2;y++) {
             for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++) {
                 //if(x==2) printf("y=%d!\n",y);
-                if ((lvl != 0 && statusMapB(x, y)) || (lvl == 0 && statusMap(x, y) != 0)) {
+                if ((lvl != 0 && statusMapB(x, y)) || (lvl == 0 && statusMap(x, y) != 0)
+                && reference->getCaptureFrame().getDerivativeImage(0).get(x, y).allFinite()) {
                     DSOInitializerPoint p;
                     //assert(patternNum==9);
 
@@ -555,7 +556,7 @@ CML::Vector3f CML::Optimization::DSOInitializer::calcResAndGS(int lvl, Matrixf<8
             // float rlR = mReference->getCaptureFrame().getGrayImage(lvl).interpolate(Vector2(point->u + dx, point->v + dy));
             float rlR = point->color[idx];
 
-            if(!std::isfinite(rlR) || !std::isfinite((float)hitColor[0]))
+            if(!std::isfinite(rlR) || !std::isfinite((float)hitColor[0]) || !std::isfinite((float)hitColor[1]) || !std::isfinite((float)hitColor[2]))
             {
                 isGood = false;
                 break;

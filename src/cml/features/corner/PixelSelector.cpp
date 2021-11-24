@@ -72,9 +72,11 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
                     // int g = sqrtf(map0[i+j*w]);
 
                     if(g>48) g=48;
-                    assertThrow(g >= 0, "Weghted gradient norm is not correct !");
-                    hist0[g+1]++;
-                    hist0[0]++;
+                    //assertThrow(g >= 0, "Weghted gradient norm is not correct !");
+                    if (g>=0 && std::isfinite(g)) {
+                        hist0[g + 1]++;
+                        hist0[0]++;
+                    }
                 }
 
             ths[x+y*w32] = computeHistQuantil(hist0,setting_minGradHistCut) + setting_minGradHistAdd;
@@ -359,7 +361,7 @@ void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> 
     // #pragma omp parallel for collapse(2) // todo : thread safe list
     for (int i = 32; i < cp.getWidth(0) - 32; i++) {
         for (int j = 32; j < cp.getHeight(0) - 32; j++) {
-            if (output(i, j) != 0) {
+            if (output(i, j) != 0 && cp.getDerivativeImage(0).get(i, j).allFinite()) {
                 corners.emplace_back(DistortedVector2d(i, j));
                 types.emplace_back(output(i, j));
             }

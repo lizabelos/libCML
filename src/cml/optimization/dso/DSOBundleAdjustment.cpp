@@ -1434,6 +1434,10 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
 
         auto curColorWithGradient = image.interpolate(projectedcurp_Distorted.cast<float>());
 
+        if (!curColorWithGradient.allFinite()) {
+            pair->setState(DSORES_OOB);
+            return pair->state_energy;
+        }
 
         float curColor = curColorWithGradient(0);
         Vector2f curColorGradient = curColorWithGradient.tail<2>();
@@ -1514,7 +1518,10 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr
     pair->rJ.Jab2(1,0) = JabJab_01;
     pair->rJ.Jab2(1,1) = JabJab_11;
 
-    assertThrow(std::isfinite(energyLeft), "What ?");
+    if (!std::isfinite(energyLeft)) {
+        pair->setNewState(DSORES_OOB);
+        return pair->state_energy;
+    }
     pair->state_NewEnergyWithOutlier = energyLeft;
 
     if(energyLeft > std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH) || wJI2_sum < 2)
