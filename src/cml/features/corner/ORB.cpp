@@ -1,9 +1,9 @@
 #include "cml/features/corner/ORB.h"
-#if CML_HAVE_OPENCV
+//#if CML_HAVE_OPENCV
 #include "cml/features/corner/OpenCV.h"
-#else
+//#else
 #include "cml/features/corner/FAST.h"
-#endif
+//#endif
 
 #include "cml/image/Filter.h"
 #include "ORBPattern.cpp"
@@ -98,7 +98,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
     mCorners.clear();
     mDescriptors.clear();
 
-    mImages[0] = captureImage.getGrayImage(0).autoadjustAndClip().cast<unsigned char>();
+    mImages[0] = captureImage.getGrayImage(0).cast<unsigned char>();
     for (int i = 1; i < nlevels; i++) {
         float scale = mvInvScaleFactor[i];
         Vector2i sz(round((float)captureImage.getWidth(0) * scale), round((float)captureImage.getHeight(0) * scale));
@@ -145,16 +145,14 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
             float scale = mvScaleFactor[level]; //getScale(level, firstLevel, scaleFactor);
             for (Corner &keypoint : keypoints) {
                 keypoint.scalePoint(scale);
-                keypoint.padPoint(0.5, 0.5);
+
             }
         }
         // And add the keypoints to the output
-        for (Corner &keypoint : keypoints) {
-            mCorners.emplace_back(keypoint);
-        }
-
-        for (const Binary256Descriptor& d : desc) {
-            mDescriptors.emplace_back(d);
+        for (int j = 0; j < keypoints.size(); j++) {
+            keypoints[j].padPoint(0.5, 0.5);
+            mCorners.emplace_back(keypoints[j]);
+            mDescriptors.emplace_back(desc[j]);
         }
 
     }
@@ -209,14 +207,14 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
-#if CML_HAVE_OPENCV
+/*#if CML_HAVE_OPENCV
                 List<Corner> vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), iniThFAST, true);
 
                 if(vKeysCell.empty())
                 {
                     vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), minThFAST, true);
                 }
-#else
+#else*/
                 List<Corner> vKeysCell;
                 FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST, FAST_9, true);
 
@@ -224,7 +222,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 {
                     FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST, FAST_9, true);
                 }
-#endif
+//#endif
 
                 if(!vKeysCell.empty())
                 {
@@ -254,7 +252,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
             keypoints[i].setSize(scaledPatchSize);
         }
 
-        logger.debug("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
+        logger.important("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
     }
 
     // compute orientations

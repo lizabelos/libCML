@@ -51,8 +51,8 @@ void CML::CameraViewerWidget::paintGL() {
 
     OptPFrame currentFrame;
 
-    float h;
-    float remainingH;
+    float h, w;
+    float remainingH, remainingW;
     int imageWidth, imageHeight;
 
     if (mKeyFrame < 0) {
@@ -65,14 +65,39 @@ void CML::CameraViewerWidget::paintGL() {
 
         imageWidth = captureFrame->getWidth(0);
         imageHeight = captureFrame->getHeight(0);
+
         h = (float) captureFrame->getHeight(0) * width() / (float) captureFrame->getWidth(0);
         h = h * 2.0 / height();
         remainingH = 2.0f - h;
 
+        w = (float) captureFrame->getWidth(0) * height() / (float) captureFrame->getHeight(0);
+        w = w * 2.0 / width();
+        remainingW = 2.0f - w;
+
+        if (remainingH < 0) {
+            remainingH = 0;
+            h = 2;
+        }
+
+        if (remainingW < 0) {
+            remainingW = 0;
+            w = 2;
+        }
+
         if (captureFrame->haveColorImage()) {
-            mDrawBoard->texture(captureFrame->getColorImage(0), -1, -1 + (remainingH / 2), 2, h);
+            mDrawBoard->texture(captureFrame->getColorImage(0), -1 + (remainingW / 2), -1 + (remainingH / 2), w, h);
+            mDrawBoard->set2DArea(Eigen::Vector2f(-1 + (remainingW / 2), -1 + (remainingH / 2)), Eigen::Vector2f(1 - (remainingW / 2), 1 - (remainingH / 2)));
         } else {
-            mDrawBoard->texture(captureFrame->getGrayImage(0).autoadjustAndClip().cast<ColorRGBA>(), -1, -1 + (remainingH / 2), 2, h);
+            auto img = captureFrame->getGrayImage(0).cast<ColorRGBA>();
+            for (int y = 0; y < img.getHeight(); y++) {
+                for (int x = 0; x < img.getWidth(); x++) {
+                    if (!captureFrame->getDerivativeImage(0).get(x,y).allFinite()) {
+                        img(x,y)=ColorRGBA(255,0,0,255);
+                    }
+                }
+            }
+            mDrawBoard->texture(img, -1 + (remainingW / 2), -1 + (remainingH / 2), w, h);
+            mDrawBoard->set2DArea(Eigen::Vector2f(-1 + (remainingW / 2), -1 + (remainingH / 2)), Eigen::Vector2f(1 - (remainingW / 2), 1 - (remainingH / 2)));
 
         }
 
@@ -92,10 +117,10 @@ void CML::CameraViewerWidget::paintGL() {
         remainingH = 2.0f - h;
 
         mDrawBoard->texture(frames[mKeyFrame], -1, -1 + (remainingH / 2), 2, h);
-
+        mDrawBoard->set2DArea(Eigen::Vector2f(-1, -1 + (remainingH / 2)), Eigen::Vector2f(1, 1 - (remainingH / 2)));
     }
 
-    mDrawBoard->set2DArea(Eigen::Vector2f(-1, -1 + (remainingH / 2)), Eigen::Vector2f(1, 1 - (remainingH / 2)));
+
     mDrawBoard->set2DAxis(Eigen::Vector2f(0, 0), Eigen::Vector2f(imageWidth, imageHeight));
 
 

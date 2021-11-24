@@ -426,11 +426,11 @@ namespace CML {
             return result;
         }
 
-        Array2D<T> autoadjustAndClip() const {
+        /*Array2D<T> autoadjustAndClip() const {
             T lower = min();
             T higher = max();
             return (((*this) - lower) * T(255) / higher).clip(0, 255);
-        }
+        }*/
 
         void drawCenteredRect(Vector2 pos, int radius, T value) {
             for (int i = 0; i < radius; i++) {
