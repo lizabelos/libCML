@@ -20,12 +20,63 @@ namespace CML {
             computeInverse();
         }
 
+        static GrayLookupTable fromInverse(const Vectorf<256> &values) {
+            GrayLookupTable table(values);
+            std::swap(table.mValues, table.mInv);
+            return table;
+        }
+
+        static GrayLookupTable log(float maxValue = 255.0f) {
+            float C = 255.0f / log10f(1.0f + maxValue);
+
+            Vectorf<256> values;
+            for (int i = 0; i < 256; i++) {
+                values[i] = C * log10f(1 + i);
+            }
+
+            return GrayLookupTable(values);
+        }
+
+        static GrayLookupTable exp(float maxValue = 255.0f, float base = 1.02f) {
+
+            float C = 255.0f / (pow(base, maxValue) - 1);
+
+            Vectorf<256> values;
+            for (int i = 0; i < 256; i++) {
+                values[i] = C * (pow(base, i) - 1);
+            }
+
+            return GrayLookupTable(values);
+        }
+
         EIGEN_STRONG_INLINE float operator()(uint8_t input) const {
             return mValues[input];
         }
 
         EIGEN_STRONG_INLINE float inverse(uint8_t input) const {
             return mInv[input];
+        }
+
+        EIGEN_STRONG_INLINE float operator()(int input) const {
+            return mValues[input];
+        }
+
+        EIGEN_STRONG_INLINE float inverse(int input) const {
+            return mInv[input];
+        }
+
+        EIGEN_STRONG_INLINE float operator()(float input) const {
+            uint8_t i0 = input;
+            uint8_t i1 = i0 + 1;
+            input -= i0;
+            return mValues[i0] * (1.0f - input) + mValues[i1] * input;
+        }
+
+        EIGEN_STRONG_INLINE float inverse(float input) const {
+            uint8_t i0 = input;
+            uint8_t i1 = i0 + 1;
+            input -= i0;
+            return mInv[i0] * (1.0f - input) + mInv[i1] * input;
         }
 
     protected:
