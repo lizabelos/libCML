@@ -18,7 +18,7 @@ class Evaluator:
         self.g = reference
 
     def associate(self):
-        _, self.t = sync.associate_trajectories(self.g, self.t, max_diff=0.01, first_name="reference",snd_name="estimate")
+        self.g, self.t = sync.associate_trajectories(self.g, self.t, max_diff=0.01, first_name="reference",snd_name="estimate")
 
     def align(self):
         self.t.align(self.g, correct_scale=True, correct_only_scale=False, n=-1)

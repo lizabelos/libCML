@@ -1,5 +1,4 @@
 import os
-import statistics
 import sys
 import csv
 
@@ -7,6 +6,7 @@ import concurrent
 import concurrent.futures
 import multiprocessing
 from statistics import mean
+import statistics
 
 from evo.tools.file_interface import csv_read_matrix
 
@@ -56,7 +56,7 @@ def main():
 
     print("Found " + str(len(datasets)) + " videos")
 
-    num_execution = 10
+    num_execution = 5
 
     for n in range(0, num_execution):
         for i in range(0, len(datasets)):
@@ -132,14 +132,16 @@ def ablationstudy():
     # for d in datasets:
     #    d.setuseramdisk(True)
 
-    valuesToTry = [0.25, 0.50, 0.75, 1, 1.5, 2, 4]
+    valuesToTry = [1, 10000, 1/10000, 1000, 1/1000, 100, 1/100, 10, 1/10]
+    #valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
+    #valuesToTry = [x * 0.0125 for x in valuesToTry]
 
     print(valuesToTry)
 
     # desiredPointDensity = 2000 // 10
     # immatureDensity = 1500 // 10
 
-    num_execution = 3
+    num_execution = 10
 
     table_ate = MedianTableProxy(FileTable(sorted(valuesToTry), datasets_names, "result/ate.csv"))
     table_error = SumTableProxy(FileTable(sorted(valuesToTry), datasets_names, "result/error.csv"))
@@ -156,7 +158,7 @@ def ablationstudy():
 
             # context.setconfig("dsoTracer.desiredPointDensity", desiredPointDensity)
             # context.setconfig("dsoTracer.immatureDensity", immatureDensity)
-            context.setconfig("trackcondUncertaintyWeight", v)
+            context.setconfig("bacondUncertaintyWeight", v)
 
             context.run(datasets[i])
 
@@ -172,7 +174,7 @@ def ablationstudy():
 
     # Each SLAM instance will use 2 thread
     # executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=9)
     futures = []
 
     for n in range(0, num_execution):
@@ -182,8 +184,7 @@ def ablationstudy():
 
     concurrent.futures.wait(futures)
 
-
-def ablationstudy2d(self):
+def ablationstudy2d():
     datasets, datasets_names, slams, slams_names = parse_config()
     # for d in datasets:
     #    d.setuseramdisk(True)
@@ -191,7 +192,7 @@ def ablationstudy2d(self):
     toTry = [
         "trackcondUncertaintyWeight",
         [0.25, 0.50, 0.75, 1, 1.5, 2, 4],
-        "otherparam",
+        "bacondUncertaintyWeight",
         [0.25, 0.50, 0.75, 1, 1.5, 2, 4]
     ]
 
@@ -223,18 +224,18 @@ def ablationstudy2d(self):
 
             context.run(datasets[i])
 
-            try:
-                evaluation = evaluator.fromslam(context)
-                result = evaluation.ape_rmse()
+            evaluation = evaluator.fromslam(context)
+            result = evaluation.ape_rmse()
+        except:
+            pass
 
-        finally:
-            datasets[i].unuse()
+        datasets[i].unuse()
 
         return result
 
     # Each SLAM instance will use 2 thread
     # executor = concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() // 2)
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
 
     for v1 in toTry[1]:
         for v2 in toTry[3]:
@@ -266,8 +267,10 @@ def ablationstudy2d(self):
             table_error.set(v1, v2, numerr)
 
 if __name__ == "__main__":
-    # statsOn("modslam.yaml", "modslam.csv")
-    # statsOn("orb1000.yaml", "orb1000.csv")
-    # statsOn("dso2000.yaml", "dso2000.csv")
-    # statsOn("dso800.yaml", "dso800.csv")
-    ablationstudy()
+    #statsOn("modslam.yaml", "modslam.csv")
+    #statsOn("orb1000.yaml", "orb1000.csv")
+    #statsOn("orb2000.yaml", "orb2000.csv")
+    #statsOn("dso2000.yaml", "dso2000.csv")
+    #statsOn("dso800.yaml", "dso800.csv")
+    #ablationstudy2d()
+    main()
