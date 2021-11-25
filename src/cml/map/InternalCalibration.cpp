@@ -324,7 +324,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
 }
 
 
-CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize) {
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize, int top, int bottom) {
     rapidxml::xml_document doc;
 
     std::ifstream file(path);
@@ -355,9 +355,15 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
 
 
         auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), outputSize);
+        Vector4 params = res.first.getParameters();
+        float nonCroppedHeight = size.y() * outputSize.x() / size.x();
+        params(1) *= nonCroppedHeight / outputSize.y();
+        top = top * outputSize.y() / size.y();
+        bottom = bottom * outputSize.y() / size.y();
+        params(3) = ((top + bottom) / 2) + top;
+        PinholeUndistorter newpinhole(params);
 
-
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, res.first, outputSize.cast<scalar_t>());
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, params, outputSize.cast<scalar_t>());
 
     }
     else {

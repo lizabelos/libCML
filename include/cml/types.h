@@ -785,6 +785,22 @@ namespace CML {
             return mColor[3];
         }
 
+        EIGEN_STRONG_INLINE uint8_t &r() {
+            return mColor[0];
+        }
+
+        EIGEN_STRONG_INLINE uint8_t &g() {
+            return mColor[1];
+        }
+
+        EIGEN_STRONG_INLINE uint8_t &b() {
+            return mColor[2];
+        }
+
+        EIGEN_STRONG_INLINE uint8_t &a() {
+            return mColor[3];
+        }
+
         EIGEN_STRONG_INLINE Eigen::Matrix<uint8_t, 3, 1> eigen() const {
             return Eigen::Matrix<uint8_t, 3, 1>(mColor[0], mColor[1], mColor[2]);
         }

@@ -441,13 +441,17 @@ CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kerne
     return newImage;
 }
 
-CML::FloatImage CML::loadTiffImage(const uint8_t *str, size_t lenght) {
+CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, size_t lenght) {
     std::istringstream input_TIFF_stream(std::string((char*)str, lenght));
 
 //Populate input_TIFF_stream with TIFF image data
 //...
 
     TIFF* tif = TIFFStreamOpen("MemTIFF", &input_TIFF_stream);
+
+    if (!tif) {
+        throw std::runtime_error("Can't open the tiff file");
+    }
 
     uint32 width, height, bitspersample, depth;
 
@@ -458,14 +462,20 @@ CML::FloatImage CML::loadTiffImage(const uint8_t *str, size_t lenght) {
     depth = 3;
 
     FloatImage image(width, height);
+    Image colorImage(width, height);
 
     tdata_t buf = _TIFFmalloc(TIFFScanlineSize(tif));
+    if (!buf) {
+        throw std::runtime_error("tiff can't malloc ?");
+    }
     uint8_t *buf8 = (uint8_t*)buf;
 
     uint32_t mask = 0;
     for (uint32_t i = 0; i < bitspersample; i++) {
         mask ^= 1U << i;
     }
+
+    float factor = 255.0f / (float)pow(2, bitspersample);
 
     for (uint32_t y = 0; y < height; y++) {
         TIFFReadScanline(tif, buf, y);
@@ -487,7 +497,18 @@ CML::FloatImage CML::loadTiffImage(const uint8_t *str, size_t lenght) {
                 intensity = intensity >> right;
                 intensity = intensity & mask;
 
-                float value = (float)intensity * 255.0f / (float)pow(2, bitspersample);
+                float value = (float)intensity * factor;
+
+                if (c == 0) {
+                    colorImage(x,y).r() = value;
+
+                } else if (c == 1) {
+                    colorImage(x,y).g() = value;
+
+                } else if (c == 2) {
+                    colorImage(x,y).b() = value;
+
+                }
 
                 avg += value;
 
@@ -503,8 +524,9 @@ CML::FloatImage CML::loadTiffImage(const uint8_t *str, size_t lenght) {
     }
 
 
+    _TIFFfree(buf);
     TIFFClose(tif);
 
-    return image;
+    return {image, colorImage};
 
 }

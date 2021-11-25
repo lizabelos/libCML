@@ -18,24 +18,19 @@ namespace CML {
             uint8_t *data;
             size_t size;
             decompressFile(1, &data, &size);
-            FloatImage image = loadTiffImage(data, size);
-
-            mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
-
-            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
-
+            auto images = loadTiffImage(data, size);
             mMask = loadGrayImage(zipPath + ".mask.bmp");
 
             int histogram[256];
             for (int i = 0; i < 256; i++) {
                 histogram[i] = 0;
             }
-            for (int y = 0; y < image.getHeight(); y++) {
-                for (int x = 0; x < image.getWidth(); x++) {
-                    histogram[(int)image(x,y)]+=1;
+            for (int y = 0; y < images.first.getHeight(); y++) {
+                for (int x = 0; x < images.first.getWidth(); x++) {
+                    histogram[(int)images.first(x,y)]+=1;
                 }
             }
-            int threshold = (image.getWidth() * image.getHeight()) * 0.999;
+            int threshold = (images.first.getWidth() * images.first.getHeight()) * 0.999;
             for (int i = 1; i < 256; i++) {
                 histogram[i] += histogram[i - 1];
                 if (histogram[i] > threshold) {
@@ -45,6 +40,30 @@ namespace CML {
             }
 
             mLookupTable = GrayLookupTable::exp(255, 1.005f);
+
+            images.first = images.first * (255.0f / mImageMax);
+
+            int top = 0, bottom = images.first.getHeight() - 1;
+
+            for (int y = 0; y < images.first.getHeight(); y++) {
+                for (int x = 0; x < images.first.getWidth(); x++) {
+                    if (mMask(x,y) < 128 || images.first(x,y) > 255.9) {
+                        if (y < images.first.getHeight() / 2) {
+                            top = std::max(top, y);
+                        } else {
+                            bottom = std::min(bottom, y);
+                        }
+                    }
+                }
+            }
+
+
+            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), (bottom - top));
+
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize(), top, bottom);
+
+
+
         }
 
         inline int remaining() final {
@@ -60,21 +79,25 @@ namespace CML {
             uint8_t *data;
             size_t size;
             decompressFile(mCurrentImage, &data, &size);
-            FloatImage image = loadTiffImage(data, size) * (255.0f / mImageMax);
+            auto images = loadTiffImage(data, size);
+            images.first = images.first * (255.0f / mImageMax);
 
-            for (int y = 0; y < image.getHeight(); y++) {
-                for (int x = 0; x < image.getWidth(); x++) {
+            for (int y = 0; y < images.first.getHeight(); y++) {
+                for (int x = 0; x < images.first.getWidth(); x++) {
                     if (mMask(x,y) < 128) {
-                        image(x,y) = std::numeric_limits<float>::quiet_NaN();
+                        images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
+                        images.second(x,y) = ColorRGBA(0,0,0,0);
                     }
-                    else if (image(x,y) > 255.9) {
-                        image(x,y) = std::numeric_limits<float>::quiet_NaN();
-                    }
+            /*        else if (images.first(x,y) > 255.9) {
+                        images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
+                        images.second(x,y) = ColorRGBA(0,0,0,0);
+                    } */
                 }
             }
 
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
-            imageMaker.setImage(image)
+            imageMaker.setImage(images.first)
+                    .setImage(images.second)
                     .setPath(getFilename(mCurrentImage))
                     .setTime((scalar_t)mCurrentImage / 10.0)
                     .setCalibration(mCameraParameters)
