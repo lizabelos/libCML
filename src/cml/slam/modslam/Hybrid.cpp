@@ -408,6 +408,8 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
     }
 
     if (result == 1) {
+        assertThrow(mLastDirectKeyFrame != currentFrame, "Some strange bug is happening here");
+
         PFrame lastDirectKeyFrame = mLastDirectKeyFrame;
 
         mLastDirectKeyFrame->setGroup(getMap().KEYFRAME, true);

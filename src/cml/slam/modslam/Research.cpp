@@ -47,6 +47,12 @@ bool Hybrid::poseEstimationDecision() {
 
 Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDirectKF) {
 
+    if (needIndirectKF && mBaOrbRepeat.i() >= 0) {
+        if (getMap().getLastGroupFrame(INDIRECTKEYFRAME)->getId() + mBaOrbRepeat.i() > getMap().getLastFrame()->getId()) {
+            return BAINDIRECT;
+        }
+    }
+
     Vector6 currentVariance;
     currentVariance.head<3>() = mLastIndirectTrackingResult.covariance.tail<3>();
     currentVariance.tail<3>() = mLastPhotometricTrackingResidual.covariance.tail<3>();

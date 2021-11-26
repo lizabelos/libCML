@@ -20,6 +20,8 @@ void Hybrid::extractOrb(PFrame currentFrame) {
 
     if (mCornerExtractor->getCorners().size() > 0) {
         currentFrameData->featureId = currentFrame->addFeaturePoints(mCornerExtractor->getCorners());
+    } else {
+        assert(false);
     }
 
 }
@@ -183,7 +185,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
         }
         return true;
     } else {
-        logger.info("Too few inliers from reference : " + std::to_string(numInliers));
+        logger.important("Too few inliers from reference : " + std::to_string(numInliers));
         return false;
     }
 

@@ -296,6 +296,7 @@ private:
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", -1);
+    Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

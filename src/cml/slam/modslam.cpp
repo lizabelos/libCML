@@ -61,7 +61,7 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
         Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 #endif
 
@@ -70,14 +70,14 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
         Ptr<AbstractCapture, Nullable> capture = new CML::TUMCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::StereopolisCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 #endif
 
@@ -85,37 +85,37 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
         Ptr<AbstractCapture, Nullable> capture = new CML::KittyCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
-
+/*
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::EurocCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::RobotCarCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 
-    try {
+   try {
         Ptr<AbstractCapture, Nullable> capture = new CML::Eth3DCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::TartanairCapture(path);
         return capture;
     } catch (const std::exception &e) {
-
+        logger.error(e.what());
     }
-
+*/
     return nullptr;
 }
 #endif
