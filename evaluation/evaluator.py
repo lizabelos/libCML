@@ -10,15 +10,18 @@ from evo.core.trajectory import PoseTrajectory3D
 from evo.tools.file_interface import csv_read_matrix
 from evo.tools.settings import SETTINGS
 
+from utils import system
 
-class Evaluator:
+
+class EvoEvaluator:
 
     def __init__(self, reference, estimate):
         self.t = estimate
         self.g = reference
 
     def associate(self):
-        self.g, self.t = sync.associate_trajectories(self.g, self.t, max_diff=0.01, first_name="reference",snd_name="estimate")
+        self.g, self.t = sync.associate_trajectories(self.g, self.t, max_diff=0.01, first_name="reference",
+                                                     snd_name="estimate")
 
     def align(self):
         self.t.align(self.g, correct_scale=True, correct_only_scale=False, n=-1)
@@ -55,22 +58,22 @@ class Evaluator:
 
         short_traj_name = dataset_name
         plot.traj(ax_traj, plot_mode, self.g,
-                      style=SETTINGS.plot_reference_linestyle,
-                      color=SETTINGS.plot_reference_color,
-                      label=short_traj_name,
-                      alpha=SETTINGS.plot_reference_alpha)
+                  style=SETTINGS.plot_reference_linestyle,
+                  color=SETTINGS.plot_reference_color,
+                  label=short_traj_name,
+                  alpha=SETTINGS.plot_reference_alpha)
         plot.draw_coordinate_axes(ax_traj, self.g, plot_mode,
-                                      SETTINGS.plot_axis_marker_scale)
+                                  SETTINGS.plot_axis_marker_scale)
         plot.traj_xyz(
-                axarr_xyz, self.g, style=SETTINGS.plot_reference_linestyle,
-                color=SETTINGS.plot_reference_color, label=short_traj_name,
-                alpha=SETTINGS.plot_reference_alpha,
-                start_timestamp=start_time)
+            axarr_xyz, self.g, style=SETTINGS.plot_reference_linestyle,
+            color=SETTINGS.plot_reference_color, label=short_traj_name,
+            alpha=SETTINGS.plot_reference_alpha,
+            start_timestamp=start_time)
         plot.traj_rpy(
-                axarr_rpy, self.g, style=SETTINGS.plot_reference_linestyle,
-                color=SETTINGS.plot_reference_color, label=short_traj_name,
-                alpha=SETTINGS.plot_reference_alpha,
-                start_timestamp=start_time)
+            axarr_rpy, self.g, style=SETTINGS.plot_reference_linestyle,
+            color=SETTINGS.plot_reference_color, label=short_traj_name,
+            alpha=SETTINGS.plot_reference_alpha,
+            start_timestamp=start_time)
 
         cmap_colors = None
         if SETTINGS.plot_multi_cmap.lower() != "none":
@@ -107,74 +110,109 @@ class Evaluator:
 
         plot_collection.export(filename, confirm_overwrite=False)
 
+    def read_tum_trajectory_file2(file_path, groundtruth_path):
+        """
+        parses trajectory file in TUM format (timestamp tx ty tz qx qy qz qw)
+        :param file_path: the trajectory file path (or file handle)
+        :return: trajectory.PoseTrajectory3D object
+        """
+        raw_mat_est = csv_read_matrix(file_path, delim=" ", comment_str="#")
+        raw_mat_gt = csv_read_matrix(groundtruth_path, delim=" ", comment_str="#")
 
-def read_tum_trajectory_file2(file_path, groundtruth_path):
-    """
-    parses trajectory file in TUM format (timestamp tx ty tz qx qy qz qw)
-    :param file_path: the trajectory file path (or file handle)
-    :return: trajectory.PoseTrajectory3D object
-    """
-    raw_mat_est = csv_read_matrix(file_path, delim=" ", comment_str="#")
-    raw_mat_gt = csv_read_matrix(groundtruth_path, delim=" ", comment_str="#")
+        lines_to_keep = []
+        num_removed = 0
+        if (len(raw_mat_est) != len(raw_mat_gt)):
+            raise Exception("The file must contains the same number of lines")
 
-    lines_to_keep = []
-    num_removed = 0
-    if (len(raw_mat_est) != len(raw_mat_gt)):
-        raise Exception("The file must contains the same number of lines")
+        for i in range(0, len(raw_mat_est)):
+            res = True
+            for v in raw_mat_gt[i]:
+                if not math.isfinite(float(v)):
+                    res = False
+                    num_removed = num_removed + 1
+                    break
+            lines_to_keep.append(res)
 
-    for i in range(0, len(raw_mat_est)):
-        res = True
-        for v in raw_mat_gt[i]:
-            if not math.isfinite(float(v)):
-                res = False
-                num_removed = num_removed + 1
-                break
-        lines_to_keep.append(res)
+        print("Removing " + str(num_removed) + " lines")
 
-    print("Removing " + str(num_removed) + " lines")
+        raw_mat_gt = [raw_mat_gt[i] for i in range(0, len(raw_mat_gt)) if lines_to_keep[i]]
+        raw_mat_est = [raw_mat_est[i] for i in range(0, len(raw_mat_est)) if lines_to_keep[i]]
 
-    raw_mat_gt = [raw_mat_gt[i] for i in range(0, len(raw_mat_gt)) if lines_to_keep[i]]
-    raw_mat_est = [raw_mat_est[i] for i in range(0, len(raw_mat_est)) if lines_to_keep[i]]
+        mat_est = np.array(raw_mat_est).astype(float)
+        mat_gt = np.array(raw_mat_gt).astype(float)
+
+        stamps_est = mat_est[:, 0]  # n x 1
+        xyz_est = mat_est[:, 1:4]  # n x 3
+        quat_est = mat_est[:, 4:]  # n x 4
+        quat_est = np.roll(quat_est, 1, axis=1)  # shift 1 column -> w in front column
+
+        stamps_gt = mat_gt[:, 0]  # n x 1
+        xyz_gt = mat_gt[:, 1:4]  # n x 3
+        quat_gt = mat_gt[:, 4:]  # n x 4
+        quat_gt = np.roll(quat_gt, 1, axis=1)  # shift 1 column -> w in front column
+
+        return PoseTrajectory3D(xyz_est, quat_est, stamps_est), PoseTrajectory3D(xyz_gt, quat_gt, stamps_gt)
+
+    def loadtrajectories(context):
+        reference = None
+        estimate = None
+        if context.d.type() == "tum":
+            if context.d.g is not None:
+                estimate, reference = EvoEvaluator.read_tum_trajectory_file2(file_path=context.outputtum(),
+                                                                             groundtruth_path=context.d.g)
+            else:
+                estimate = file_interface.read_tum_trajectory_file(context.outputtum())
+        elif context.d.type() == "kitti":
+            estimate = file_interface.read_kitti_poses_file(context.outputkitti())
+            if context.d.g is not None:
+                reference = file_interface.read_kitti_poses_file(context.d.g)
+        # elif context.d.type() == "euroc":
+        #    estimate = file_interface.read_euroc_csv_trajectory(csv_file)
+        #    if context.d.g is not None:
+        #        reference = file_interface.read_euroc_csv_trajectory(context.d.g)
+
+        return reference, estimate
+
+    def fromslam(context):
+        reference, estimate = EvoEvaluator.loadtrajectories(context)
+        evaluation = EvoEvaluator(reference=reference, estimate=estimate)
+        evaluation.align()
+        return evaluation
 
 
-    mat_est = np.array(raw_mat_est).astype(float)
-    mat_gt = np.array(raw_mat_gt).astype(float)
+class SysEvoEvaluator:
 
-    stamps_est = mat_est[:, 0]  # n x 1
-    xyz_est = mat_est[:, 1:4]  # n x 3
-    quat_est = mat_est[:, 4:]  # n x 4
-    quat_est = np.roll(quat_est, 1, axis=1)  # shift 1 column -> w in front column
+    def __init__(self, reference, estimate, type):
+        self.ref = reference
+        self.est = estimate
+        self.type = type
 
-    stamps_gt = mat_gt[:, 0]  # n x 1
-    xyz_gt = mat_gt[:, 1:4]  # n x 3
-    quat_gt = mat_gt[:, 4:]  # n x 4
-    quat_gt = np.roll(quat_gt, 1, axis=1)  # shift 1 column -> w in front column
+    def ape_rmse(self):
+        out, err = system("evo_ape %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
+        out = out.replace(" ","").split("\n")
+        out = [x for x in out if x.startswith("rmse")][0][4:]
+        out = float(out)
+        return out
 
-    return PoseTrajectory3D(xyz_est, quat_est, stamps_est), PoseTrajectory3D(xyz_gt, quat_gt, stamps_gt)
+    def rpe_rmse(self):
+        out, err = system("evo_rpe %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
+        out = out.replace(" ","").split("\n")
+        out = [x for x in out if x.startswith("rmse")][0][4:]
+        out = float(out)
+        return out
 
+    def plot(self, dataset_name, filename):
+        pass
 
-def loadtrajectories(context):
-    reference = None
-    estimate = None
-    if context.d.type() == "tum":
-        if context.d.g is not None:
-            estimate, reference = read_tum_trajectory_file2(file_path=context.outputtum(), groundtruth_path=context.d.g)
-        else:
-            estimate = file_interface.read_tum_trajectory_file(context.outputtum())
-    elif context.d.type() == "kitti":
-        estimate = file_interface.read_kitti_poses_file(context.outputkitti())
-        if context.d.g is not None:
-            reference = file_interface.read_kitti_poses_file(context.d.g)
-    #elif context.d.type() == "euroc":
-    #    estimate = file_interface.read_euroc_csv_trajectory(csv_file)
-    #    if context.d.g is not None:
-    #        reference = file_interface.read_euroc_csv_trajectory(context.d.g)
-
-    return reference, estimate
+    def fromslam(context):
+        if context.d.type() == "tum":
+            evaluation = SysEvoEvaluator(reference=context.d.g, estimate=context.outputtum(), type="tum")
+            return evaluation
+        elif context.d.type() == "kitti":
+            evaluation = SysEvoEvaluator(reference=context.d.g, estimate=context.outputkitti(), type="kitti")
+            return evaluation
 
 
 def fromslam(context):
-    reference, estimate = loadtrajectories(context)
-    evaluation = Evaluator(reference=reference, estimate=estimate)
-    evaluation.align()
-    return evaluation
+    return EvoEvaluator.fromslam(context)
+    #return SysEvoEvaluator.fromslam(context)

@@ -92,7 +92,7 @@ class ModSLAM(SLAM):
 
         print(command)
 
-        out, err = system(command, self.outputlog(), "w")
+        out, err = system(command)
         self.processLogForStats(out)
 
     def outputlog(self):

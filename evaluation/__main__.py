@@ -70,7 +70,7 @@ def main():
 
                 context.run(datasets[i])
 
-                try:
+                if True:
                     evaluation = evaluator.fromslam(context)
                     ate = evaluation.ape_rmse()
                     rpe = evaluation.rpe_rmse()
@@ -80,8 +80,8 @@ def main():
 
                     table.set("ate of " + name, datasets[i].name(), ate)
                     table.set("rpe of " + name, datasets[i].name(), rpe)
-                except:
-                    print("Unable to evaluate " + datasets[i].name())
+                #except:
+                #    print("Unable to evaluate " + datasets[i].name())
 
 
 def statsOn(configName, tableName):
