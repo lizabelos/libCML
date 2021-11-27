@@ -33,6 +33,7 @@
 #include <cml/features/cornerTracker/VFC.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/features/bow/Relocalization.h>
+#include <cml/features/corner/OpenCV.h>
 
 #include <cml/gui/viewer/ReprojectionViewer.h>
 
@@ -47,7 +48,7 @@ using namespace CML;
 class Hybrid : public AbstractSlam, Map::Observer, MapPoint::Observer {
 
 private:
-    using CornerAndDescriptor = Features::ORB;
+    using CornerAndDescriptor = Features::OpenCV::ORB;
     using Descriptor = CornerAndDescriptor::Descriptor;
 
     typedef enum BaMode {

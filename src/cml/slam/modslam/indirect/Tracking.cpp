@@ -15,6 +15,11 @@ void Hybrid::extractOrb(PFrame currentFrame) {
         mCornerExtractor->setNumFeatures(mNumOrbCorner.i());
     }
 
+    List<Corner> corners;
+    mCornerExtractor->compute(currentFrame->getCaptureFrame(), corners, currentFrameData->descriptors);
+    currentFrameData->featureId = currentFrame->addFeaturePoints(corners);
+
+/*
     mCornerExtractor->compute(currentFrame->getCaptureFrame());
     currentFrameData->descriptors = mCornerExtractor->getDescriptors();
 
@@ -22,7 +27,7 @@ void Hybrid::extractOrb(PFrame currentFrame) {
         currentFrameData->featureId = currentFrame->addFeaturePoints(mCornerExtractor->getCorners());
     } else {
         assert(false);
-    }
+    }*/
 
 }
 
