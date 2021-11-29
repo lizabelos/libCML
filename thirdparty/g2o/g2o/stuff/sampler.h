@@ -102,7 +102,7 @@ class G2O_STUFF_API Sampler {
   /**
    * default seed function using the current time in seconds
    */
-  static void seedRand() { seedRand(static_cast<unsigned int>(std::time(NULL))); }
+  // static void seedRand() { seedRand(static_cast<unsigned int>(std::time(NULL))); }
 
   /** seed the random number generator */
   static void seedRand(unsigned int seed) { std::srand(seed); }
