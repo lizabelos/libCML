@@ -397,7 +397,7 @@ void CML::Optimization::DSOInitializer::onInitializationSuccess() {
    // referenceData->setEvalPT_scaled(Sophus::SE3<CML::scalar_t>(reference->getCamera().getRotationMatrix(), reference->getCamera().getTranslation()), reference->getExposure(), mScaleTranslation.f(), mScaleRotation.f(), mScaleLightA.f(), mScaleLightB.f());
    // frameToTrackData->setEvalPT_scaled(Sophus::SE3<CML::scalar_t>(frameToTrack->getCamera().getRotationMatrix(), frameToTrack->getCamera().getTranslation()), frameToTrack->getExposure(), mScaleTranslation.f(), mScaleRotation.f(), mScaleLightA.f(), mScaleLightB.f());
 
-    float keepPercentage = (float)mSettingsDesiredPointDensity.i() / (float)mPoints[0].size();
+    //float keepPercentage = (float)mSettingsDesiredPointDensity.i() / (float)mPoints[0].size();
 
     List<Corner> corners;
     for (size_t i = 0;i < mPoints[0].size(); i++) {
@@ -406,10 +406,12 @@ void CML::Optimization::DSOInitializer::onInitializationSuccess() {
     }
     int groupId = reference->addFeaturePoints(corners);
 
-    for (size_t i = 0;i < mPoints[0].size(); i++) {
+    size_t desiredPointDensity = std::min((int)mPoints[0].size(), mSettingsDesiredPointDensity.i());
+    for (size_t j = 0; j < desiredPointDensity; j++) {
 
-        float randomValue = (float)rand() / (float)RAND_MAX;
-        if(randomValue > keepPercentage) continue;
+        size_t i = j * mPoints[0].size() / desiredPointDensity;
+        //float randomValue = (float)rand() / (float)RAND_MAX;
+        //if(randomValue > keepPercentage) continue;
 
         auto &pointInitializerData = mPoints[0][i];
 
