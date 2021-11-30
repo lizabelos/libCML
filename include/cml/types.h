@@ -290,7 +290,7 @@ namespace CML {
                 mList.pop_back();
             }
             assertThrow(mList.size() <= mSize, "Implementation problem of window");
-            T result;
+            T result(0);
             bool isFirst = true;
             for (const T &t : mList) {
                 if (isFirst) {

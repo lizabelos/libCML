@@ -8,10 +8,9 @@ bool Hybrid::poseEstimationDecision() {
     mTrackingDecisionCovariances.add(currentVariance);
 
     Vector6 v = mTrackingDecisionCovariances.accumulate(mTrackcondUncertaintyWindow.i());
-    scalar_t vnorminv = 1.0 / v.norm();
 
-    scalar_t indirectUncertainty = v.head<3>().norm() * vnorminv;
-    scalar_t directUncertainty = v.tail<3>().norm() * vnorminv;
+    scalar_t indirectUncertainty = v.head<3>().norm();
+    scalar_t directUncertainty = v.tail<3>().norm();
 
     mStatTrackORBVar->addValue(indirectUncertainty);
     mStatTrackDSOVar->addValue(directUncertainty);
@@ -32,6 +31,14 @@ bool Hybrid::poseEstimationDecision() {
 
         logger.important("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
         logger.important("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
+
+        if (!std::isfinite(indirectUncertainty)) {
+            return true;
+        }
+
+        if (!std::isfinite(directUncertainty)) {
+            return false;
+        }
 
         if (directUncertainty * mTrackcondUncertaintyWeight.f() < indirectUncertainty) {
             return true;
@@ -111,10 +118,17 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     if (mBacondUncertaintyWeight.f() > 0) {
 
         Vector6 v = mBADecisionCovariances.accumulate(mBacondUncertaintyWindow.i());
-        scalar_t vnorminv = 1.0 / v.norm();
 
-        scalar_t indirectUncertainty = v.head<3>().norm() * vnorminv;
-        scalar_t directUncertainty = v.tail<3>().norm() * vnorminv;
+        scalar_t indirectUncertainty = v.head<3>().norm();
+        scalar_t directUncertainty = v.tail<3>().norm();
+
+        if (!std::isfinite(indirectUncertainty)) {
+            return BADIRECT;
+        }
+
+        if (!std::isfinite(directUncertainty)) {
+            return BAINDIRECT;
+        }
 
         logger.important("ORB Uncertainty ( BA Decision ) : " + std::to_string(indirectUncertainty));
         logger.important("DSO Uncertainty ( BA Decision ) : " + std::to_string(directUncertainty));
