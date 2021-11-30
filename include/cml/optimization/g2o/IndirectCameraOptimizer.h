@@ -5,7 +5,7 @@
 #include <cml/base/AbstractFunction.h>
 #include <cml/features/cornerTracker/CornerMatcher.h>
 
-#include <g2o/types/sba/edge_project_xyz_onlypose.h>
+#include <g2o/types/sba/edge_project_xyz.h>
 
 
 namespace CML {
@@ -42,7 +42,7 @@ namespace CML {
             }
 
         protected:
-            int evaluteOutliers(List<g2o::EdgeSE3ProjectXYZOnlyPose*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold);
+            int evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold);
 
         };
 

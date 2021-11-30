@@ -24,12 +24,13 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     vSE3->setEstimate(g2o::SE3Quat(frame->getCamera().getRotationMatrix().cast<number_t>(), frame->getCamera().getTranslation().cast<number_t>()));
     vSE3->setId(0);
     vSE3->setFixed(false);
+    vSE3->setMarginalized(false);
     optimizer.addVertex(vSE3);
 
     // Set MapPoint vertices
     const int N = matchings.size();
 
-    List<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
+    List<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
     List<size_t> vnIndexEdgeMono;
     vpEdgesMono.reserve(N);
     vnIndexEdgeMono.reserve(N);
@@ -58,13 +59,24 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
         DistortedVector2d obs = matchings[i].getFeaturePoint(frame).point0();
 
-        g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
+        g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
+        vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
+        vPoint->setId(i + 1);
+        vPoint->setMarginalized(true);
+        vPoint->setFixed(true);
+        bool r = optimizer.addVertex(vPoint);
+        assertThrow(r, "Vertex already exist");
+
+        g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
         e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
         e->setMeasurement(obs.cast<number_t>());
         //const float invSigma2 = pMP->getReferenceCorner().level() * pMP->getUncertainty();
-        const float invSigma2 = matchings[i].getFeaturePoint(frame).level();
+        scalar_t scaleFactor = matchings[i].getFeaturePoint(frame).processScaleFactorFromLevel();
+        scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
         e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
+        e->setLevel(0);
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -74,7 +86,6 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         e->fy = fy;
         e->cx = cx;
         e->cy = cy;
-        e->Xw = pMP->getWorldCoordinate().absolute().cast<number_t>();
 
         optimizer.addEdge(e);
 
@@ -109,10 +120,14 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
         nBad = evaluteOutliers(vpEdgesMono, vnIndexEdgeMono, outliers, chi2Mono);
 
+        if((nInitialCorrespondences-nBad)<5) {
+            return result;
+        }
+
         if (it == 2) {
             for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
             {
-                g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];
+                g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
                 e->setRobustKernel(nullptr);
             }
         }
@@ -124,10 +139,6 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
 
 
-    }
-
-    if((nInitialCorrespondences-nBad) < 5) {
-        return result;
     }
 
     // Recover optimized pose and return number of inliers
@@ -176,12 +187,13 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     vSE3->setEstimate(g2o::SE3Quat(frame->getCamera().getRotationMatrix().cast<number_t>(), frame->getCamera().getTranslation().cast<number_t>()));
     vSE3->setId(0);
     vSE3->setFixed(false);
+    vSE3->setMarginalized(false);
     optimizer.addVertex(vSE3);
 
 
 
     // Set MapPoint vertices
-    List<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
+    List<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
     List<size_t> vnIndexEdgeMono;
     vpEdgesMono.reserve(100);
     vnIndexEdgeMono.reserve(100);
@@ -215,12 +227,24 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
         DistortedVector2d obs = featurePoint.point0();
 
-        g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
+        g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
+        vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
+        vPoint->setId(i + 1);
+        vPoint->setMarginalized(true);
+        vPoint->setFixed(true);
+        bool r = optimizer.addVertex(vPoint);
+        assertThrow(r, "Vertex already exist");
+
+        g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
         e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
         e->setMeasurement(obs.cast<number_t>());
-        const float invSigma2 = featurePoint.level();
+        scalar_t scaleFactor = featurePoint.processScaleFactorFromLevel();
+        scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
         e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
+        e->setLevel(0);
+        e->setId(i + 1);
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -230,7 +254,6 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         e->fy = fy;
         e->cx = cx;
         e->cy = cy;
-        e->Xw = pMP->getWorldCoordinate().absolute().cast<number_t>();
 
         optimizer.addEdge(e);
 
@@ -266,10 +289,14 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
         nBad = evaluteOutliers(vpEdgesMono, vnIndexEdgeMono, outliers, chi2Mono);
 
+        if((nInitialCorrespondences-nBad)<5) {
+            return result;
+        }
+
         if (it == 2) {
             for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
             {
-                g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];
+                g2o::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
                 e->setRobustKernel(nullptr);
             }
         }
@@ -278,10 +305,6 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
             return result;
         }
 
-    }
-
-    if((nInitialCorrespondences-nBad) < 5) {
-        return result;
     }
 
     // Recover optimized pose and return number of inliers
@@ -314,13 +337,13 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
 }
 
-int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::EdgeSE3ProjectXYZOnlyPose*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold) {
+int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold) {
 
 
     int nBad = 0;
     for(size_t i=0, iend=vpEdges.size(); i<iend; i++)
     {
-        g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdges[i];
+        g2o::EdgeSE3ProjectXYZ* e = vpEdges[i];
 
         const size_t idx = vnIndexEdge[i];
 
