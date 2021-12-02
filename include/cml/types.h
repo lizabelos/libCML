@@ -1260,6 +1260,10 @@ namespace CML {
     } FeatureIndex;
 
     typedef struct NearestNeighbor {
+        NearestNeighbor() {
+        }
+        NearestNeighbor(size_t _index, scalar_t _distance) : index(_index), distance(_distance) {
+        }
         size_t index;
         scalar_t distance;
     } NearestNeighbor;
