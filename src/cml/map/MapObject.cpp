@@ -3,7 +3,6 @@
 //
 
 #include "cml/map/MapObject.h"
-#include "cml/utils/Watchpoint.h"
 
 CML::PoolAllocator CML::MapPoint::allocator{16384};
 
