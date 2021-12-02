@@ -357,14 +357,14 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG=1")
 endif()
 
-if (NOT ANDROID)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-endif()
+#if (NOT ANDROID)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+#endif()
 # activate warnings !!!
 set(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
 set(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
-add_compile_definitions(DEIGEN_MAX_ALIGN_BYTES=64)
-add_compile_definitions(DENABLE_SSE=1)
+#add_compile_definitions(DEIGEN_MAX_ALIGN_BYTES=64)
+#add_compile_definitions(DENABLE_SSE=1)
 
 
 

@@ -255,11 +255,11 @@ add_subdirectory(src)
 
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 
-if (NOT ANDROID)
-target_compile_options(CML PUBLIC -march=native)
-endif()
-target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=64)
-target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)
+#if (NOT ANDROID)
+#target_compile_options(CML PUBLIC -march=native)
+#endif()
+#target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=64)
+#target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)
 #target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)
 
 # target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
