@@ -1180,10 +1180,10 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
     double num = 0;
 
 
-    Set<Ptr<DSOResidual, NonNullable>> toRemove;
+    Set<DSOResidual*> toRemove;
     Mutex toRemoveMutex;
 
-    Atomic<scalar_t> stats = 0;
+    scalar_t stats = 0;
 
     logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
 
@@ -1197,9 +1197,6 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
     timerC = 0;
     timerCc = 0;
 
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
     for (size_t i = 0; i < mActiveResiduals.size(); i++)
     {
         auto &r = mActiveResiduals[i];
@@ -1268,9 +1265,9 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
             auto ph = get(r->elements.mapPoint);
 
             if(ph->getLastResidual(0).first == r)
-                ph->getLastResidual(0).first=0;
+                ph->getLastResidual(0).first=nullptr;
             else if(ph->getLastResidual(1).first == r)
-                ph->getLastResidual(1).first=0;
+                ph->getLastResidual(1).first=nullptr;
 
         }
 
@@ -1285,7 +1282,7 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
 }
 
-inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(const Ptr<DSOResidual, NonNullable> &pair, const DSOFramePrecomputed &precomputed, int level) {
+inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidual* pair, const DSOFramePrecomputed &precomputed, int level) {
 
     assertThrow(level == 0, "Incompatible level");
 
@@ -1890,7 +1887,7 @@ void CML::Optimization::DSOBundleAdjustment::applyActiveRes(bool copyJacobians) 
     }
 }
 
-void CML::Optimization::DSOBundleAdjustment::applyRes(Ptr<DSOResidual, NonNullable> residual, bool copyJacobians) {
+void CML::Optimization::DSOBundleAdjustment::applyRes(DSOResidual* residual, bool copyJacobians) {
 
     if(copyJacobians)
     {
@@ -2035,7 +2032,7 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::fixLinearization(Ptr<DSOResidual, NonNullable> residual) {
+void CML::Optimization::DSOBundleAdjustment::fixLinearization(DSOResidual* residual) {
     auto selfHost = get(residual->elements.mapPoint->getReferenceFrame());
     auto selfTarget = get(residual->elements.frame);
     auto selfPoint = get(residual->elements.mapPoint);

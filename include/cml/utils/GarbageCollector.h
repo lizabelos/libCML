@@ -7,7 +7,7 @@
 
 namespace CML {
 
-    class Garbage {
+    class Garbage : public DeterministicallyHashable {
 
     public:
         virtual ~Garbage() = default;

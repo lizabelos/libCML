@@ -109,11 +109,11 @@ namespace CML {
 
             Vector3 linearizeAll(bool fixLinearization);
 
-            scalar_t linearize(const Ptr<DSOResidual, NonNullable> &pair, const DSOFramePrecomputed &precomputed, int level = 0);
+            scalar_t linearize(DSOResidual*pair, const DSOFramePrecomputed &precomputed, int level = 0);
 
             void applyActiveRes(bool copyJacobians);
 
-            void applyRes(Ptr<DSOResidual, NonNullable> residual, bool copyJacobians);
+            void applyRes(DSOResidual* residual, bool copyJacobians);
 
             void backupState();
 
@@ -125,7 +125,7 @@ namespace CML {
 
             scalar_t calcLEnergy();
 
-            void fixLinearization(Ptr<DSOResidual, NonNullable> residual);
+            void fixLinearization(DSOResidual* residual);
 
             int addToHessianTop(PPoint point, Ptr<DSOPoint, NonNullable> p, DSOResidualMode mode);
 
@@ -156,7 +156,7 @@ namespace CML {
             PinholeUndistorter mPinhole;
             float mWidth, mHeight;
 
-            List<Ptr<DSOResidual, NonNullable>> mActiveResiduals;
+            List<DSOResidual*> mActiveResiduals;
 
             List<dso::AccumulatorApprox> mAccumulatorActive, mAccumulatorLinearized;
 

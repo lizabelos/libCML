@@ -37,7 +37,7 @@ namespace CML {
 
         ~Map();
 
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onAddFrame(Map &map, PFrame frame) {

@@ -66,7 +66,7 @@ namespace CML {
 
             int numGoodResiduals = 0;
 
-            const Set<Ptr<DSOResidual, NonNullable>> &getResiduals() {
+            const Set<DSOResidual*> &getResiduals() {
                 return residuals;
             }
 
@@ -99,7 +99,7 @@ namespace CML {
                 return;
             }
 
-            Pair<Ptr<DSOResidual, Nullable>, DSOResidualState> getLastResidual(int i) {
+            Pair<DSOResidual*, DSOResidualState> &getLastResidual(int i) {
                 return lastResiduals[i];
             }
 
@@ -110,12 +110,12 @@ namespace CML {
                 lastResiduals[1].second = DSORES_OOB;
             }
 
-            void setLastResidual(Ptr<DSOResidual, Nullable> res, DSOResidualState state) {
+            void setLastResidual(DSOResidual *res, DSOResidualState state) {
                 lastResiduals[1] = lastResiduals[0];
                 setLastResidual(0, res, state);
             }
 
-            void setLastResidual(int i, Ptr<DSOResidual, Nullable> res, DSOResidualState state) {
+            void setLastResidual(int i, DSOResidual *res, DSOResidualState state) {
                 if (i == 0 && state == DSORES_IN) {
                     DistortedVector2d distortedVector2D(res->getCenterProjectedTo().head<2>().cast<scalar_t>());
                     if (!res->elements.frame->isInside(distortedVector2D, 0, 0)) {
@@ -127,7 +127,7 @@ namespace CML {
                 lastResiduals[i].second = state;
             }
 
-            void setResidualState(Ptr<DSOResidual, Nullable> r, DSOResidualState state) {
+            void setResidualState(DSOResidual* r, DSOResidualState state) {
                 if(lastResiduals[0].first == r) {
                     lastResiduals[0].second = state;
                 }
@@ -138,8 +138,8 @@ namespace CML {
 
 
         private:
-            Set<Ptr<DSOResidual, NonNullable>> residuals;
-            Pair<Ptr<DSOResidual, Nullable>, DSOResidualState> lastResiduals[2];
+            Set<DSOResidual*> residuals;
+            Pair<DSOResidual*, DSOResidualState> lastResiduals[2];
 
             float idepth_hessian = 0;
             float maxRelBaseline = 0;

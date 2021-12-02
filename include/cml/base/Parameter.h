@@ -20,7 +20,7 @@ namespace CML {
         friend class AbstractFunction;
 
     public:
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onValueChange(const Parameter &parameter) {

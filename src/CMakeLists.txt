@@ -50,7 +50,6 @@ add_library(CML STATIC
 
         cml/utils/Logger.cpp
         cml/utils/GarbageCollector.cpp
-        cml/utils/Watchpoint.cpp
 
         cml/gui/viewer/ReprojectionViewer.cpp
         cml/gui/viewer/VarianceViewer.cpp

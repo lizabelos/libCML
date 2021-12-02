@@ -33,7 +33,7 @@ namespace CML {
             return allocator.deallocate(ptr, size);
         }
 
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onFrameGroupChange(PFrame frame, int groupId, bool state) {
@@ -543,7 +543,7 @@ namespace CML {
         List<List<Corner>> mFeaturePoints;
         mutable Mutex mFeatureMutex;
 
-        List<std::shared_ptr<PointKDTree>> mFeaturePointTree;
+        List<std::shared_ptr<PointGrid<Corner>>> mFeaturePointTree;
 
         //HashMap<FeatureIndex, PPoint, FeatureIndex> mMapPoints;
         List<List<OptPPoint>> mMapPoints;

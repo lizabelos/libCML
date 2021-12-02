@@ -62,15 +62,15 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
         vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
         vPoint->setId(i + 1);
-        vPoint->setMarginalized(true);
+        vPoint->setMarginalized(false);
         vPoint->setFixed(true);
         bool r = optimizer.addVertex(vPoint);
         assertThrow(r, "Vertex already exist");
 
         g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
-        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
-        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
+        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
         e->setMeasurement(obs.cast<number_t>());
         //const float invSigma2 = pMP->getReferenceCorner().level() * pMP->getUncertainty();
         scalar_t scaleFactor = matchings[i].getFeaturePoint(frame).processScaleFactorFromLevel();
@@ -230,21 +230,20 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
         vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
         vPoint->setId(i + 1);
-        vPoint->setMarginalized(true);
+        vPoint->setMarginalized(false);
         vPoint->setFixed(true);
         bool r = optimizer.addVertex(vPoint);
         assertThrow(r, "Vertex already exist");
 
         g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
-        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
-        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
+        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(i + 1)));
         e->setMeasurement(obs.cast<number_t>());
         scalar_t scaleFactor = featurePoint.processScaleFactorFromLevel();
         scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
         e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
         e->setLevel(0);
-        e->setId(i + 1);
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -347,14 +346,14 @@ int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::E
 
         const size_t idx = vnIndexEdge[i];
 
-        if(outliers[idx])
-        {
+        //if(outliers[idx])
+        //{
             e->computeError();
-        }
+        //}
 
         const float chi2 = e->chi2();
 
-        if(chi2 > chi2Threshold)
+        if(!std::isfinite(chi2) || chi2 > chi2Threshold)
         {
             outliers[idx]=true;
             e->setLevel(1);

@@ -96,7 +96,7 @@ namespace CML {
                 if (mPoints.count(point) == 0) {
                     return;
                 }
-                Set<Ptr<DSOResidual, NonNullable>> residualsToRemove = get(point)->residuals; // Important to make a copy, and not pass as reference
+                Set<DSOResidual*> residualsToRemove = get(point)->residuals; // Important to make a copy, and not pass as reference
                 if (marginalize) {
                     Set<PFrame, Hasher> frames;
                     for (auto residual : residualsToRemove) {
@@ -112,9 +112,9 @@ namespace CML {
             }
 
             void removePoints(const Set<PPoint, Hasher> &points) {
-                Set<Ptr<DSOResidual, NonNullable>> residualsToRemove;
+                Set<DSOResidual*> residualsToRemove;
                 for (auto point : points) {
-                    Set<Ptr<DSOResidual, NonNullable>> residualsToRemoveForPoint = get(point)->residuals;
+                    Set<DSOResidual*> residualsToRemoveForPoint = get(point)->residuals;
                     residualsToRemove.insert(residualsToRemoveForPoint.begin(), residualsToRemoveForPoint.end());
                 }
                 removeResiduals(residualsToRemove);
@@ -151,7 +151,7 @@ namespace CML {
             void removeFrame(PFrame frameToRemove) {
                 Set<PPoint, Hasher> pointsToRemove = get(frameToRemove)->points;
                 removePoints(pointsToRemove);
-                Set<Ptr<DSOResidual, NonNullable>> residualsToRemove = get(frameToRemove)->residuals;
+                Set<DSOResidual*> residualsToRemove = get(frameToRemove)->residuals;
                 removeResiduals(residualsToRemove);
                 assertThrow(get(frameToRemove)->points.size() == 0, "Not all the points have been removed for the frame");
                 assertThrow(get(frameToRemove)->residuals.size() == 0, "Not all the residuals have been removed for the frame");
@@ -183,11 +183,11 @@ namespace CML {
                 }
             }
 
-            const Set<Ptr<DSOResidual, NonNullable>> &getResiduals() {
+            const Set<DSOResidual*> &getResiduals() {
                 return mResiduals;
             }
 
-            void addResidual(Ptr<DSOResidual, NonNullable> residualToInsert) {
+            void addResidual(DSOResidual* residualToInsert) {
                 assertThrow(haveFrame(residualToInsert->elements.mapPoint->getReferenceFrame()), "The reference frame of the residual is not in the context");
                 assertThrow(haveFrame(residualToInsert->elements.frame), "The frame of the residual is not in the context");
                 assertThrow(mPoints.count(residualToInsert->elements.mapPoint) > 0, "The point of the residual is not in the context");
@@ -196,7 +196,7 @@ namespace CML {
                 get(residualToInsert->elements.frame)->residuals.insert(residualToInsert);
             }
 
-            Set<PPoint, Hasher> removeResiduals(const Set<Ptr<DSOResidual, NonNullable>> &residualsToRemove) {
+            Set<PPoint, Hasher> removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
                 for (auto residualToRemove : residualsToRemove) {
                     mResiduals.erase(residualToRemove);
                     get(residualToRemove->elements.mapPoint)->residuals.erase(residualToRemove);
@@ -222,8 +222,8 @@ namespace CML {
                 return pointsToRemove;
             }
 
-            void freeResidual(Ptr<DSOResidual, NonNullable> r) {
-                delete r.p();
+            void freeResidual(DSOResidual* r) {
+                delete r;
             }
 
         private:
@@ -234,7 +234,7 @@ namespace CML {
             Set<PPoint, Hasher> mPoints;
             List<PFrame> mFrames;
 
-            Set<Ptr<DSOResidual, NonNullable>> mResiduals;
+            Set<DSOResidual*> mResiduals;
 
         public:
             const int ACTIVEKEYFRAME;

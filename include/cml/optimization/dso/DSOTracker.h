@@ -218,12 +218,14 @@ namespace CML {
 
                 EIGEN_STRONG_INLINE scalar_t rmse(size_t i = 0) const {
                     assertThrow(E.size() > 0, "Invalid residual");
-                    return E[0] / (scalar_t)numTermsInE[0];
+                    assertThrow(numTermsInE[i] > 0, "Invalid residual");
+                    return E[i] / (scalar_t)numTermsInE[i];
                 }
 
                 EIGEN_STRONG_INLINE scalar_t saturatedRatio(size_t i = 0) const {
                     assertThrow(numSaturated.size() > 0, "Invalid residual");
-                    return numSaturated[0] / (scalar_t)numTermsInE[0];
+                    assertThrow(numTermsInE[i] > 0, "Invalid residual");
+                    return (scalar_t)numSaturated[i] / (scalar_t)numTermsInE[i];
                 }
 
             };
@@ -286,7 +288,7 @@ namespace CML {
                     // take over achieved res (always).
                     if(haveOneGood)
                     {
-                        if(testTrackingResult.rmse() < achievedRes) {
+                        if(testTrackingResult.numTermsInE[0] > 0 && testTrackingResult.rmse() < achievedRes) {
                             achievedRes = testTrackingResult.rmse();
                         }
                     }

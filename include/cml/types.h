@@ -166,6 +166,8 @@ namespace CML {
         pthread_setname_np(pthread_self(), name.c_str());
     }
 
+    struct Hasher;
+
     template <typename T, typename U>
             using Pair = std::pair<T, U>;
 
@@ -175,20 +177,20 @@ namespace CML {
     template <typename T>
             using LinkedList = std::list<T, Eigen::aligned_allocator<T>>;
 
-    template <typename T, typename H = std::hash<T>>
+    template <typename T, typename H = Hasher>
             using Set = spp::sparse_hash_set<T, H, std::equal_to<T>>;
 
     template <typename T, typename C=std::less<T>>
             using OrderedSet = std::set<T, C, Eigen::aligned_allocator<T>>;
 
-    template <typename T, typename U, typename H = std::hash<T>>
+    template <typename T, typename U, typename H = Hasher>
             using HashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
 
 #if CML_USE_GOOGLE_HASH
     template <typename T, typename U, typename H = std::hash<T>>
         using DenseHashMap = google::dense_hash_map<T, U, H, std::equal_to<T>>;
 #else
-    template <typename T, typename U, typename H = std::hash<T>>
+    template <typename T, typename U, typename H = Hasher>
         using DenseHashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
 #endif
 
@@ -900,15 +902,56 @@ namespace CML {
 
     class Map;
 
-    struct Hasher
-    {
-        size_t operator()(PFrame pFrame) const;
-        size_t operator()(PPoint pPoint) const;
+    extern Atomic<size_t> mHashCounter;
+
+    class DeterministicallyHashable {
+
+    public:
+        inline DeterministicallyHashable() {
+            mHash = mHashCounter++;
+        }
+
+        inline size_t hash() const {
+            return mHash;
+        }
+
+    private:
+        size_t mHash;
+
     };
 
-    struct Comparator {
+    class Hasher
+    {
+    public:
+        size_t operator()(PFrame pFrame) const;
+        size_t operator()(PPoint pPoint) const;
+        inline size_t operator()(const DeterministicallyHashable &obj) const {
+            return obj.hash();
+        }
+        inline size_t operator()(const DeterministicallyHashable *obj) const {
+            return obj->hash();
+        }
+        inline size_t operator()(size_t v) const {
+            return v;
+        }
+        inline size_t operator()(const std::string &v) const {
+            return std::hash<std::string>()(v);
+        }
+    };
+
+    class Comparator {
+    public:
         bool operator() (PPoint pPointA, PPoint pPointB) const;
         bool operator() (PFrame pFrameA, PFrame pFrameB) const;
+        inline size_t operator()(const DeterministicallyHashable &objA, const DeterministicallyHashable &objB) const {
+            return objA.hash() > objB.hash();
+        }
+        inline size_t operator()(const DeterministicallyHashable *objA, const DeterministicallyHashable *objB) const {
+            return objA->hash() > objB->hash();
+        }
+        inline size_t operator()(size_t a, size_t b) const {
+            return a > b;
+        }
     };
 
 
@@ -1218,10 +1261,11 @@ namespace CML {
 
     typedef struct NearestNeighbor {
         size_t index;
-        float distance;
+        scalar_t distance;
     } NearestNeighbor;
 
     class PointKDTree;
+    template <typename T> class PointGrid;
 
     using Pattern = std::vector<Vector2>;
 

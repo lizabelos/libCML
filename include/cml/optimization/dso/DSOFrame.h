@@ -198,7 +198,7 @@ namespace CML {
                 return get_state_zero()[7] * scaleB;
             }
 
-            const Set<Ptr<DSOResidual, NonNullable>> &getResiduals() {
+            const Set<DSOResidual*> &getResiduals() {
                 return residuals;
             }
 
@@ -230,7 +230,7 @@ namespace CML {
             }
 
         protected:
-            Set<Ptr<DSOResidual, NonNullable>> residuals;
+            Set<DSOResidual*> residuals;
             Set<PPoint, Hasher> points;
             int numResidualsOut = 0;
             int numMarginalized = 0;

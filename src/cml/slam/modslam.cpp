@@ -121,7 +121,7 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 #endif
 
 void printTypeSize() {
-    std::cout << "sizeof(List)=" << sizeof(List<void*>) << std::endl;
+ /*   std::cout << "sizeof(List)=" << sizeof(List<void*>) << std::endl;
     std::cout << "sizeof(LinkedList)=" << sizeof(LinkedList<void*>) << std::endl;
     std::cout << "sizeof(Set)=" << sizeof(Set<void*>) << std::endl;
     std::cout << "sizeof(HashMap)=" << sizeof(HashMap<void*, void*>) << std::endl;
@@ -129,7 +129,7 @@ void printTypeSize() {
     std::cout << "sizeof(Ptr)=" << sizeof(Ptr<int*, NonNullable>) << std::endl;
     std::cout << "sizeof(PrivateData)=" << sizeof(PrivateData) << std::endl;
     std::cout << "sizeof(MapPoint)=" << sizeof(MapPoint) << std::endl;
-    std::cout << "sizeof(Frame)=" << sizeof(Frame) << std::endl;
+    std::cout << "sizeof(Frame)=" << sizeof(Frame) << std::endl;*/
 }
 
 template <typename T> void test(T f, std::string name) {

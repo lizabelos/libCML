@@ -21,7 +21,7 @@ namespace CML {
 
 
 
-    class AbstractFunction {
+    class AbstractFunction : public DeterministicallyHashable {
 
     public:
         AbstractFunction(Ptr<AbstractFunction, Nullable> parent) : mParent(parent) {

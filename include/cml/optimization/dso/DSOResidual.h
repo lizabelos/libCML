@@ -53,7 +53,7 @@ namespace CML {
         };
 
 
-        class DSOResidual {
+        class DSOResidual : public DeterministicallyHashable {
 
         public:
             DSOResidual(const OptimizationPair &p) : elements(p) {
@@ -92,7 +92,7 @@ namespace CML {
                 return mCenterProjectedTo;
             }
 
-            DSOResidualState getState() {
+            DSOResidualState getState()  {
                 return state_state;
             }
 
@@ -137,17 +137,5 @@ namespace CML {
 
 }
 
-namespace std {
-
-    template <>
-    struct hash<CML::Ptr<CML::Optimization::DSOResidual, CML::NonNullable>>
-    {
-        std::size_t operator()(const CML::Ptr<CML::Optimization::DSOResidual, CML::NonNullable>& k) const
-        {
-            return k->elements.mapPoint->getId() * 8 + k->elements.frame->getId(); // We don't have more than 8 frame, so this seems to be a good hash
-        }
-    };
-
-}
 
 #endif

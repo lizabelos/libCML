@@ -272,17 +272,14 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
     this->getTimer().stop();
 
-    logger.important("Tracked by Bow : " + std::to_string(matchings.size()));
-    logger.important("Skipped because no point : " + std::to_string(skippedBecauseNoPoint));
-    logger.important("Skipped because no map : " + std::to_string(skippedBecauseNoMap));
-    logger.important("Skipped because th : " + std::to_string(skippedBecauseTh));
-    logger.important("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
-    logger.important("Removed because orientation : " + std::to_string(removeBecauseOrientation));
-
-
+    logger.debug("Tracked by Bow : " + std::to_string(matchings.size()));
+    logger.debug("Skipped because no point : " + std::to_string(skippedBecauseNoPoint));
+    logger.debug("Skipped because no map : " + std::to_string(skippedBecauseNoMap));
+    logger.debug("Skipped because th : " + std::to_string(skippedBecauseTh));
+    logger.debug("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
+    logger.debug("Removed because orientation : " + std::to_string(removeBecauseOrientation));
 
     return matchings;
-
 }
 
 List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameAndGroupAndDescriptor &target, const BoWFrameAndGroupAndDescriptor &reference, int windowSize) {
@@ -432,8 +429,6 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
     this->getTimer().stop();
 
     return matchings;
-
-
 }
 
 List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroupAndDescriptor &B, int th) {

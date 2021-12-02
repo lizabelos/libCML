@@ -64,7 +64,8 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
     if (descriptors.size() <= 2) {
         return descriptors[0];
     }
-    return computeMedianDescriptors(descriptors);
+    return computeDistinctiveDescriptors(descriptors);
+    //return computeMedianDescriptors(descriptors);
 }
 
 
@@ -206,7 +207,6 @@ bool Hybrid::indirectTrackLocalMap(PFrame currentFrame) {
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, outliers);
 
     if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
-
         if (mLastIndirectTrackingResult.isOk) {
             currentFrame->setCamera(mLastIndirectTrackingResult.camera);
             logger.info("Refined with ORB");

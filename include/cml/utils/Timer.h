@@ -10,7 +10,7 @@ namespace CML {
     class Timer {
 
     public:
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onNewTimerValue(const Timer &timer, scalar_t value) = 0;

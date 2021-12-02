@@ -119,28 +119,28 @@ void CML::Frame::setCameraWithoutObserver(const Camera &camera) {
 }
 
 CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighbors(int group, Vector2 position, int num) const {
-
-    std::shared_ptr<PointKDTree> pointKdTree;
+/*
+    std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
     {
         LockGuard lg(mFeatureMutex);
         pointKdTree = mFeaturePointTree[group];
     }
 
-    return pointKdTree->getNearestNeighbors(position, num);
-
+    return pointKdTree->searchInRadiusNum(position, num);
+*/ throw std::runtime_error("Not implemented");
 }
 
 CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, float distance) const {
 
-    std::shared_ptr<PointKDTree> pointKdTree;
+    std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
     {
         LockGuard lg(mFeatureMutex);
         pointKdTree = mFeaturePointTree[group];
     }
 
-    return pointKdTree->getNearestNeighborsInRadius(position, distance);
+    return pointKdTree->searchInRadius(position, distance);
 
 }
 
@@ -154,13 +154,13 @@ int CML::Frame::addFeaturePoints(const List<Corner> &features, Ptr<Features::BoW
         LockGuard lg2(mMapPointsMutex);
         group = mFeaturePoints.size();
         mFeaturePoints.emplace_back(List<Corner>());
-        mFeaturePointTree.emplace_back(std::shared_ptr<PointKDTree>());
+        mFeaturePointTree.emplace_back(std::shared_ptr<PointGrid<Corner>>());
         mBoW.emplace_back(bow);
         mMapPoints.emplace_back(List<OptPPoint>(features.size()));
     }
 
     std::copy(features.begin(), features.end(), std::back_inserter(mFeaturePoints[group]));
-    mFeaturePointTree[group] = std::make_shared<PointKDTree>(features);
+    mFeaturePointTree[group] = std::make_shared<PointGrid<Corner>>(mFeaturePoints[group], Vector2i(0,0), Vector2i(getWidth(0), getHeight(0)));
 
     return group;
 

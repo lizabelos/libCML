@@ -34,9 +34,11 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 4
 ```
 
+☕ Then, take a break, drink a cup of coffee. It can take hours time to build.
+
 ## b. Android and iPhone
 
-We recommend you to use Qt Creator.
+We recommend you to use Qt Creator, as it is the most simple way to build ModSLAM on Android and iPhone.
 
 # 4. Execution
 

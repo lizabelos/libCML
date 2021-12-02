@@ -40,7 +40,7 @@ namespace CML {
             return allocator.deallocate(ptr, size);
         }
 
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {

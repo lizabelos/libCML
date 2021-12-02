@@ -17,7 +17,7 @@ namespace CML {
         friend class AbstractFunction;
 
     public:
-        class Observer {
+        class Observer : public DeterministicallyHashable {
 
         public:
             virtual void onNewValue(Statistic *statistic, scalar_t x, scalar_t y) = 0;
