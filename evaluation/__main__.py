@@ -8,6 +8,7 @@ import concurrent.futures
 import multiprocessing
 from statistics import mean
 import statistics
+import numpy as np
 
 from evo.tools.file_interface import csv_read_matrix
 
@@ -270,14 +271,30 @@ def ablationstudy2d():
 
 def build():
     os.makedirs("../build", exist_ok=True)
-    os.system("cd .. && cd build && cmake -DENABLE_GUI=OFF .. && make ")
+    os.system("cd .. && cd build && cmake -DENABLE_GUI=OFF -DCMAKE_BUILD_TYPE=Release .. && make ")
 
+
+def intrange(a, b, c = 1):
+    return [int(x) for x in np.arange(a,b,c)]
+
+def floatrange(a, b, c = 1.0):
+    return [float(x) for x in np.arange(a,b,c)]
 
 def bruteforceFindBest():
     datasets, datasets_names, slams, slams_names = parse_config()
     params = [
-        ["test", [0, 1, 2, 3]],
-        ["test2", [0, 1, 2, 3]]
+        ["numOrbCorner", intrange(0,2200,50)],
+        ["orbUncertaintyThreshold", [100000, 1000000, 10000, -1]],
+        ["dsoTracer.desiredPointDensity", intrange(0,2200,50)],
+        ["dsoInitializer.pointDensity", intrange(1000,4000,50)],
+        ["trackcondUncertaintyWeight", floatrange(0,2,0.1)],
+        ["trackcondUncertaintyWindow", intrange(1,8)],
+        ["bacondSaturatedRatio", [0,0.5,0.10,0.15]],
+        ["bacondUncertaintyWeight", floatrange(0,2,0.1)],
+        ["bacondUncertaintyWindow", intrange(1,8)],
+        ["orbBa.numIteration", intrange(0,10)],
+        ["orbBa.refineIteration", intrange(0,10)],
+        ["orbBa.removeEdge", ["true", "false"]]
     ]
     bestParam = None
     bestAte = 9999999
@@ -293,6 +310,8 @@ def bruteforceFindBest():
             context = s[0](s[1], "modslam.yaml")
             for p in currentParam:
                 context.setconfig(p[0], p[1])
+                if p[0] == "dsoTracer.desiredPointDensity":
+                    context.setconfig("dsoTracer.immatureDensity", p[1] * 1500 // 2000)
             context.run(datasets[i])
             try:
                 evaluation = evaluator.fromslam(context)
@@ -311,7 +330,7 @@ def bruteforceFindBest():
 
 
 if __name__ == "__main__":
-    build()
+    #build()
     bruteforceFindBest()
     # statsOn("modslam.yaml", "modslam.csv")
     # statsOn("orb1000.yaml", "orb1000.csv")
