@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import csv
 
@@ -80,7 +81,7 @@ def main():
 
                     table.set("ate of " + name, datasets[i].name(), ate)
                     table.set("rpe of " + name, datasets[i].name(), rpe)
-                #except:
+                # except:
                 #    print("Unable to evaluate " + datasets[i].name())
 
 
@@ -132,9 +133,9 @@ def ablationstudy():
     # for d in datasets:
     #    d.setuseramdisk(True)
 
-    valuesToTry = [1, 10000, 1/10000, 1000, 1/1000, 100, 1/100, 10, 1/10]
-    #valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
-    #valuesToTry = [x * 0.0125 for x in valuesToTry]
+    valuesToTry = [1, 10000, 1 / 10000, 1000, 1 / 1000, 100, 1 / 100, 10, 1 / 10]
+    # valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
+    # valuesToTry = [x * 0.0125 for x in valuesToTry]
 
     print(valuesToTry)
 
@@ -184,6 +185,7 @@ def ablationstudy():
 
     concurrent.futures.wait(futures)
 
+
 def ablationstudy2d():
     datasets, datasets_names, slams, slams_names = parse_config()
     # for d in datasets:
@@ -195,7 +197,6 @@ def ablationstudy2d():
         "bacondUncertaintyWeight",
         [0.25, 0.50, 0.75, 1, 1.5, 2, 4]
     ]
-
 
     # desiredPointDensity = 2000 // 10
     # immatureDensity = 1500 // 10
@@ -266,11 +267,56 @@ def ablationstudy2d():
                 table_ate.set(v1, v2, sum)
             table_error.set(v1, v2, numerr)
 
+
+def build():
+    os.makedirs("../build", exist_ok=True)
+    os.system("cd .. && cd build && cmake -DENABLE_GUI=OFF .. && make ")
+
+
+def bruteforceFindBest():
+    datasets, datasets_names, slams, slams_names = parse_config()
+    params = [
+        ["test", [0, 1, 2, 3]],
+        ["test2", [0, 1, 2, 3]]
+    ]
+    bestParam = None
+    bestAte = 9999999
+    while True:
+        currentParam = []
+        for p in params:
+            currentParam.append([p[0], random.choice(p[1])])
+        has_error = False
+        currentSum = 0
+        for i in range(0, len(datasets)):
+            s = slams[0]
+            name = slams_names[0]
+            context = s[0](s[1], "modslam.yaml")
+            for p in currentParam:
+                context.setconfig(p[0], p[1])
+            context.run(datasets[i])
+            try:
+                evaluation = evaluator.fromslam(context)
+                ate = evaluation.ape_rmse()
+                currentSum = currentSum + ate
+            except:
+                has_error = True
+                break
+        if has_error:
+            continue
+        if currentSum < bestAte:
+            bestParam = currentParam
+            bestAte = currentSum
+            print("Best ATE " + bestAte)
+            print("Best Param " + str(bestParam))
+
+
 if __name__ == "__main__":
-    #statsOn("modslam.yaml", "modslam.csv")
-    #statsOn("orb1000.yaml", "orb1000.csv")
-    #statsOn("orb2000.yaml", "orb2000.csv")
-    #statsOn("dso2000.yaml", "dso2000.csv")
-    #statsOn("dso800.yaml", "dso800.csv")
-    #ablationstudy2d()
-    main()
+    build()
+    bruteforceFindBest()
+    # statsOn("modslam.yaml", "modslam.csv")
+    # statsOn("orb1000.yaml", "orb1000.csv")
+    # statsOn("orb2000.yaml", "orb2000.csv")
+    # statsOn("dso2000.yaml", "dso2000.csv")
+    # statsOn("dso800.yaml", "dso800.csv")
+    # ablationstudy2d()
+    # main()
