@@ -5,8 +5,8 @@ numOrbCorner: 625
 orbUncertaintyThreshold: 100000
 
 # Number of dso corner / and desired immature points
-dsoTracer.desiredPointDensity: 800
-dsoTracer.immatureDensity: 600
+dsoTracer.desiredPointDensity: 2000
+dsoTracer.immatureDensity: 1500
 dsoInitializer.pointDensity: 2000
 
 # Tracking condition ( -1 to disable )
@@ -36,7 +36,7 @@ enableDirect: true
 linearizeDirect: true
 
 # Disable indirect keyframe and B.A. thread
-linearizeIndirect: true
+linearizeIndirect: false
 
 # Enable semi-direct points optimized both by direct and indirect part
 enableHybridPoint: false
@@ -45,8 +45,8 @@ enableHybridPoint: false
 freeAllDirectPoint: false
 
 # DSO Bundle adjustment parameters
-dsoBa.iterations: 4
-dsoBa.maxFrames: 6
+dsoBa.iterations: 6
+dsoBa.maxFrames: 7
 
 # ORB Bundle adjustment parameters
 orbBa.numIteration: 5

@@ -186,7 +186,7 @@ bool FindPolynomialRoots(const Vector& polynomial_in,
                          Vector* real,
                          Vector* imaginary) {
   if (polynomial_in.size() == 0) {
-    LOG(ERROR) << "Invalid polynomial of size 0 passed to FindPolynomialRoots";
+    LOG(ERR) << "Invalid polynomial of size 0 passed to FindPolynomialRoots";
     return false;
   }
 
@@ -235,7 +235,7 @@ bool FindPolynomialRoots(const Vector& polynomial_in,
   // Find its (complex) eigenvalues.
   Eigen::EigenSolver<Matrix> solver(companion_matrix, false);
   if (solver.info() != Eigen::Success) {
-    LOG(ERROR) << "Failed to extract eigenvalues from companion matrix.";
+    LOG(ERR) << "Failed to extract eigenvalues from companion matrix.";
     return false;
   }
 

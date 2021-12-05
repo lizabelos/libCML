@@ -132,7 +132,7 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
                                        residuals,
                                        step,
                                        0)) {
-      LOG(ERROR) << "Unable to dump trust region problem."
+      LOG(ERR) << "Unable to dump trust region problem."
                  << " Filename base: " << per_solve_options.dump_filename_base;
     }
   }

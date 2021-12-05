@@ -36,7 +36,7 @@
 //   VLOG(1),
 //   LOG(INFO), VLOG(0), LG
 //   LOG(WARNING),
-//   LOG(ERROR),
+//   LOG(ERR),
 //   LOG(FATAL),
 //
 // With VLOG(n), the output is directed to one of the 5 Android log levels:
@@ -115,7 +115,7 @@
 // Log severity level constants.
 // clang-format off
 const int FATAL   = -3;
-const int ERROR   = -2;
+const int ERR   = -2;
 const int WARNING = -1;
 const int INFO    =  0;
 // clang-format on
@@ -128,7 +128,7 @@ typedef int LogSeverity;
 // clang-format off
 const int INFO    = ::INFO;
 const int WARNING = ::WARNING;
-const int ERROR   = ::ERROR;
+const int ERR   = ::ERR;
 const int FATAL   = ::FATAL;
 // clang-format on
 
@@ -189,7 +189,7 @@ class CERES_EXPORT MessageLogger {
 #ifdef ANDROID
     static const int android_log_levels[] = {
         ANDROID_LOG_FATAL,    // LOG(FATAL)
-        ANDROID_LOG_ERROR,    // LOG(ERROR)
+        ANDROID_LOG_ERROR,    // LOG(ERR)
         ANDROID_LOG_WARN,     // LOG(WARNING)
         ANDROID_LOG_INFO,     // LOG(INFO), LG, VLOG(0)
         ANDROID_LOG_DEBUG,    // VLOG(1)

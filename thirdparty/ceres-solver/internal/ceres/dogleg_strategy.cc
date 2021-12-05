@@ -576,7 +576,7 @@ LinearSolver::Summary DoglegStrategy::ComputeGaussNewtonStep(
                                          residuals,
                                          gauss_newton_step_.data(),
                                          0)) {
-        LOG(ERROR) << "Unable to dump trust region problem."
+        LOG(ERR) << "Unable to dump trust region problem."
                    << " Filename base: "
                    << per_solve_options.dump_filename_base;
       }
@@ -651,7 +651,7 @@ bool DoglegStrategy::ComputeSubspaceModel(SparseMatrix* jacobian) {
       // This should never happen, as it implies that both the gradient
       // and the Gauss-Newton step are zero. In this case, the minimizer should
       // have stopped due to the gradient being too small.
-      LOG(ERROR) << "Rank of subspace basis is 0. "
+      LOG(ERR) << "Rank of subspace basis is 0. "
                  << "This means that the gradient at the current iterate is "
                  << "zero but the optimization has not been terminated. "
                  << "You may have found a bug in Ceres.";
@@ -669,7 +669,7 @@ bool DoglegStrategy::ComputeSubspaceModel(SparseMatrix* jacobian) {
       break;
 
     default:
-      LOG(ERROR) << "Rank of the subspace basis matrix is reported to be "
+      LOG(ERR) << "Rank of the subspace basis matrix is reported to be "
                  << "greater than 2. As the matrix contains only two "
                  << "columns this cannot be true and is indicative of "
                  << "a bug.";

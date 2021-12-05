@@ -8,7 +8,6 @@
 #include <QSurface>
 #include <QSurfaceFormat>
 #include <cml/gui/MainSlamWidget.h>
-#include <cml/gui/MainWindow.h>
 #include <cml/capture/QtWebcamCapture.h>
 #endif
 
@@ -217,7 +216,7 @@ int main(int argc, char *argv[])
     }
     return 0;
      */
-    std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path();
+    std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
     logger.setLogLevel(IMPORTANT);
 
@@ -295,15 +294,7 @@ int main(int argc, char *argv[])
 
 #if CML_ENABLE_GUI
     if ((capture.isNull() || slam.isNull()) && executionMode == GUI) {
-        QApplication a(argc, argv);
-        QFile f("style.css");
-        if (f.open(QFile::ReadOnly | QFile::Text)) {
-            QString css = QTextStream(&f).readAll();
-            a.setStyleSheet(css);
-        }
-        MainWindow w;
-        w.show();
-        return a.exec();
+        return 0;
     }
 #endif
 

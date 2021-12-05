@@ -362,7 +362,7 @@ LineSearchDirection* LineSearchDirection::Create(
         options.use_approximate_eigenvalue_bfgs_scaling);
   }
 
-  LOG(ERROR) << "Unknown line search direction type: " << options.type;
+  LOG(ERR) << "Unknown line search direction type: " << options.type;
   return NULL;
 }
 

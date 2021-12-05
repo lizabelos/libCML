@@ -63,7 +63,7 @@ inline double EvaluatePolynomial(const Vector& polynomial, double x) {
 // This function returns true on success, false otherwise.
 // Failure indicates that the polynomial is invalid (of size 0) or
 // that the eigenvalues of the companion matrix could not be computed.
-// On failure, a more detailed message will be written to LOG(ERROR).
+// On failure, a more detailed message will be written to LOG(ERR).
 // If real is not NULL, the real parts of the roots will be returned in it.
 // Likewise, if imaginary is not NULL, imaginary parts will be returned in it.
 CERES_EXPORT_INTERNAL bool FindPolynomialRoots(const Vector& polynomial,

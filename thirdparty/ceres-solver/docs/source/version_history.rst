@@ -1311,7 +1311,7 @@ Bug Fixes
 ---------
 
 #. static cast to force Eigen::Index to long conversion
-#. Change LOG(ERROR) to LOG(WARNING) in ``schur_complement_solver.cc``.
+#. Change LOG(ERR) to LOG(WARNING) in ``schur_complement_solver.cc``.
 #. Remove verbose logging from ``DenseQRSolve``.
 #. Fix the Android NDK build.
 #. Better handling of empty and constant Problems.

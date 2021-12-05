@@ -1,6 +1,8 @@
 #ifndef CML_TYPES_H
 #define CML_TYPES_H
 
+#include <filesystem>
+
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -99,25 +101,11 @@ namespace CML {
     }
 
     inline std::vector<std::string> listDirectory(std::string path, std::string ext = "") {
-        DIR *dir;
-        struct dirent *ent;
 
         std::vector<std::string> result;
 
-        if ((dir = opendir (path.c_str())) != NULL) {
-            /* print all the files and directories within directory */
-            while ((ent = readdir (dir)) != NULL) {
-                std::string name = ent->d_name;
-                if (name == "." || name == "..") {
-                    continue;
-                }
-                if (ext == "" || hasEnding(name, ext)) {
-                    result.emplace_back(path + "/" + name);
-                }
-            }
-            closedir (dir);
-        } else {
-            throw std::runtime_error("Can't list " + path);
+        for (const auto & entry : std::filesystem::directory_iterator(path)) {
+            result.emplace_back(entry.path().filename().string());
         }
 
         return result;

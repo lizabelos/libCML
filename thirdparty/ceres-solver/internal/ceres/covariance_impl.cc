@@ -199,7 +199,7 @@ bool CovarianceImpl::GetCovarianceBlockInTangentOrAmbientSpace(
   }
 
   if (offset == row_size) {
-    LOG(ERROR) << "Unable to find covariance block for "
+    LOG(ERR) << "Unable to find covariance block for "
                << original_parameter_block1 << " " << original_parameter_block2;
     return false;
   }
@@ -531,7 +531,7 @@ bool CovarianceImpl::ComputeCovarianceValues() {
 #if !defined(CERES_NO_SUITESPARSE)
       return ComputeCovarianceValuesUsingSuiteSparseQR();
 #else
-      LOG(ERROR) << "SuiteSparse is required to use the SPARSE_QR algorithm "
+      LOG(ERR) << "SuiteSparse is required to use the SPARSE_QR algorithm "
                  << "with "
                  << "Covariance::Options::sparse_linear_algebra_library_type "
                  << "= SUITE_SPARSE.";
@@ -539,7 +539,7 @@ bool CovarianceImpl::ComputeCovarianceValues() {
 #endif
     }
 
-    LOG(ERROR) << "Unsupported "
+    LOG(ERR) << "Unsupported "
                << "Covariance::Options::sparse_linear_algebra_library_type "
                << "= "
                << SparseLinearAlgebraLibraryTypeToString(
@@ -547,7 +547,7 @@ bool CovarianceImpl::ComputeCovarianceValues() {
     return false;
   }
 
-  LOG(ERROR) << "Unsupported Covariance::Options::algorithm_type = "
+  LOG(ERR) << "Unsupported Covariance::Options::algorithm_type = "
              << CovarianceAlgorithmTypeToString(options_.algorithm_type);
   return false;
 }
@@ -642,7 +642,7 @@ bool CovarianceImpl::ComputeCovarianceValuesUsingSuiteSparseQR() {
                                                       &cc);
   event_logger.AddEvent("Numeric Factorization");
   if (R == nullptr) {
-    LOG(ERROR) << "Something is wrong. SuiteSparseQR returned R = nullptr.";
+    LOG(ERR) << "Something is wrong. SuiteSparseQR returned R = nullptr.";
     free(permutation);
     cholmod_l_finish(&cc);
     return false;
@@ -774,7 +774,7 @@ bool CovarianceImpl::ComputeCovarianceValuesUsingDenseSVD() {
       if (automatic_truncation) {
         break;
       } else {
-        LOG(ERROR) << "Error: Covariance matrix is near rank deficient "
+        LOG(ERR) << "Error: Covariance matrix is near rank deficient "
                    << "and the user did not specify a non-zero"
                    << "Covariance::Options::null_space_rank "
                    << "to enable the computation of a Pseudo-Inverse. "
@@ -840,12 +840,12 @@ bool CovarianceImpl::ComputeCovarianceValuesUsingEigenSparseQR() {
   event_logger.AddEvent("QRDecomposition");
 
   if (qr_solver.info() != Eigen::Success) {
-    LOG(ERROR) << "Eigen::SparseQR decomposition failed.";
+    LOG(ERR) << "Eigen::SparseQR decomposition failed.";
     return false;
   }
 
   if (qr_solver.rank() < jacobian.num_cols) {
-    LOG(ERROR) << "Jacobian matrix is rank deficient. "
+    LOG(ERR) << "Jacobian matrix is rank deficient. "
                << "Number of columns: " << jacobian.num_cols
                << " rank: " << qr_solver.rank();
     return false;

@@ -200,7 +200,7 @@ void LineSearchMinimizer::Minimize(const Minimizer::Options& options,
   if (line_search.get() == nullptr) {
     summary->termination_type = FAILURE;
     if (is_not_silent) {
-      LOG(ERROR) << "Terminating: " << summary->message;
+      LOG(ERR) << "Terminating: " << summary->message;
     }
     return;
   }

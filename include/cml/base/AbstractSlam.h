@@ -160,45 +160,6 @@ namespace CML {
 
     };
 
-    typedef AbstractSlam* (*MakeFunction)();
-
-#ifdef WIN32
-#define DL_EXT "dll"
-    inline MakeFunction loadExt(std::string path) {
-
-        HMODULE hdll = LoadLibrary(path.c_str());
-        if (hdll == NULL) {
-             throw std::runtime_error("Can't load " + path);
-        }
-        MakeFunction make = (MakeFunction)GetProcAddress(hdll, "make");
-        if (hdll == NULL) {
-            throw std::runtime_error("Can't find make in " + path);
-        }
-        return make;
-
-    }
-#else
-#define DL_EXT "so"
-    inline MakeFunction loadExt(std::string path) {
-
-        void *handle;
-        MakeFunction make;
-        handle = dlopen (path.c_str(), RTLD_LAZY);
-        if (!handle) {
-            throw std::runtime_error(dlerror());
-        }
-        dlerror();    /* Clear any existing error */
-        make = (CML::MakeFunction)dlsym(handle, "make");
-        char *error = dlerror();
-        if (error != NULL)  {
-            throw std::runtime_error(error);
-        }
-        return make;
-    }
-#endif
-
-
-
 }
 
 

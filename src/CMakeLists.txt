@@ -77,7 +77,7 @@ add_library(CML STATIC
         fast/nonmax.c
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx dl)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR})
 
 if (USE_OPENMP)
@@ -170,9 +170,6 @@ if (ENABLE_GUI)
     qt6_wrap_cpp(WebcamCaptureSRC ../include/cml/capture/QtWebcamCapture.h)
     qt6_wrap_cpp(SpoilerSRC ../include/cml/gui/widgets/Spoiler.h)
     qt6_wrap_cpp(GroupsWidgetSRC ../include/cml/gui/widgets/GroupsWidget.h)
-    qt6_wrap_cpp(CaptureSelectorSRC ../include/cml/gui/CaptureSelector.h)
-    qt6_wrap_cpp(SlamSelectorSRC ../include/cml/gui/SlamSelector.h)
-    qt6_wrap_cpp(MainWindowSRC ../include/cml/gui/MainWindow.h)
     qt6_wrap_cpp(DesktopMainWindowSRC ../include/cml/gui/MainSlamWidget.h)
 
     target_sources(CML PRIVATE cml/gui/widgets/ModelWidget.cpp ${ModelViewerWidgetSRC}
@@ -188,14 +185,14 @@ if (ENABLE_GUI)
             cml/gui/widgets/Spoiler.cpp ${SpoilerSRC}
             cml/gui/widgets/GroupsWidget.cpp ${GroupsWidgetSRC}
             cml/gui/drawboard/QtDrawBoardShaders.cpp
-            cml/gui/CaptureSelector.cpp ${CaptureSelectorSRC}
-            cml/gui/SlamSelector.cpp ${SlamSelectorSRC}
-            cml/gui/MainWindow.cpp ${MainWindowSRC}
             cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
             cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
             )
     target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
 
+    if (MINGW)
+        target_link_libraries(CML opengl32 glu32 freeglut mingw32)
+    endif()
 
 endif()
 
