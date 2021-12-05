@@ -500,13 +500,13 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
                 float value = (float)intensity * factor;
 
                 if (c == 0) {
-                    colorImage(x,y).r() = value;
-
-                } else if (c == 1) {
                     colorImage(x,y).g() = value;
 
-                } else if (c == 2) {
+                } else if (c == 1) {
                     colorImage(x,y).b() = value;
+
+                } else if (c == 2) {
+                    colorImage(x,y).r() = value;
 
                 }
 
