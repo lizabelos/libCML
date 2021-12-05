@@ -230,6 +230,9 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num
         }
     }
 
+    mOptimizer->initializeOptimization(0);
+    mOptimizer->optimize(num);
+/*
     if (!enableDropout) {
         mOptimizer->initializeOptimization(0);
     }
@@ -263,7 +266,7 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num
         }
         mOptimizer->optimize(1);
     }
-
+*/
 
 }
 
