@@ -223,7 +223,7 @@ namespace CML {
         List<scalar_t> mRPE;
         List<Camera> mAlignedGronudtruth;
 
-        Atomic<size_t> mFrameCounter, mFrameKeyCounter;
+        Atomic<size_t> mFrameCounter, mGroupCounter[MAXGROUPSIZE];
         Atomic<size_t> mMapObjectCounter;
 
         Mutex mMapObjectAvailableIdsMutex;

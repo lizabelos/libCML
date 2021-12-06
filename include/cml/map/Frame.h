@@ -98,12 +98,12 @@ namespace CML {
             return mId;
         }
 
-        inline void setKeyId(size_t id) {
-            mKeyId = id;
+        inline void setGroupId(int group, size_t id) {
+            mGroupId[group] = id;
         }
 
-        inline size_t getKeyId() const {
-            return mKeyId;
+        inline size_t getGroupId(int group) const {
+            return mGroupId[group];
         }
 
         inline void subscribeObserver(Observer *observer) {
@@ -520,7 +520,8 @@ namespace CML {
         void onMapPointGroupChange(PPoint mapPoint, int groupId, bool state);
 
     private:
-        size_t mId, mKeyId;
+        size_t mId;
+        size_t mGroupId[FRAME_GROUP_MAXSIZE];
 
         int mJacobianParameterId = 0;
 

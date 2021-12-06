@@ -11,7 +11,9 @@ CML::Map::Map() {
     //mObservers.set_deleted_key((Observer*)2);
 
     mFrameCounter = 0;
-    mFrameKeyCounter = 0;
+    for (size_t i = 0; i < MAXGROUPSIZE; i++) {
+        mGroupCounter[i] = 0;
+    }
     mMapObjectCounter = 0;
 
     mBufferCoordinates.emplace_back(new scalar_t[CML_MAP_MAPPOINT_BUFFER_SIZE * 3]);
@@ -332,8 +334,8 @@ void CML::Map::onFrameGroupChange(PFrame frame, int groupId, bool state) {
         }
     }
 
-    if (groupId == KEYFRAME && state == true) {
-        frame->setKeyId(mFrameKeyCounter++);
+    if (state == true) {
+        frame->setGroupId(groupId, mGroupCounter[groupId]++);
         // refreshErrorFromGroundtruth();
     }
 

@@ -334,7 +334,7 @@ void Hybrid::indirectTrackImmature(PFrame currentFrame) {
         auto &point = immatureIndirectPoint[i];
 
         int frameElapsed = currentFrame->getId() - point->getReferenceFrame()->getId();
-        int keyFrameElapsed = currentFrame->getKeyId() - point->getReferenceFrame()->getKeyId();
+        int keyFrameElapsed = currentFrame->getGroupId(INDIRECTKEYFRAME) - point->getReferenceFrame()->getGroupId(INDIRECTKEYFRAME);
 
         if (keyFrameElapsed < 3 || frameElapsed < 5) {
             continue;
@@ -367,7 +367,7 @@ void Hybrid::indirectTrackImmature(PFrame currentFrame) {
 
             bool canActivate;
             if (mIndirectUncertaintyThreshold.f() < 0) {
-                canActivate = true;
+                canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true);
             } else {
                 canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true) && point->getUncertainty() < mIndirectUncertaintyThreshold.f();
             }
