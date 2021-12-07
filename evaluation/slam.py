@@ -71,7 +71,6 @@ class ModSLAM(SLAM):
         if modslampath is not None:
             self.modslampath = modslampath
 
-        print("Loading config " + configpath)
         f = open(configpath, "r")
         self.config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()

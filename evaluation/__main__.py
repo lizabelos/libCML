@@ -286,6 +286,7 @@ def bruteforceFindBest():
         ["numOrbCorner", intrange(0,2200,50)],
         ["orbUncertaintyThreshold", [100000, 1000000, 10000, -1]],
         ["dsoTracer.desiredPointDensity", intrange(0,2200,50)],
+        ["dsoTracer.immatureDensity", intrange(0,2200,50)],
         ["dsoInitializer.pointDensity", intrange(1000,4000,50)],
         ["trackcondUncertaintyWeight", floatrange(0,2,0.1)],
         ["trackcondUncertaintyWindow", intrange(1,8)],
@@ -296,37 +297,49 @@ def bruteforceFindBest():
         ["orbBa.refineIteration", intrange(0,10)],
         ["orbBa.removeEdge", ["true", "false"]]
     ]
-    bestParam = None
-    bestAte = 9999999
+
+
+    currentParam = {}
     while True:
-        currentParam = []
-        for p in params:
-            currentParam.append([p[0], random.choice(p[1])])
-        has_error = False
-        currentSum = 0
-        for i in range(0, len(datasets)):
-            s = slams[0]
-            name = slams_names[0]
-            context = s[0](s[1], "modslam.yaml")
-            for p in currentParam:
-                context.setconfig(p[0], p[1])
-                if p[0] == "dsoTracer.desiredPointDensity":
-                    context.setconfig("dsoTracer.immatureDensity", p[1] * 1500 // 2000)
-            context.run(datasets[i])
-            try:
-                evaluation = evaluator.fromslam(context)
-                ate = evaluation.ape_rmse()
-                currentSum = currentSum + ate
-            except:
-                has_error = True
-                break
-        if has_error:
-            continue
-        if currentSum < bestAte:
-            bestParam = currentParam
-            bestAte = currentSum
-            print("Best ATE " + bestAte)
-            print("Best Param " + str(bestParam))
+        for param in params:
+            allSums = []
+            for v in param[1]:
+                print("Changing " + str(param[0]) + " to " + str(v))
+                currentSum = 0
+
+                for i in range(0, len(datasets)):
+
+                    s = slams[0]
+                    name = slams_names[0]
+                    context = s[0](s[1], "modslam.yaml")
+                    for p in currentParam:
+                        context.setconfig(p, currentParam[p])
+                    context.setconfig(param[0], v)
+                context.run(datasets[i])
+                try:
+                    evaluation = evaluator.fromslam(context)
+                    ate = evaluation.ape_rmse()
+                    currentSum = currentSum + ate
+                    print("ATE : " + str(ate))
+                except:
+                    currentSum = None
+                    break
+
+                print("Final sum : " + str(currentSum))
+                allSums.append(currentSum)
+
+            currentMin = 999999
+            currentMinI = 0
+            for i in range(0, len(allSums)):
+                if allSums[i] is not None and allSums[i] < currentMin:
+                    currentMin = allSums[i]
+                    currentMinI = i
+
+            currentParam[param[0]] = param[1][currentMinI]
+
+            print(currentParam)
+            print("Best : " + str(currentMin))
+
 
 
 if __name__ == "__main__":
