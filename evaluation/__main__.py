@@ -315,15 +315,20 @@ def bruteforceFindBest():
                     for p in currentParam:
                         context.setconfig(p, currentParam[p])
                     context.setconfig(param[0], v)
-                context.run(datasets[i])
-                try:
-                    evaluation = evaluator.fromslam(context)
-                    ate = evaluation.ape_rmse()
-                    currentSum = currentSum + ate
-                    print("ATE : " + str(ate))
-                except:
-                    currentSum = None
-                    break
+                    context.run(datasets[i])
+                    try:
+                        evaluation = evaluator.fromslam(context)
+                        ate = evaluation.ape_rmse()
+                        print("ATE : " + str(ate))
+                        if ate > datasets[i].lim():
+                            print("Too big")
+                            currentSum = None
+                            break
+                        currentSum = currentSum + ate
+                    except:
+                        print("Invalid")
+                        currentSum = None
+                        break
 
                 print("Final sum : " + str(currentSum))
                 allSums.append(currentSum)

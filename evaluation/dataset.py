@@ -5,7 +5,7 @@ import shutil
 
 class Dataset:
 
-    def __init__(self, n, t, f, g=None):
+    def __init__(self, n, t, f, g=None, lim=None):
         self.n = n
         self.t = t
         self.f = f
@@ -14,12 +14,16 @@ class Dataset:
         self.lock = threading.Lock()
         self.nuse = 0
         self.ramdiskfolder = "/ramdisk/" + n
+        self.l = lim
 
     def name(self):
         return self.n
 
     def type(self):
         return self.t
+
+    def lim(self):
+        return self.l
 
     def folder(self):
         if self.useramdisk:
@@ -74,13 +78,15 @@ def kittiGroundtruthPath(kittiFolder, i):
     return kittiFolder + "/poses/%s.txt" % i
 
 
-def KITTI(folder, r=range(0, 11)):
+def KITTI(folder):
+    lim=[130,20,130,2,2,60,70,25,120,80,30]
+    r=[4,3,1,6,7,10,9,5,8,0,2]
     result = []
     folder = os.path.join(folder, "dataset")
     for i in r:
         name = "kitti_" + str(i).zfill(2)
         dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
-        result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i))]
+        result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i), lim=lim[i])]
     return result
 
 
