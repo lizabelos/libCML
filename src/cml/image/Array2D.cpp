@@ -9,7 +9,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 }
-#define DEFAULT_RESIZE_ALGORITHM SWS_FAST_BILINEAR // Bicubic seems to be better than bilinear. Todo : try other algorithm
+#define DEFAULT_RESIZE_ALGORITHM SWS_BICUBIC
 #endif
 
 #define CML_IMAGE_HORIZONTALFLIP false
