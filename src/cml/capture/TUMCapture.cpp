@@ -5,13 +5,7 @@
 
 #include "cml/map/InternalCalibration.h"
 
-#define USE_TURBOJPEG 0
 
-#if USE_TURBOJPEG
-extern "C" {
-    #include <turbojpeg.h>
-};
-#endif
 #include <opencv2/imgcodecs.hpp>
 
 

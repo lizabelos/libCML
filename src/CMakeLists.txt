@@ -77,7 +77,7 @@ add_library(CML STATIC
         fast/nonmax.c
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx jpeg8 jpeg12 jpeg16)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR})
 
 if (USE_OPENMP)
@@ -151,10 +151,6 @@ endif()
 
 if (GLOG_FOUND)
     target_link_libraries(CML ${GLOG_LIBRARIES})
-endif()
-
-if (TURBOJPEG_FOUND)
-    target_link_libraries(CML ${TURBOJPEG_LIBRARIES})
 endif()
 
 if (ENABLE_GUI)
