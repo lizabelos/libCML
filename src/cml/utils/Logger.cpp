@@ -16,11 +16,16 @@ CML::Logger::Logger() : mLevel(MORE) {
 
     mStdout = dup(STDOUT_FILENO);
     mStderr = dup(STDOUT_FILENO);
-
-   // int devNull = open("/dev/null", O_WRONLY);
-   // dup2(devNull, STDOUT_FILENO);
-   // dup2(devNull, STDERR_FILENO);
-
+/*
+#ifdef WIN32
+    int devNull = open("nul", O_WRONLY);
+    dup2(devNull, STDOUT_FILENO);
+    dup2(devNull, STDERR_FILENO);
+#else
+    int devNull = open("/dev/null", O_WRONLY);
+    dup2(devNull, STDOUT_FILENO);
+    dup2(devNull, STDERR_FILENO);
+#endif*/
 }
 
 void CML::Logger::redirect(std::string filename) {
@@ -73,13 +78,13 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
 
     //if (level >= mLevel && (!mHaveThreadFilter || pthread_self() == mThreadFilter)) {
 
-        if (level == MORE || level == INFO || level == IMPORTANT) {
+      /*  if (level == MORE || level == INFO || level == IMPORTANT) {
             write(mStdout, loggerMessage.formatted.c_str(), loggerMessage.formatted.size());
         }
         else {
             write(mStderr, loggerMessage.formatted.c_str(), loggerMessage.formatted.size());
         }
-
+*/
     //}
 
     for (auto observer : mObservers) {
