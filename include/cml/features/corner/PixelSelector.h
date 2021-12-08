@@ -48,7 +48,15 @@ namespace CML::Features {
         void makeHists(const CaptureImage &cp);
         Eigen::Vector3i select(const CaptureImage &cp, float* map_out, int pot, float thFactor=1);
 
+        inline unsigned char myRand()
+        {
+            state = state * 1664525 + 1013904223;
+            return state >> 24;
+        }
+
     private:
+        uint32_t state = 777;
+
         bool allowFast;
         int currentPotential;
         unsigned char* randomPattern;

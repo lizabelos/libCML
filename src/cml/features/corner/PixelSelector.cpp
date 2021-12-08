@@ -8,12 +8,11 @@ float setting_minGradHistAdd = 7;
 float setting_gradDownweightPerLevel = 0.75;
 bool  setting_selectDirectionDistribution = true;
 
+
 CML::Features::PixelSelector::PixelSelector(Ptr<AbstractFunction, Nullable> parent, int w, int h) : AbstractFunction(parent)
 {
     randomPattern = new unsigned char[w*h];
-    std::srand(3141592);	// want to be deterministic.
-    for(int i=0; i<w * h; i++) randomPattern[i] = rand() & 0xFF;
-
+    for(int i=0; i<w * h; i++) randomPattern[i] = myRand() & 0xFF;
     currentPotential=3;
 
 
@@ -47,9 +46,11 @@ int computeHistQuantil(int* hist, float below)
 void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
 {
     // float * mapmax0 = fh->absSquaredGrad[0];
-
     int w = cp.getGrayImage(0).getWidth();
     int h = cp.getGrayImage(0).getHeight();
+
+    memset(ths, 0, (w/32)*(h/32)+100);
+    memset(thsSmoothed, 0, (w/32)*(h/32)+100);
 
     int w32 = w/32;
     int h32 = h/32;
@@ -241,7 +242,7 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
             Eigen::Vector2f(1.0000,    0.0000),
             Eigen::Vector2f(0.1951,   -0.9808)};
 
-    memset(map_out,0,w*h*sizeof(PixelSelectorStatus));
+    memset(map_out,0,w*h*sizeof(float));
 
 
 
@@ -250,7 +251,7 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
 
 
     int n3=0, n2=0, n4=0;
-    for(int y4=0;y4<h;y4+=(4*pot)) for(int x4=0;x4<w;x4+=(4*pot))
+    for(int y4=32;y4<h-32;y4+=(4*pot)) for(int x4=32;x4<w-32;x4+=(4*pot))
         {
             int my3 = std::min((4*pot), h-y4);
             int mx3 = std::min((4*pot), w-x4);
@@ -322,6 +323,7 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
                                         if(dirNorm > bestVal4)
                                         { bestVal4 = dirNorm; bestIdx4 = idx; }
                                     }
+
                                 }
 
                             if(bestIdx2>0)
