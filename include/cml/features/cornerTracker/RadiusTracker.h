@@ -43,9 +43,6 @@ namespace CML::Features {
 
             float windowSize = mWindowSize.f() * Vector2(referenceFrame->getWidth(0), referenceFrame->getHeight(0)).norm();
 
-            // Compute the KD Tree
-            PointKDTree kdTree(frameToTrackCorners, 0);
-
             CornerMatchingGraph graph(std::max(referenceCorners.size(), frameToTrackCorners.size()));
             for (size_t i = 0; i < referenceCorners.size(); i++) {
                 if (onlyMapped && referenceFrame->getMapPoint(FeatureIndex(referenceFrameGroup, i)).isNotNull()) {
@@ -54,7 +51,7 @@ namespace CML::Features {
                 if (mLastSeenCorners[i].level() > mLevelFilter.i()) {
                     continue;
                 }
-                List<NearestNeighbor> nearestNeighbor = kdTree.getNearestNeighborsInRadius(mLastSeenCorners[i].point(0), windowSize);
+                List<NearestNeighbor> nearestNeighbor = frameToTrack->processNearestNeighborsInRadius(frameToTrackGroup, mLastSeenCorners[i].point(0), windowSize);
                 for (NearestNeighbor nn : nearestNeighbor) {
                     int distance = referenceFrameDescriptors[i].distance(frameToTrackDescriptors[nn.index]);
                     if (mFilterThresholdAfter.b()) {
