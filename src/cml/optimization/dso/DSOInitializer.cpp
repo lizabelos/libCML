@@ -28,12 +28,13 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
             densitiesFactor * 0.15f,
             densitiesFactor * 0.5f,
             densitiesFactor * 1.0f};
+
     for(int lvl = 0; lvl < mNumPyramidLevel; lvl++)
     {
         int wl = reference->getWidth(lvl), hl = reference->getHeight(lvl);
         mPixelSelector->setPotential(3);
         if(lvl == 0) {
-            mPixelSelector->makeMaps(reference->getCaptureFrame(), statusMap, densities[lvl] * wl * hl, 1, false, 2);
+            int n = mPixelSelector->makeMaps(reference->getCaptureFrame(), statusMap, densities[lvl] * wl * hl, 1, false, 2);
         }
         else {
             mPixelSelector->makePixelStatus(reference->getCaptureFrame(), lvl, statusMapB, densities[lvl] * w0 * h0, mSparsityFactor);
@@ -102,6 +103,7 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
     mSnappedAt = 0;
 
     mReference = reference;
+
     return true;
 
 }
@@ -223,7 +225,6 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
 
             Hl = wM * Hl * wM * (0.01f/(float)(frameToTrack->getWidth(lvl)*frameToTrack->getHeight(lvl)));
             bl = wM * bl * (0.01f/(float)(frameToTrack->getWidth(lvl)*frameToTrack->getHeight(lvl)));
-
 
             Vector8f inc;
             if(fixAffine)
@@ -466,7 +467,7 @@ CML::Vector3f CML::Optimization::DSOInitializer::calcResAndGS(int lvl, Matrixf<8
     Vector2f r2new_aff = Vector2f(
              exposure.getExposureFromCamera() /  mReference->getExposure().getExposureFromCamera(),
             0
-            ); // todo : this means that the light parameters are always fixed
+            );
 
     dso::Accumulator11 E;
     mAcc9.initialize();
@@ -565,7 +566,7 @@ CML::Vector3f CML::Optimization::DSOInitializer::calcResAndGS(int lvl, Matrixf<8
             }
 
 
-            float residual = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1]; // todo : what ?
+            float residual = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
             // The transition goes from reference to target
            // float residual = hitColor[0] - refToNewExposure(rlR);
             float hw = fabs(residual) < mHuberThreshold.f() ? 1 : mHuberThreshold.f() / fabs(residual);
@@ -940,10 +941,10 @@ void CML::Optimization::DSOInitializer::makeNN() {
     const float NNDistFactor=0.05;
 
     // build indices
-    PointKDTree *indexes[mNumPyramidLevel];
+    PointGrid<DSOInitializerPoint> *indexes[mNumPyramidLevel];
     for(int i = 0; i < mNumPyramidLevel; i++)
     {
-        indexes[i] = new PointKDTree(mPoints[i]);
+        indexes[i] = new PointGrid<DSOInitializerPoint>(mPoints[i], Vector2i(0,0), Vector2i(mReference->getWidth(i), mReference->getHeight(i)));
     }
 
     const int nn=10;
@@ -955,7 +956,7 @@ void CML::Optimization::DSOInitializer::makeNN() {
         {
             auto &pointData = mPoints[lvl][i];
             Vector2f pt = pointData.p;
-            auto nearestNeighbors = indexes[lvl]->getNearestNeighbors(pt, nn);
+            auto nearestNeighbors = indexes[lvl]->searchInRadiusNum(pt, nn);
 
             int myidx=0;
             float sumDF = 0;
@@ -975,7 +976,7 @@ void CML::Optimization::DSOInitializer::makeNN() {
             if(lvl < mNumPyramidLevel - 1)
             {
                 pt = pt / SCALEFACTOR;
-                auto nearestNeighbors1 = indexes[lvl+1]->getNearestNeighbors(pt, 1);
+                auto nearestNeighbors1 = indexes[lvl+1]->searchInRadiusNum(pt, 1);
 
                 pointData.parent = nearestNeighbors1[0].index;
                 pointData.parentDist = expf(-nearestNeighbors1[0].distance*NNDistFactor);

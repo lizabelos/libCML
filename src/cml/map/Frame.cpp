@@ -119,7 +119,6 @@ void CML::Frame::setCameraWithoutObserver(const Camera &camera) {
 }
 
 CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighbors(int group, Vector2 position, int num) const {
-/*
     std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
     {
@@ -128,7 +127,6 @@ CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighbors(int group, V
     }
 
     return pointKdTree->searchInRadiusNum(position, num);
-*/ throw std::runtime_error("Not implemented");
 }
 
 CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, float distance) const {

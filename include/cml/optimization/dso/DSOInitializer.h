@@ -12,11 +12,11 @@ namespace CML {
 
         public:
 
-            float &x() {
+            float x() const {
                 return p.x();
             }
 
-            float &y() {
+            float y() const {
                 return p.y();
             }
 
