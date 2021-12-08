@@ -95,6 +95,8 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
     }
 
+    assertDeterministic("Number of G2O tracker initial correspondance", nInitialCorrespondences);
+
     if(nInitialCorrespondences < 3) {
         return result;
     }
@@ -265,6 +267,8 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
 
     }
+
+    assertDeterministic("Number of G2O tracker initial correspondance", nInitialCorrespondences);
 
     if(nInitialCorrespondences < 3) {
         return result;

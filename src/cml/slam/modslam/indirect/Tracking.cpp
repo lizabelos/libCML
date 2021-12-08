@@ -18,17 +18,21 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     List<Corner> corners;
     mCornerExtractor->compute(currentFrame->getCaptureFrame(), corners, currentFrameData->descriptors);
     currentFrameData->featureId = currentFrame->addFeaturePoints(corners);
+    assertDeterministic("Number of ORB points extracted", corners.size());
+    assertDeterministic("Hash of ORB extracted descriptors", computeHashOfDescriptors(currentFrameData->descriptors));
 
 /*
     mCornerExtractor->compute(currentFrame->getCaptureFrame());
     currentFrameData->descriptors = mCornerExtractor->getDescriptors();
 
+    assertDeterministic("Number of ORB points extracted", currentFrameData->descriptors.size());
+
     if (mCornerExtractor->getCorners().size() > 0) {
         currentFrameData->featureId = currentFrame->addFeaturePoints(mCornerExtractor->getCorners());
     } else {
         assert(false);
-    }*/
-
+    }
+*/
 }
 
 void Hybrid::needVocabularyFor(PFrame currentFrame) {
@@ -64,8 +68,11 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
     if (descriptors.size() <= 2) {
         return descriptors[0];
     }
-    return computeDistinctiveDescriptors(descriptors);
+    auto d = computeDistinctiveDescriptors(descriptors);
     //return computeMedianDescriptors(descriptors);
+    assertDeterministic("Hash of distinctive descriptor", d.hash());
+
+    return d;
 }
 
 
@@ -96,6 +103,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         );
     }
 
+    assertDeterministic("Number of matching for indirect tracking with motion model", matchings.size());
     logger.important("Found " + std::to_string(matchings.size()) + " matchings from last frame");
 
     if (matchings.size() < 20) {
@@ -118,6 +126,8 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         }
         numInliers++;
     }
+
+    assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
     if (numInliers >= 10) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
@@ -157,6 +167,8 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
     );
 
     logger.important("Found " + std::to_string(matchings.size()) + " matchings from reference");
+    assertDeterministic("Number of matchings for indirect tracking with motion model", matchings.size());
+
 
     if (matchings.size() < 15) {
         logger.important("Not enough matchings");
@@ -178,6 +190,8 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
         }
         numInliers++;
     }
+
+    assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
     if (numInliers >= 10) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
@@ -207,9 +221,10 @@ bool Hybrid::indirectTrackLocalMap(PFrame currentFrame) {
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, outliers);
 
     if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
+        assertDeterministic("Indirect covariance norm", mLastIndirectTrackingResult.covariance.norm());
         if (mLastIndirectTrackingResult.isOk) {
             currentFrame->setCamera(mLastIndirectTrackingResult.camera);
-            logger.info("Refined with ORB");
+            assertDeterministic("Refining with ORB");
         }
     }
 

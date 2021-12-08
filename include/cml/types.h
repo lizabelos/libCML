@@ -150,8 +150,16 @@ namespace CML {
 #define assertThrow(EXPRESSION, MSG)
 #endif
 
+    template <typename T> inline void assertDeterministic(const std::string &msg, T value) {
+        logger.raw(std::to_string(value) + "  |  " + msg + "\n");
+    }
+
+    inline void assertDeterministic(const std::string &msg) {
+        //logger.raw(msg + "\n");
+    }
+
     inline void setThreadName(std::string name) {
-        pthread_setname_np(pthread_self(), name.c_str());
+        //pthread_setname_np(pthread_self(), name.c_str());
     }
 
     struct Hasher;
@@ -1256,7 +1264,6 @@ namespace CML {
         scalar_t distance;
     } NearestNeighbor;
 
-    class PointKDTree;
     template <typename T> class PointGrid;
 
     using Pattern = std::vector<Vector2>;

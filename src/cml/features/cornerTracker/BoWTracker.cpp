@@ -101,6 +101,9 @@ List<Pair<int, int>> CML::Features::BoWTracker::trackByProjection(const BoWFrame
         }
     }
 
+
+    assertDeterministic("Matching by projection 2", result.size());
+
     return result;
 
 
@@ -279,6 +282,9 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
     logger.debug("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
     logger.debug("Removed because orientation : " + std::to_string(removeBecauseOrientation));
 
+    assertDeterministic("Matching by bow", matchings.size());
+
+
     return matchings;
 }
 
@@ -428,6 +434,8 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
 
     this->getTimer().stop();
 
+    assertDeterministic("Matching for initialization", matchings.size());
+
     return matchings;
 }
 
@@ -451,9 +459,6 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
     scalar_t fy = K(1,1);
     scalar_t cx = K(0, 2);
     scalar_t cy = K(1, 2);
-
-    //Compute epipole in second image
-    // todo
 
     Matrix33 R1w = A.camera.getRotationMatrix();
     Vector3 t1w = A.camera.getTranslation();
@@ -536,7 +541,7 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
 
 
                     scalar_t scaleFactor = kp2.processScaleFactorFromLevel();
-                    if(checkDistEpipolarLine(kp1, kp2, F12, 3.84 * scaleFactor * scaleFactor * (scalar_t)th)) // todo : check this
+                    if(checkDistEpipolarLine(kp1, kp2, F12, 3.84 * scaleFactor * scaleFactor * (scalar_t)th))
                     {
                         bestIdx2 = idx2;
                         bestDist = dist;
@@ -609,6 +614,9 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
     }
 
     this->getTimer().stop();
+
+    assertDeterministic("Matching for triangulation", matchings.size());
+
 
     return matchings;
 }
@@ -763,6 +771,8 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
                 Matching(0, current.frame, last.frame, FeatureIndex(current.group, currentI), FeatureIndex(last.group, lastI))
                 );
     }
+
+    assertDeterministic("Matching by projection 1", matchings.size());
 
     return matchings;
 }

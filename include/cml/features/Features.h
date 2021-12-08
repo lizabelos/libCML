@@ -176,6 +176,14 @@ namespace CML {
             return mean;
         }
 
+        EIGEN_STRONG_INLINE int hash() {
+            int h = 0;
+            for (int i = 0; i < N; i++) {
+                h += mBinary[i];
+            }
+            return h;
+        }
+
     private:
         uint8_t mBinary[N];
 
@@ -258,6 +266,15 @@ namespace CML {
 
         return result;
     }
+
+    template <int DESCSIZE> int computeHashOfDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors) {
+        int h = 0;
+        for (auto d : descriptors) {
+            h += d.hash();
+        }
+        return h;
+    }
+
 
 }
 

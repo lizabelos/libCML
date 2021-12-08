@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <limits>
 
 #include <cml/slam/modslam/Hybrid.h>
 
@@ -216,6 +217,11 @@ int main(int argc, char *argv[])
     }
     return 0;
      */
+
+    typedef std::numeric_limits< double > dbl;
+    std::cout.precision(dbl::max_digits10);
+
+
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
     logger.setLogLevel(IMPORTANT);
