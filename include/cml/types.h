@@ -151,7 +151,7 @@ namespace CML {
 #endif
 
     template <typename T> inline void assertDeterministic(const std::string &msg, T value) {
-        logger.raw(std::to_string(value) + "  |  " + msg + "\n");
+        //logger.raw(std::to_string(value) + "  |  " + msg + "\n");
     }
 
     inline void assertDeterministic(const std::string &msg) {
@@ -159,7 +159,7 @@ namespace CML {
     }
 
     inline void setThreadName(std::string name) {
-        //pthread_setname_np(pthread_self(), name.c_str());
+        pthread_setname_np(pthread_self(), name.c_str());
     }
 
     struct Hasher;
