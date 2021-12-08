@@ -11,7 +11,7 @@ namespace CML::Features {
 
     typedef TemplatedVocabulary<Binary256Descriptor> ORBVocabulary;
 
-#define CML_ORB_USEOPENCVFAST 1
+#define CML_ORB_USEOPENCVFAST 0
 
     class ORB : public AbstractFunction {
 

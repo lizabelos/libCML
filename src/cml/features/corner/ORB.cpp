@@ -207,14 +207,14 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
-/*#if CML_HAVE_OPENCV
+#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVFAST
                 List<Corner> vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), iniThFAST, true);
 
                 if(vKeysCell.empty())
                 {
                     vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), minThFAST, true);
                 }
-#else*/
+#else
                 List<Corner> vKeysCell;
                 FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST, FAST_9, true);
 
@@ -222,7 +222,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 {
                     FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST, FAST_9, true);
                 }
-//#endif
+#endif
 
                 if(!vKeysCell.empty())
                 {
