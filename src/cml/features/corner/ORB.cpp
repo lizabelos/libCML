@@ -102,7 +102,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
     for (int i = 1; i < nlevels; i++) {
         float scale = mvInvScaleFactor[i];
         Vector2i sz(round((float)captureImage.getWidth(0) * scale), round((float)captureImage.getHeight(0) * scale));
-#if CML_HAVE_OPENCV
+#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVIMAGE
         mImages[i] = OpenCV::resize(mImages[i - 1], sz.x(), sz.y());
 #else
         mImages[i] = mImages[i - 1].resize(sz.x(), sz.y());
@@ -127,7 +127,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         // preprocess the resized image
         //mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
         //mBluredImages[level] = OpenCV::gaussianBlur(mImages[level], 7, 7, 2, 2);
-#if CML_HAVE_OPENCV
+#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVIMAGE
         mBluredImages[level] = OpenCV::blur(mImages[level], 7, 7);
 #else
         mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
@@ -156,6 +156,9 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
     }
+
+    logger.important("Extracted " + std::to_string(mCorners.size()) + " orb coners");
+
 }
 
 void CML::Features::ORB::computeKeyPointsOctTree() {
@@ -262,6 +265,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 }
 
 void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys, List<Corner>& vResultKeys, const int &minX, const int &maxX, const int &minY, const int &maxY, const int &N, const int &level) {
+
     // Compute how many initial nodes
     const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
 
@@ -292,6 +296,7 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
         vpIniNodes[kp.x() / hX]->vKeys.push_back(kp);
     }
 
+
     LinkedList<ExtractorNode>::iterator lit = lNodes.begin();
 
     while(lit!=lNodes.end())
@@ -306,6 +311,8 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
         else
             lit++;
     }
+
+
 
     bool bFinish = false;
 
@@ -383,6 +390,7 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
                 }
 
                 lit=lNodes.erase(lit);
+
                 continue;
             }
         }
@@ -404,7 +412,14 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
                 List<Pair<int,ExtractorNode*>> vPrevSizeAndPointerToNode = vSizeAndPointerToNode;
                 vSizeAndPointerToNode.clear();
 
-                sort(vPrevSizeAndPointerToNode.begin(),vPrevSizeAndPointerToNode.end());
+                sort(vPrevSizeAndPointerToNode.begin(),vPrevSizeAndPointerToNode.end(), [](const Pair<int,ExtractorNode*> & a, const Pair<int,ExtractorNode*> & b) -> bool
+                {
+                    if (a.first != b.first) {
+                        return a.first < b.first;
+                    }
+                    return a.second->hash() < b.second->hash();
+                });
+                assertThrow(vPrevSizeAndPointerToNode[0].first <= vPrevSizeAndPointerToNode[vPrevSizeAndPointerToNode.size()-1].first, "Whut ?");
                 for(int j=vPrevSizeAndPointerToNode.size()-1;j>=0;j--)
                 {
                     ExtractorNode n1,n2,n3,n4;
@@ -449,6 +464,7 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
                     }
 
                     lNodes.erase(vPrevSizeAndPointerToNode[j].second->lit);
+
 
                     if((int)lNodes.size()>=N)
                         break;

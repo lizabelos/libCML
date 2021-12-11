@@ -12,6 +12,7 @@ namespace CML::Features {
     typedef TemplatedVocabulary<Binary256Descriptor> ORBVocabulary;
 
 #define CML_ORB_USEOPENCVFAST 0
+#define CML_ORB_USEOPENCVIMAGE 0
 
     class ORB : public AbstractFunction {
 
@@ -65,7 +66,7 @@ namespace CML::Features {
     protected:
         void reinitialize();
 
-        class ExtractorNode
+        class ExtractorNode : public DeterministicallyHashable
         {
         public:
             ExtractorNode() : bNoMore(false) {
