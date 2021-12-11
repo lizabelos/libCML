@@ -335,7 +335,7 @@ void CML::QtDrawBoard::cacheTexture(PFrame frame) {
 
     QImage image;
     if (frame->getCaptureFrame().haveColorImage()) {
-        image = QImage((uchar *) frame->getCaptureFrame().getColorImage(0).data(), frame->getWidth(0),frame->getHeight(0), QImage::Format_RGB32);
+        image = QImage((uchar *) frame->getCaptureFrame().getColorImage(0, false).data(), frame->getWidth(0),frame->getHeight(0), QImage::Format_RGB32);
         image = image.rgbSwapped();
         if (mCachedTexture == nullptr) {
             mCachedTexture = new QOpenGLTexture(image);
@@ -345,7 +345,7 @@ void CML::QtDrawBoard::cacheTexture(PFrame frame) {
     } else {
         //GrayImage grayImage = frame->getCaptureFrame().getGrayImage(0).cast<unsigned char>();
         //image = QImage((uchar *)grayImage.data(), grayImage.getWidth(),grayImage.getHeight(), QImage::Format_Grayscale8);
-        Image colorImage = frame->getCaptureFrame().getGrayImage(0).cast<ColorRGBA>();
+        Image colorImage = frame->getCaptureFrame().getGrayImage(0, false).cast<ColorRGBA>();
         image = QImage((uchar *) colorImage.data(), frame->getWidth(0),frame->getHeight(0), QImage::Format_RGB32);
 
         if (mCachedTexture == nullptr) {

@@ -47,13 +47,15 @@ namespace CML {
             return mHeights[level];
         }
 
-        const auto &getColorImage(int level) const {
+        const auto &getColorImage(int level, bool checkInMemory = true) const {
             assertThrow(haveColorImage(), "Call getColorImage() but we don't have any color image");
             assertThrow(level < getPyramidLevels(), "Invalid level : " + std::to_string(level) + ". Have " + std::to_string(getPyramidLevels()) + " levels");
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
-            if (!stillInMemory()) {
-                logger.fatal("Image is not loaded in memory");
-                abort();
+            if (checkInMemory) {
+                if (!stillInMemory()) {
+                    logger.fatal("Image is not loaded in memory");
+                    abort();
+                }
             }
 #endif
             return *mColorImages[level].p();
@@ -63,12 +65,14 @@ namespace CML {
             return mColorImages.size() > 0;
         }
 
-        inline const auto &getGrayImage(int level) const {
+        inline const auto &getGrayImage(int level, bool checkInMemory = true) const {
             assertThrow(level < getPyramidLevels(), "Invalid level : " + std::to_string(level) + ". Have " + std::to_string(getPyramidLevels()) + " levels");
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
-            if (!stillInMemory()) {
-                logger.fatal("Image is not loaded in memory");
-                abort();
+            if (checkInMemory) {
+                if (!stillInMemory()) {
+                    logger.fatal("Image is not loaded in memory");
+                    abort();
+                }
             }
 #endif
             return *mGrayImages[level].p();

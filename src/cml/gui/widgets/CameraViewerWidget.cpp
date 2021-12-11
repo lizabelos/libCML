@@ -85,10 +85,10 @@ void CML::CameraViewerWidget::paintGL() {
         }
 
         if (captureFrame->haveColorImage()) {
-            mDrawBoard->texture(captureFrame->getColorImage(0), -1 + (remainingW / 2), -1 + (remainingH / 2), w, h);
+            mDrawBoard->texture(captureFrame->getColorImage(0, false), -1 + (remainingW / 2), -1 + (remainingH / 2), w, h);
             mDrawBoard->set2DArea(Eigen::Vector2f(-1 + (remainingW / 2), -1 + (remainingH / 2)), Eigen::Vector2f(1 - (remainingW / 2), 1 - (remainingH / 2)));
         } else {
-            auto img = captureFrame->getGrayImage(0).cast<ColorRGBA>();
+            auto img = captureFrame->getGrayImage(0, false).cast<ColorRGBA>();
             for (int y = 0; y < img.getHeight(); y++) {
                 for (int x = 0; x < img.getWidth(); x++) {
                     if (!captureFrame->getDerivativeImage(0).get(x,y).allFinite()) {
