@@ -62,7 +62,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
         vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
         vPoint->setId(i + 1);
-        vPoint->setMarginalized(false);
+        vPoint->setMarginalized(true);
         vPoint->setFixed(true);
         bool r = optimizer.addVertex(vPoint);
         assertThrow(r, "Vertex already exist");
@@ -232,7 +232,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         g2o::VertexPointXYZ* vPoint = new g2o::VertexPointXYZ();
         vPoint->setEstimate(pMP->getWorldCoordinate().absolute().cast<number_t>());
         vPoint->setId(i + 1);
-        vPoint->setMarginalized(false);
+        vPoint->setMarginalized(true);
         vPoint->setFixed(true);
         bool r = optimizer.addVertex(vPoint);
         assertThrow(r, "Vertex already exist");
