@@ -77,8 +77,8 @@ add_library(CML STATIC
         fast/nonmax.c
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${FLANN_LIBRARIES} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx jpeg8 jpeg12 jpeg16)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${FLANN_INCLUDE_DIR})
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx jpeg8 jpeg12 jpeg16)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)

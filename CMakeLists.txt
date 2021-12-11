@@ -81,17 +81,6 @@ endif()
 
 add_subdirectory(thirdparty/g2o)
 
-option(USE_INTERNAL_FLANN "Use Internal Flann" ON)
-if (USE_INTERNAL_FLANN)
-    add_subdirectory(thirdparty/flann)
-    set(FLANN_LIBRARIES flann_cpp_s)
-    set(FLANN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/flann/src/cpp")
-    set(FLANN_FOUND 1)
-else()
-    find_package(FLANN REQUIRED)
-    set(FLANN_LIBRARIES FLANN::FLANN)
-endif()
-
 if (ANDROID)
     set(AVFORMAT_FOUND 0)
     set(AVCODEC_FOUND 0)

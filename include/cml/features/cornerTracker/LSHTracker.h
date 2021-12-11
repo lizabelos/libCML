@@ -9,7 +9,7 @@
 #include <cml/features/cornerTracker/DefaultParameters.h>
 
 namespace CML::Features {
-
+/*
     typedef enum LSHTrackerGoal {
         LSHTRACKERGOAL_NONE, LSHTRACKERGOAL_LOCALIZATION, LSHTRACKERGOAL_MAPPING
     } LSHTrackerGoal;
@@ -127,7 +127,7 @@ namespace CML::Features {
         Parameter mRatio = this->createParameter("Ratio", DefaultParameters::ratio);
 
     };
-
+*/
 }
 
 #endif
