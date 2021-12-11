@@ -1,8 +1,8 @@
 # REQUIRED : Number of orb corner
-numOrbCorner: 625
+numOrbCorner: 2048
 
 # Uncertainty threshold to map orb corner
-orbUncertaintyThreshold: 100000
+orbUncertaintyThreshold: -1
 
 # Number of dso corner / and desired immature points
 dsoTracer.desiredPointDensity: 2000
@@ -36,7 +36,7 @@ enableDirect: true
 linearizeDirect: true
 
 # Disable indirect keyframe and B.A. thread
-linearizeIndirect: false
+linearizeIndirect: true
 
 # Enable semi-direct points optimized both by direct and indirect part
 enableHybridPoint: false

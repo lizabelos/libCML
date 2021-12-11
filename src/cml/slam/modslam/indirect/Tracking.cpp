@@ -14,14 +14,14 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     } else {
         mCornerExtractor->setNumFeatures(mNumOrbCorner.i());
     }
-
+/*
     List<Corner> corners;
     mCornerExtractor->compute(currentFrame->getCaptureFrame(), corners, currentFrameData->descriptors);
     currentFrameData->featureId = currentFrame->addFeaturePoints(corners);
     assertDeterministic("Number of ORB points extracted", corners.size());
     assertDeterministic("Hash of ORB extracted descriptors", computeHashOfDescriptors(currentFrameData->descriptors));
+*/
 
-/*
     mCornerExtractor->compute(currentFrame->getCaptureFrame());
     currentFrameData->descriptors = mCornerExtractor->getDescriptors();
 
@@ -32,7 +32,7 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     } else {
         assert(false);
     }
-*/
+
 }
 
 void Hybrid::needVocabularyFor(PFrame currentFrame) {
@@ -419,12 +419,18 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
 
     int numTrackedRef = indirectNumTrackedRef();
 
+    if (numTrackedRef > 200) {
+        numTrackedRef = 200;
+    }
+
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
     //const bool c1a = currentFrame->getId() >= getMap().getLastGroupFrame(INDIRECTKEYFRAME)->getId() + 20;
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
     //const bool c1b =  currentFrame->getId() >= getMap().getLastGroupFrame(INDIRECTKEYFRAME)->getId() && mIndirectMappingQueue.getCurrentSize() == 0;
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
-    scalar_t threshold = exp(log(numTrackedRef) * 0.975);
+    //scalar_t threshold = exp(log(numTrackedRef) * 0.975);
+
+    scalar_t threshold = numTrackedRef * 0.9;
     logger.important("Num tracked ref : " + std::to_string(numTrackedRef));
     logger.important("Indirect keyframe threshold : " + std::to_string(threshold));
     logger.important("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));

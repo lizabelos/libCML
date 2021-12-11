@@ -48,7 +48,7 @@ using namespace CML;
 class Hybrid : public AbstractSlam, Map::Observer, MapPoint::Observer {
 
 private:
-    using CornerAndDescriptor = Features::OpenCV::ORB;
+    using CornerAndDescriptor = Features::ORB;
     using Descriptor = CornerAndDescriptor::Descriptor;
 
     typedef enum BaMode {
