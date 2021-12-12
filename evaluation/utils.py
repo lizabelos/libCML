@@ -5,6 +5,8 @@ import os
 
 
 def system(command):
+    os.system(command + ">/dev/null 2>/dev/null")
+    return "", 0
     for l in csv.reader([command], delimiter=' ', quotechar='"'):
         executable = l[0]
         wd = os.path.dirname(os.path.realpath(executable))
@@ -14,3 +16,8 @@ def system(command):
         errcode = p.returncode
         # print("Command finished")
         return out.decode("utf-8"), err
+
+def dprint(s, end="\n"):
+    print(s, end=end)
+    with open("output.txt", "a") as myfile:
+        myfile.write(str(s) + end)

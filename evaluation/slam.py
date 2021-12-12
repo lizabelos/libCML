@@ -89,7 +89,7 @@ class ModSLAM(SLAM):
         args = "-c \"" + config_filename + "\" -t -z -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
         command = executable + " " + args
 
-        print(command)
+        # print(command)
 
         out, err = system(command)
         self.processLogForStats(out)

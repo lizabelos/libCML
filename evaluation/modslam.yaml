@@ -1,12 +1,12 @@
 # REQUIRED : Number of orb corner
-numOrbCorner: 625
+numOrbCorner: 2048
 
 # Uncertainty threshold to map orb corner
-orbUncertaintyThreshold: 100000
+orbUncertaintyThreshold: -1
 
 # Number of dso corner / and desired immature points
-dsoTracer.desiredPointDensity: 800
-dsoTracer.immatureDensity: 600
+dsoTracer.desiredPointDensity: 2000
+dsoTracer.immatureDensity: 1500
 dsoInitializer.pointDensity: 2000
 
 # Tracking condition ( -1 to disable )
@@ -19,7 +19,7 @@ bacondSaturatedRatio: -1
 bacondScoreWeight: 0.0125
 bacondScoreWindow: 1
 bacondUncertaintyWeight: -1
-bacondUncertaintyWindow: -1
+bacondUncertaintyWindow: 1
 bacondMinimumOrbPoint: -1
 bacondForce: 0 # 0 = Nothing; 1 = ORB; 2 = DSO
 
@@ -45,8 +45,8 @@ enableHybridPoint: false
 freeAllDirectPoint: false
 
 # DSO Bundle adjustment parameters
-dsoBa.iterations: 4
-dsoBa.maxFrames: 6
+dsoBa.iterations: 6
+dsoBa.maxFrames: 7
 
 # ORB Bundle adjustment parameters
 orbBa.numIteration: 5

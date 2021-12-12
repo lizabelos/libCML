@@ -16,6 +16,7 @@ import dataset
 import evaluator
 import slam
 from table import FileTable, MedianTableProxy, SumTableProxy
+from utils import dprint
 
 
 def parse_config():
@@ -56,7 +57,7 @@ def main():
         FileTable(["ate of " + x for x in slams_names] + ["rpe of " + x for x in slams_names], datasets_names,
                   "result/table.csv"))
 
-    print("Found " + str(len(datasets)) + " videos")
+    dprint("Found " + str(len(datasets)) + " videos")
 
     num_execution = 5
 
@@ -67,8 +68,8 @@ def main():
                 name = slams_names[j]
                 context = s[0](s[1])
 
-                print("Evaluating on " + datasets[i].name())
-                print("Result folder : " + context.outputdir())
+                dprint("Evaluating on " + datasets[i].name())
+                dprint("Result folder : " + context.outputdir())
 
                 context.run(datasets[i])
 
@@ -77,13 +78,13 @@ def main():
                     ate = evaluation.ape_rmse()
                     rpe = evaluation.rpe_rmse()
                     evaluation.plot(datasets[i].name(), "result/" + datasets[i].name() + "_" + name + ".pdf")
-                    print("ATE of " + datasets[i].name() + ": " + str(ate))
-                    print("RPE of " + datasets[i].name() + ": " + str(rpe))
+                    dprint("ATE of " + datasets[i].name() + ": " + str(ate))
+                    dprint("RPE of " + datasets[i].name() + ": " + str(rpe))
 
                     table.set("ate of " + name, datasets[i].name(), ate)
                     table.set("rpe of " + name, datasets[i].name(), rpe)
                 # except:
-                #    print("Unable to evaluate " + datasets[i].name())
+                #    dprint("Unable to evaluate " + datasets[i].name())
 
 
 def statsOn(configName, tableName):
@@ -95,8 +96,8 @@ def statsOn(configName, tableName):
         name = slams_names[0]
         context = s[0](s[1], configName)
 
-        print("Evaluating on " + datasets[i].name())
-        print("Result folder : " + context.outputdir())
+        dprint("Evaluating on " + datasets[i].name())
+        dprint("Result folder : " + context.outputdir())
 
         context.run(datasets[i])
 
@@ -126,7 +127,7 @@ def statsOn(configName, tableName):
             table.set("rpe", datasets[i].name(), rpe)
 
         except:
-            print("Unable to evaluate " + datasets[i].name())
+            dprint("Unable to evaluate " + datasets[i].name())
 
 
 def ablationstudy():
@@ -138,7 +139,7 @@ def ablationstudy():
     # valuesToTry = [round(1.0 / x, 2) for x in valuesToTry[::-1]] + [1.0] + valuesToTry
     # valuesToTry = [x * 0.0125 for x in valuesToTry]
 
-    print(valuesToTry)
+    dprint(valuesToTry)
 
     # desiredPointDensity = 2000 // 10
     # immatureDensity = 1500 // 10
@@ -152,7 +153,7 @@ def ablationstudy():
         datasets[i].use()
 
         try:
-            print("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
+            dprint("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
 
             s = slams[0]
             name = slams_names[0]
@@ -213,7 +214,7 @@ def ablationstudy2d():
         result = None
 
         try:
-            print("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
+            dprint("Value : %s ; Dataset : %s ; Execution : %d" % (str(v), datasets[i].name(), n))
 
             s = slams[0]
             name = slams_names[0]
@@ -283,29 +284,38 @@ def floatrange(a, b, c = 1.0):
 def bruteforceFindBest():
     datasets, datasets_names, slams, slams_names = parse_config()
     params = [
-        ["numOrbCorner", intrange(0,2200,50)],
-        ["orbUncertaintyThreshold", [100000, 1000000, 10000, -1]],
-        ["dsoTracer.desiredPointDensity", intrange(0,2200,50)],
-        ["dsoTracer.immatureDensity", intrange(0,2200,50)],
-        ["dsoInitializer.pointDensity", intrange(1000,4000,50)],
-        ["trackcondUncertaintyWeight", floatrange(0,2,0.1)],
+        #["numOrbCorner", intrange(1000,2250,250)],
+        ["orbUncertaintyThreshold", [100000, 1000000, 10000, 1000, 100, 10, 0, 0.1, 0.01, -1]],
+        #["dsoTracer.desiredPointDensity", intrange(0,2200,250)],
+        #["dsoTracer.immatureDensity", intrange(0,2200,250)],
+        #["dsoInitializer.pointDensity", intrange(1000,4000,1000)],
+        ["trackcondUncertaintyWeight", floatrange(0.2,2,0.2)],
         ["trackcondUncertaintyWindow", intrange(1,8)],
-        ["bacondSaturatedRatio", [0,0.5,0.10,0.15]],
-        ["bacondUncertaintyWeight", floatrange(0,2,0.1)],
-        ["bacondUncertaintyWindow", intrange(1,8)],
-        ["orbBa.numIteration", intrange(0,10)],
-        ["orbBa.refineIteration", intrange(0,10)],
-        ["orbBa.removeEdge", ["true", "false"]]
+        ["bacondScoreWeight", [0.0125*2,0.0125*1.5,0.0125,0.0125/1.5,0.0125/2]],
+        ["bacondScoreWindow", intrange(1,8)],
+        ["numOrbCorner", intrange(1000,2250,250)]
+        #["bacondSaturatedRatio", [0,0.5,0.10,0.15]],
+        #["bacondUncertaintyWeight", floatrange(0,2,0.2)],
+        #["bacondUncertaintyWindow", intrange(1,8)],
+        #["orbBa.numIteration", intrange(0,10)],
+        #["orbBa.refineIteration", intrange(0,10)],
+        #["orbBa.removeEdge", ["true", "false"]]
     ]
 
-
+    dprint("Hello :)")
     currentParam = {}
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
     while True:
         for param in params:
             allSums = []
-            for v in param[1]:
-                print("Changing " + str(param[0]) + " to " + str(v))
+            allSuccess = []
+            futures = []
+            dprint("Testing on " + param[0])
+            def process(param, v):
+                toprint = str(param[0]) + "=" + str(v) + "; "
+                # dprint(str(param[0]) + "=" + str(v) + "; ", end='')
                 currentSum = 0
+                currentSuccess = 0
 
                 for i in range(0, len(datasets)):
 
@@ -319,31 +329,53 @@ def bruteforceFindBest():
                     try:
                         evaluation = evaluator.fromslam(context)
                         ate = evaluation.ape_rmse()
-                        print("ATE : " + str(ate))
+                        #dprint(str(ate) + "; ", end='')
+                        toprint = toprint + str(ate) + "; "
                         if ate > datasets[i].lim():
-                            print("Too big")
-                            currentSum = None
+                            # dprint("Too big")
+                            toprint = toprint + "Too big"
+                            # currentSum = None
                             break
                         currentSum = currentSum + ate
-                    except:
-                        print("Invalid")
-                        currentSum = None
+                        currentSuccess = currentSuccess + 1
+                    except Exception as e:
+                        # dprint("Invalid : " + str(e))
+                        toprint = toprint + "Invalid : " + str(e)
+                        #currentSum = None
                         break
+                dprint(toprint)
+                return currentSum, currentSuccess
 
-                print("Final sum : " + str(currentSum))
+            for v in param[1]:
+                futures = futures + [executor.submit(process, param, v)]
+                #currentSum, currentSuccess = process(param, v)
+                # dprint("Final sum : " + str(currentSum))
+            concurrent.futures.wait(futures)
+            for f in futures:
+                currentSum, currentSuccess = f.result()
                 allSums.append(currentSum)
+                allSuccess.append(currentSuccess)
 
             currentMin = 999999
-            currentMinI = 0
+            currentMinI = None
+            currentMaxSuccess = 0
             for i in range(0, len(allSums)):
-                if allSums[i] is not None and allSums[i] < currentMin:
+                if allSuccess[i] < currentMaxSuccess:
+                    continue
+                if allSuccess[i]>currentMaxSuccess or allSums[i] < currentMin:
                     currentMin = allSums[i]
+                    currentMaxSuccess = allSuccess[i]
                     currentMinI = i
 
-            currentParam[param[0]] = param[1][currentMinI]
+            if currentMinI is not None:
+                currentParam[param[0]] = param[1][currentMinI]
 
-            print(currentParam)
-            print("Best : " + str(currentMin))
+            dprint("")
+            dprint("=========================")
+            dprint(currentParam)
+            dprint("=========================")
+            dprint("")
+            #dprint("Best : " + str(currentMin))
 
 
 
