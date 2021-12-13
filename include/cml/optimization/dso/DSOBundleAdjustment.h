@@ -229,9 +229,9 @@ namespace CML {
             Parameter mScaleF = createParameter("Scale F", 50.0f);
             Parameter mScaleC = createParameter("Scale C", 50.0f);
 
-            Parameter mForceAccept = createParameter("Force Accept", true);
-            Parameter mFixLambda = createParameter("Fix lambda", true);
-            Parameter mFixedLambda = createParameter("Fixed lambda", 1e-5f);
+            Parameter mForceAccept = createParameter("forceAccept", true);
+            Parameter mFixLambda = createParameter("fixLambda", true);
+            Parameter mFixedLambda = createParameter("fixedLambda", 1e-5f);
 
             Parameter mIdepthFixPrior = createParameter("iDepth Fix Prior", 50 * 50);
 

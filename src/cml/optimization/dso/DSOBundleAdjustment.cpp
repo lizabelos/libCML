@@ -1926,7 +1926,9 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcMEnergy() {
     assert(mAdjointsValid);
     assert(mIndicesValid);
 
-    return 0;
+    if (mForceAccept.b()) {
+        return 0;
+    }
 
     Vector<Dynamic> delta = Vector<Dynamic>(4 + getFrames().size() * 8);
     delta.head<4>() = mCDeltaF.cast<scalar_t>();
@@ -1947,7 +1949,9 @@ CML::scalar_t CML::Optimization::DSOBundleAdjustment::calcLEnergy() {
     assert(mAdjointsValid);
     assert(mIndicesValid);
 
-    return 0;
+    if (mForceAccept.b()) {
+        return 0;
+    }
 
     int num = 0;
 
