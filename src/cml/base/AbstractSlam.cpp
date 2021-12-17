@@ -158,7 +158,7 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
         return {};
     }
     timer.stop();
-    logger.important("Retrivied the next frame in " + std::to_string(timer.getValue()));
+//    logger.important("Retrivied the next frame in " + std::to_string(timer.getValue()));
 
 
     mLastCaptureImage = captureFrame;
@@ -190,9 +190,9 @@ void CML::AbstractSlam::addFrame(PFrame currentFrame) {
         strPercentage = "realtime";
     }
     std::string strRam = "ram : " + std::to_string(memoryUsage()) + "mb";
-    std::string strFps = "fps : " + std::to_string(getTimer().fps(currentFrame->getId()));
+    std::string strFps = "fps : " + std::to_string((int)getTimer().fps(currentFrame->getId()));
 
-    logger.setPrefix(strFrame + "; " + strPercentage + "; " + strRam + "; " + strFps);
+    logger.setPrefix(strFrame + "; " + strPercentage);
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> CML::AbstractSlam::getLastCaptureFrame() {

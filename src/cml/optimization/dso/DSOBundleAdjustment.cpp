@@ -60,7 +60,7 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::addPoints(Set<PPoint, Hasher> points) {
+void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint, Hasher>& points) {
 
     for (auto point : points) {
 
@@ -790,22 +790,12 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
             float setting_affineOptModeA = 1e12*fac; //-1: fix. >=0: optimize (with prior, if > 0).
             float setting_affineOptModeB = 1e8*fac; //-1: fix. >=0: optimize (with prior, if > 0).
 
-            switch (mBALightMode) {
-
-                case OptimizeLightAB:
-                    break;
-                case OptimizeLightA:
-                    setting_affineOptModeB = -1;
-                    break;
-                case OptimizeLightB:
-                    setting_affineOptModeA = -1;
-                    break;
-                case OptimizeNoLight:
-                    setting_affineOptModeA = -1;
-                    setting_affineOptModeB = -1;
-                    break;
+            if (!mOptimizeA.b()) {
+                setting_affineOptModeA = -1;
             }
-
+            if (!mOptimizeB.b()) {
+                setting_affineOptModeB = -1;
+            }
 
             // TODO OOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -1190,13 +1180,6 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
     Timer timer;
     timer.start();
 
-    timerA = 0;
-    timerAc = 0;
-    timerB = 0;
-    timerBc = 0;
-    timerC = 0;
-    timerCc = 0;
-
     for (size_t i = 0; i < mActiveResiduals.size(); i++)
     {
         auto &r = mActiveResiduals[i];
@@ -1482,20 +1465,11 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidu
 
             wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
 
-            switch (mBALightMode) {
-
-                case OptimizeLightAB:
-                    break;
-                case OptimizeLightA:
-                    pair->rJ.JabF[1][idx]=0;
-                    break;
-                case OptimizeLightB:
-                    pair->rJ.JabF[0][idx]=0;
-                    break;
-                case OptimizeNoLight:
-                    pair->rJ.JabF[0][idx]=0;
-                    pair->rJ.JabF[1][idx]=0;
-                    break;
+            if (!mOptimizeA.b()) {
+                pair->rJ.JabF[0][idx]=0;
+            }
+            if (!mOptimizeB.b()) {
+                pair->rJ.JabF[1][idx]=0;
             }
 
         }

@@ -1,7 +1,5 @@
 #include "cml/features/corner/PixelSelector.h"
 
-enum PixelSelectorStatus {PIXSEL_VOID=0, PIXSEL_1, PIXSEL_2, PIXSEL_3};
-
 // parameters controlling pixel selection
 float setting_minGradHistCut = 0.5;
 float setting_minGradHistAdd = 7;
@@ -20,7 +18,6 @@ CML::Features::PixelSelector::PixelSelector(Ptr<AbstractFunction, Nullable> pare
     ths = new float[(w/32)*(h/32)+100];
     thsSmoothed = new float[(w/32)*(h/32)+100];
 
-    allowFast=false;
 }
 
 CML::Features::PixelSelector::~PixelSelector()
@@ -31,9 +28,9 @@ CML::Features::PixelSelector::~PixelSelector()
     delete[] thsSmoothed;
 }
 
-int computeHistQuantil(int* hist, float below)
+int computeHistQuantil(const int* hist, float below)
 {
-    int th = hist[0]*below+0.5f;
+    int th = lroundf(static_cast<float>(hist[0])*below);
     for(int i=0;i<90;i++)
     {
         th -= hist[i+1];
@@ -49,8 +46,15 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
     int w = cp.getGrayImage(0).getWidth();
     int h = cp.getGrayImage(0).getHeight();
 
-    memset(ths, 0, (w/32)*(h/32)+100);
-    memset(thsSmoothed, 0, (w/32)*(h/32)+100);
+    for (int i = 0; i < (w/32)*(h/32)+100; i++) {
+        ths[i] = 0;
+    }
+    for (int i = 0; i < (w/32)*(h/32)+100; i++) {
+        thsSmoothed[i] = 0;
+    }
+    for (int i = 0; i < 100*(1+w/32)*(1+h/32); i++) {
+        gradHist[i] = 0;
+    }
 
     int w32 = w/32;
     int h32 = h/32;
@@ -69,7 +73,7 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
                     int jt = j+32*y;
                     if(it>w-2 || jt>h-2 || it<1 || jt<1) continue;
 
-                    int g = sqrtf(cp.getWeightedGradientNorm(0).get(32 * x + i, 32 * y + j));
+                    int g = static_cast<int>(sqrtf(cp.getWeightedGradientNorm(0).get(32 * x + i, 32 * y + j)));
                     // int g = sqrtf(map0[i+j*w]);
 
                     if(g>48) g=48;
@@ -80,7 +84,7 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
                     }
                 }
 
-            ths[x+y*w32] = computeHistQuantil(hist0,setting_minGradHistCut) + setting_minGradHistAdd;
+            ths[x+y*w32] = static_cast<float>(computeHistQuantil(hist0,setting_minGradHistCut)) + setting_minGradHistAdd;
         }
 
     for(int y=0;y<h32;y++)
@@ -114,7 +118,7 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
 
 int CML::Features::PixelSelector::makeMaps(
         const CaptureImage &cp,
-        float* map_out, float density, int recursionsLeft, bool plot, float thFactor)
+        float* map_out, float density, int recursionsLeft, float thFactor)
 {
     float numHave=0;
     float numWant=density;
@@ -136,12 +140,12 @@ int CML::Features::PixelSelector::makeMaps(
         Eigen::Vector3i n = this->select(cp, map_out,currentPotential, thFactor);
 
         // sub-select!
-        numHave = n[0]+n[1]+n[2];
+        numHave = static_cast<float>(n[0] + n[1] + n[2]);
         quotia = numWant / numHave;
 
         // by default we want to over-sample by 40% just to be sure.
-        float K = numHave * (currentPotential+1) * (currentPotential+1);
-        idealPotential = sqrtf(K/numWant)-1;	// round down.
+        float K = numHave * static_cast<float>((currentPotential+1) * (currentPotential+1));
+        idealPotential = static_cast<int>(sqrtf(K/numWant)) - 1;	// round down.
         if(idealPotential<1) idealPotential=1;
 
         if( recursionsLeft>0 && quotia > 1.25 && currentPotential>1)
@@ -157,7 +161,7 @@ int CML::Features::PixelSelector::makeMaps(
             //				currentPotential,
             //				idealPotential);
             currentPotential = idealPotential;
-            return makeMaps(cp, map_out, density, recursionsLeft-1, plot,thFactor);
+            return makeMaps(cp, map_out, density, recursionsLeft-1,thFactor);
         }
         else if(recursionsLeft>0 && quotia < 0.25)
         {
@@ -172,17 +176,17 @@ int CML::Features::PixelSelector::makeMaps(
             //				currentPotential,
             //				idealPotential);
             currentPotential = idealPotential;
-            return makeMaps(cp, map_out, density, recursionsLeft-1, plot,thFactor);
+            return makeMaps(cp, map_out, density, recursionsLeft-1,thFactor);
 
         }
     }
 
-    int numHaveSub = numHave;
+    int numHaveSub = static_cast<int>(numHave);
     if(quotia < 0.95)
     {
         int wh= cp.getGrayImage(0).getWidth() * cp.getGrayImage(0).getHeight();
         int rn=0;
-        unsigned char charTH = 255*quotia;
+        unsigned char charTH = static_cast<unsigned char>(255.0f * quotia);
         for(int i=0;i<wh;i++)
         {
             if(map_out[i] != 0)
@@ -242,16 +246,19 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
             Eigen::Vector2f(1.0000,    0.0000),
             Eigen::Vector2f(0.1951,   -0.9808)};
 
-    memset(map_out,0,w*h*sizeof(float));
+    for (size_t i = 0; i < w * h; i++) {
+        map_out[i] = 0;
+    }
 
 
 
     float dw1 = setting_gradDownweightPerLevel;
     float dw2 = dw1*dw1;
 
+    assertDeterministic("thsStep", thsStep);
 
     int n3=0, n2=0, n4=0;
-    for(int y4=32;y4<h-32;y4+=(4*pot)) for(int x4=32;x4<w-32;x4+=(4*pot))
+    for(int y4=0;y4<h;y4+=(4*pot)) for(int x4=0;x4<w;x4+=(4*pot))
         {
             int my3 = std::min((4*pot), h-y4);
             int mx3 = std::min((4*pot), w-x4);
@@ -283,11 +290,9 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
 
                                     if(xf<4 || xf>=w-5 || yf<4 || yf>h-4) continue;
 
-
                                     float pixelTH0 = thsSmoothed[(xf>>5) + (yf>>5) * thsStep];
                                     float pixelTH1 = pixelTH0*dw1;
                                     float pixelTH2 = pixelTH1*dw2;
-
 
                                     float ag0 = cp.getWeightedGradientNorm(0).get(x1 + x234, y1 + y234);
                                     if(ag0 > pixelTH0*thFactor)
@@ -301,7 +306,7 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
                                     }
                                     if(bestIdx3==-2) continue;
 
-                                    float ag1 = cp.getWeightedGradientNorm(1).get((int)(xf*0.5f+0.25f),(int)(yf*0.5f+0.25f));
+                                    float ag1 = cp.getWeightedGradientNorm(1).get(static_cast<int>(static_cast<float>(xf)*0.5f+0.25f),static_cast<int>(static_cast<float>(yf)*0.5f+0.25f));
                                     if(ag1 > pixelTH1*thFactor)
                                     {
                                         Eigen::Vector2f ag0d = cp.getDerivativeImage(0).get(x1 + x234, y1 + y234).tail<2>().cast<float>();
@@ -313,7 +318,7 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
                                     }
                                     if(bestIdx4==-2) continue;
 
-                                    float ag2 = cp.getWeightedGradientNorm(2).get((int)(xf*0.25f+0.125),(int)(yf*0.25f+0.125));
+                                    float ag2 = cp.getWeightedGradientNorm(2).get(static_cast<int>(static_cast<float>(xf)*0.25f+0.125),static_cast<int>(static_cast<float>(yf)*0.25f+0.125));
                                     if(ag2 > pixelTH2*thFactor)
                                     {
                                         Eigen::Vector2f ag0d = cp.getDerivativeImage(0).get(x1 + x234, y1 + y234).tail<2>().cast<float>();
@@ -350,40 +355,42 @@ Eigen::Vector3i CML::Features::PixelSelector::select(const CaptureImage &cp, flo
         }
 
 
-    return Eigen::Vector3i(n2,n3,n4);
+    assertDeterministic("n2", n2);
+    assertDeterministic("n3", n3);
+    assertDeterministic("n4", n4);
+
+
+    return {n2,n3,n4};
 }
 
-void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> &corners, List<float> &types, float density, bool _allowFast, int recursionsLeft, bool plot, float thFactor) {
-
-    allowFast = _allowFast;
+void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> &corners, List<float> &types, float density, int recursionsLeft, float thFactor) {
 
     Array2D<float> output(cp.getWidth(0), cp.getHeight(0), 0.0f);
-    makeMaps(cp, output.data(), density, recursionsLeft, plot, thFactor);
+    makeMaps(cp, output.data(), density, recursionsLeft, thFactor);
 
     // #pragma omp parallel for collapse(2) // todo : thread safe list
     for (int i = 32; i < cp.getWidth(0) - 32; i++) {
         for (int j = 32; j < cp.getHeight(0) - 32; j++) {
             if (output(i, j) != 0 && cp.getDerivativeImage(0).get(i, j).allFinite()) {
+                assertDeterministic("PS extracted : " + std::to_string(i) + " " + std::to_string(j));
                 corners.emplace_back(DistortedVector2d(i, j));
                 types.emplace_back(output(i, j));
             }
         }
     }
 
-    allowFast = false;
-
 }
 
-int CML::Features::PixelSelector::makeMaps(const CaptureImage &cp, Array2D<float>& map_out, float density, int recursionsLeft, bool plot, float thFactor) {
+int CML::Features::PixelSelector::makeMaps(const CaptureImage &cp, Array2D<float>& map_out, float density, int recursionsLeft, float thFactor) {
 
     map_out = Array2D<float>(cp.getWidth(0), cp.getHeight(0), 0.0f);
-    return makeMaps(cp, map_out.data(), density, recursionsLeft, plot, thFactor);
+    return makeMaps(cp, map_out.data(), density, recursionsLeft, thFactor);
 
 }
 
 int CML::Features::PixelSelector::makePixelStatus(const CaptureImage &cp, int lvl, Array2D<bool>& map, float desiredDensity, int &sparsityFactor, int recsLeft, float THFac) {
 
-    map = Array2D<bool>(cp.getWidth(lvl), cp.getHeight(lvl), 0.0f);
+    map = Array2D<bool>(cp.getWidth(lvl), cp.getHeight(lvl), false);
     return makePixelStatus(cp, lvl, map.data(), desiredDensity, sparsityFactor, recsLeft, THFac);
 
 }
@@ -421,16 +428,16 @@ template<int pot> int CML::Features::PixelSelector::gridMaxSelection(const Captu
 
                     if(sqgd > TH*TH)
                     {
-                        float agx = fabs((float)g[1]);
+                        float agx = fabsf((float)g[1]);
                         if(agx > bestXX) {bestXX=agx; bestXXID=idx;}
 
-                        float agy = fabs((float)g[2]);
+                        float agy = fabsf((float)g[2]);
                         if(agy > bestYY) {bestYY=agy; bestYYID=idx;}
 
-                        float gxpy = fabs((float)(g[1]-g[2]));
+                        float gxpy = fabsf((float)(g[1]-g[2]));
                         if(gxpy > bestXY) {bestXY=gxpy; bestXYID=idx;}
 
-                        float gxmy = fabs((float)(g[1]+g[2]));
+                        float gxmy = fabsf((float)(g[1]+g[2]));
                         if(gxmy > bestYX) {bestYX=gxmy; bestYXID=idx;}
                     }
                 }
@@ -472,7 +479,7 @@ template<int pot> int CML::Features::PixelSelector::gridMaxSelection(const Captu
 }
 
 
-int CML::Features::PixelSelector::gridMaxSelection(const CaptureImage &cp, int lvl, bool* map_out, int pot, float THFac)
+int CML::Features::PixelSelector::gridMaxSelection(const CaptureImage &cp, int lvl, bool* map_out, int pot, float THFac) const
 {
     int w = cp.getWidth(lvl);
     int h = cp.getHeight(lvl);
@@ -504,16 +511,16 @@ int CML::Features::PixelSelector::gridMaxSelection(const CaptureImage &cp, int l
 
                     if(sqgd > TH*TH)
                     {
-                        float agx = fabs((float)g[1]);
+                        float agx = fabsf((float)g[1]);
                         if(agx > bestXX) {bestXX=agx; bestXXID=idx;}
 
-                        float agy = fabs((float)g[2]);
+                        float agy = fabsf((float)g[2]);
                         if(agy > bestYY) {bestYY=agy; bestYYID=idx;}
 
-                        float gxpy = fabs((float)(g[1]-g[2]));
+                        float gxpy = fabsf((float)(g[1]-g[2]));
                         if(gxpy > bestXY) {bestXY=gxpy; bestXYID=idx;}
 
-                        float gxmy = fabs((float)(g[1]+g[2]));
+                        float gxmy = fabsf((float)(g[1]+g[2]));
                         if(gxmy > bestYX) {bestYX=gxmy; bestYXID=idx;}
                     }
                 }
@@ -578,9 +585,9 @@ int CML::Features::PixelSelector::makePixelStatus(const CaptureImage &cp, int lv
      * #points is approximately proportional to sparsityFactor^2.
      */
 
-    float quotia = numGoodPoints / (float)(desiredDensity);
+    float quotia = static_cast<float>(numGoodPoints) / static_cast<float>(desiredDensity);
 
-    int newSparsity = (sparsityFactor * sqrtf(quotia))+0.7f;
+    int newSparsity = static_cast<int>((static_cast<float>(sparsityFactor) * sqrtf(quotia)) + 0.7f);
 
 
     if(newSparsity < 1) newSparsity=1;

@@ -219,7 +219,7 @@ namespace CML {
 
     protected:
         EIGEN_STRONG_INLINE float grad(float color) const {
-            int c = color+0.5f;
+            int c = lroundf(color);
             if(c<5) c=5;
             if(c>250) c=250;
             return mLut->inverse(c+1) - mLut->inverse(c);

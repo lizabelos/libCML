@@ -29,9 +29,9 @@ namespace CML::Features {
         PixelSelector(Ptr<AbstractFunction, Nullable> parent, int w, int h);
         ~PixelSelector() override;
 
-        void compute(const CaptureImage &cp, List<Corner> &corners, List<float> &types, float density, bool allowFast, int recursionsLeft = 1, bool plot = false, float thFactor = 1);
+        void compute(const CaptureImage &cp, List<Corner> &corners, List<float> &types, float density, int recursionsLeft = 1, float thFactor = 1);
 
-        int makeMaps(const CaptureImage &cp, Array2D<float>& map_out, float density, int recursionsLeft=1, bool plot=false, float thFactor=1);;
+        int makeMaps(const CaptureImage &cp, Array2D<float>& map_out, float density, int recursionsLeft=1, float thFactor=1);;
         int makePixelStatus(const CaptureImage &cp, int lvl, Array2D<bool>& map, float desiredDensity, int &sparsityFactor, int recsLeft=5, float THFac = 1);
 
 
@@ -42,9 +42,9 @@ namespace CML::Features {
     protected:
         int makePixelStatus(const CaptureImage &cp, int lvl, bool* map, float desiredDensity, int &sparsityFactor, int recsLeft=5, float THFac = 1);
         template<int pot> int gridMaxSelection(const CaptureImage &cp, int lvl, bool* map_out, float THFac);
-        int gridMaxSelection(const CaptureImage &cp, int lvl, bool* map_out, int pot, float THFac);
+        int gridMaxSelection(const CaptureImage &cp, int lvl, bool* map_out, int pot, float THFac) const;
 
-        int makeMaps(const CaptureImage &cp, float* map_out, float density, int recursionsLeft=1, bool plot=false, float thFactor=1);
+        int makeMaps(const CaptureImage &cp, float* map_out, float density, int recursionsLeft=1, float thFactor=1);
         void makeHists(const CaptureImage &cp);
         Eigen::Vector3i select(const CaptureImage &cp, float* map_out, int pot, float thFactor=1);
 
@@ -57,13 +57,12 @@ namespace CML::Features {
     private:
         uint32_t state = 777;
 
-        bool allowFast;
-        int currentPotential;
-        unsigned char* randomPattern;
-        int* gradHist;
-        float* ths;
-        float* thsSmoothed;
-        int thsStep;
+        int currentPotential = 0;
+        unsigned char* randomPattern = nullptr;
+        int* gradHist = nullptr;
+        float* ths = nullptr;
+        float* thsSmoothed = nullptr;
+        int thsStep = 0;
 
         const float minUseGrad_pixsel = 10;
 

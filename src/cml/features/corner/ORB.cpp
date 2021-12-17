@@ -419,7 +419,7 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
                     }
                     return a.second->hash() < b.second->hash();
                 });
-                assertThrow(vPrevSizeAndPointerToNode[0].first <= vPrevSizeAndPointerToNode[vPrevSizeAndPointerToNode.size()-1].first, "Whut ?");
+                //assertThrow(vPrevSizeAndPointerToNode[0].first <= vPrevSizeAndPointerToNode[vPrevSizeAndPointerToNode.size()-1].first, "Whut ?");
                 for(int j=vPrevSizeAndPointerToNode.size()-1;j>=0;j--)
                 {
                     ExtractorNode n1,n2,n3,n4;

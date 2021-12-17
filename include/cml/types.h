@@ -282,12 +282,12 @@ namespace CML {
             mList.push_front(t);
         }
 
-        T accumulate(size_t size) {
-            mSize = size;
-            while (mList.size() > mSize) {
+        T accumulate(size_t s) {
+            while (mList.size() > s) {
                 mList.pop_back();
             }
-            assertThrow(mList.size() <= mSize, "Implementation problem of window");
+            assertThrow(mList.size() <= s, "Implementation problem of window");
+            assertThrow(mList.size() > 0, "Implementation problem of window ?");
             T result(0);
             bool isFirst = true;
             for (const T &t : mList) {
@@ -302,7 +302,6 @@ namespace CML {
         }
 
     private:
-        size_t mSize;
         LinkedList<T> mList;
 
     };

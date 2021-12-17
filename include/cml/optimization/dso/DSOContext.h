@@ -17,11 +17,6 @@ namespace CML {
 
         class DSOFrame;
 
-
-        typedef enum LightModeOptimization {
-            OptimizeLightAB, OptimizeLightA, OptimizeLightB, OptimizeNoLight
-        }LightModeOptimization;
-
         class DSOContext {
 
         public:
@@ -112,6 +107,8 @@ namespace CML {
             }
 
             void removePoints(const Set<PPoint, Hasher> &points) {
+                logger.debug("Removing " + std::to_string(points.size()) + " points");
+
                 Set<DSOResidual*> residualsToRemove;
                 for (auto point : points) {
                     Set<DSOResidual*> residualsToRemoveForPoint = get(point)->residuals;
@@ -128,6 +125,8 @@ namespace CML {
             }
 
             void addFrame(PFrame frameToInsert) {
+                logger.debug("Adding one frame");
+
                 if (haveFrame(frameToInsert)) {
                     logger.warn("Frame already inserted");
                     return;
@@ -149,6 +148,8 @@ namespace CML {
             }
 
             void removeFrame(PFrame frameToRemove) {
+                logger.debug("Removing one frame");
+
                 Set<PPoint, Hasher> pointsToRemove = get(frameToRemove)->points;
                 removePoints(pointsToRemove);
                 Set<DSOResidual*> residualsToRemove = get(frameToRemove)->residuals;
@@ -197,6 +198,7 @@ namespace CML {
             }
 
             Set<PPoint, Hasher> removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
+                logger.debug("Removing " + std::to_string(residualsToRemove.size()) + " residuals");
                 for (auto residualToRemove : residualsToRemove) {
                     mResiduals.erase(residualToRemove);
                     get(residualToRemove->elements.mapPoint)->residuals.erase(residualToRemove);

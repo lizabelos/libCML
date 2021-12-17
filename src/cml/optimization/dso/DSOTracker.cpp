@@ -68,7 +68,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
         }
 
-        //logger.debug("Using cutoff : " + std::to_string(levelCutoffRepeat) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated / (scalar_t)oldResidual.numTermsInE) + " )");
+        logger.debug("Using cutoff : " + std::to_string(levelCutoffRepeat[level]) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) + " )");
 
         computeHessian(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, level, trackerContext);
 
@@ -81,36 +81,28 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             trackerContext->dampedHessian = trackerContext->hessian;
             for (int i = 0; i < 8; i++) trackerContext->dampedHessian(i, i) *= (1 + lambda);
 
-
-            switch (mTrackerLightMode) {
-
-                case OptimizeLightAB: {
-                    trackerContext->increment = trackerContext->dampedHessian.ldlt().solve(-trackerContext->jacobian);
-                }
-                    break;
-                case OptimizeLightA: {
-                    trackerContext->increment.head<7>() = trackerContext->dampedHessian.topLeftCorner<7,7>().ldlt().solve(-trackerContext->jacobian.head<7>());
-                    trackerContext->increment.tail<1>().setZero();
-                }
-                    break;
-                case OptimizeLightB: {
-                    Matrix<8, 8> HlStitch = trackerContext->dampedHessian;
-                    Vector<8> bStitch = trackerContext->jacobian;
-                    HlStitch.col(6) = HlStitch.col(7);
-                    HlStitch.row(6) = HlStitch.row(7);
-                    bStitch[6] = bStitch[7];
-                    Vector<7> incStitch = HlStitch.topLeftCorner<7,7>().ldlt().solve(-bStitch.head<7>());
-                    trackerContext->increment.setZero();
-                    trackerContext->increment.head<6>() = incStitch.head<6>();
-                    trackerContext->increment[6] = 0;
-                    trackerContext->increment[7] = incStitch[6];
-                }
-                    break;
-                case OptimizeNoLight: {
-                    trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().ldlt().solve(-trackerContext->jacobian.head<6>());
-                    trackerContext->increment.tail<2>().setZero();
-                }
-                    break;
+            if (mOptimizeA.b() && mOptimizeB.b()) {
+                trackerContext->increment = trackerContext->dampedHessian.ldlt().solve(-trackerContext->jacobian);
+            }
+            if (mOptimizeA.b() && !mOptimizeB.b()) {
+                trackerContext->increment.head<7>() = trackerContext->dampedHessian.topLeftCorner<7,7>().ldlt().solve(-trackerContext->jacobian.head<7>());
+                trackerContext->increment.tail<1>().setZero();
+            }
+            if (!mOptimizeA.b() && mOptimizeB.b()) {
+                Matrix<8, 8> HlStitch = trackerContext->dampedHessian;
+                Vector<8> bStitch = trackerContext->jacobian;
+                HlStitch.col(6) = HlStitch.col(7);
+                HlStitch.row(6) = HlStitch.row(7);
+                bStitch[6] = bStitch[7];
+                Vector<7> incStitch = HlStitch.topLeftCorner<7,7>().ldlt().solve(-bStitch.head<7>());
+                trackerContext->increment.setZero();
+                trackerContext->increment.head<6>() = incStitch.head<6>();
+                trackerContext->increment[6] = 0;
+                trackerContext->increment[7] = incStitch[6];
+            }
+            if (!mOptimizeA.b() && !mOptimizeB.b()) {
+                trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().ldlt().solve(-trackerContext->jacobian.head<6>());
+                trackerContext->increment.tail<2>().setZero();
             }
 
             scalar_t extrapFac = 1;
@@ -148,7 +140,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             bool accept = (newResidual.E[level] / (scalar_t)newResidual.numTermsInE[level]) < (oldResidual.E[level] / (scalar_t)oldResidual.numTermsInE[level]);
 
             if (accept) {
-                //logger.debug("Accepting step. New residual : " + std::to_string(newResidual.rmse()) + "; Old residual : " + std::to_string(oldResidual.rmse()));
+                logger.debug("Accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
                 computeHessian(frameToTrack, mCD, reference->getExposure(), newRefToNew, mNewExposure, level, trackerContext);
                 oldResidual = newResidual;
                 currentRefToNew = newRefToNew;
@@ -157,7 +149,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             } else {
 
                 lambda *= 4;
-                //logger.debug("Not accepting step. New residual : " + std::to_string(newResidual.rmse()) + "; Old residual : " + std::to_string(oldResidual.rmse()));
+                logger.debug("Not accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
             }
 
             if(trackerContext->increment.norm() < 1e-3)
@@ -191,38 +183,28 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
     bool haveGoodLight = true;
 
-    switch (mTrackerLightMode) {
-
-        case OptimizeLightAB:
-        case OptimizeLightA:
-            if (fabs(currentExposure.getParameters()(0)) > 1.2) {
-                logger.debug("The solution is not good because of a");
-                haveGoodLight = false;
-            }
-            break;
-        default:
-            if (fabs(logf((float)relAff[0])) > 1.5) {
-                logger.debug("The solution is not good because of a");
-                haveGoodLight = false;
-            }
-            break;
+    if (mOptimizeA.b()) {
+        if (fabs(currentExposure.getParameters()(0)) > 1.2) {
+            logger.debug("The solution is not good because of a");
+            haveGoodLight = false;
+        }
+    } else {
+        if (fabs(logf((float)relAff[0])) > 1.5) {
+            logger.debug("The solution is not good because of a");
+            haveGoodLight = false;
+        }
     }
 
-    switch (mTrackerLightMode) {
-
-        case OptimizeLightAB:
-        case OptimizeLightB:
-            if (fabs(currentExposure.getParameters()(1)) > 200) {
-                logger.debug("The solution is not good because of b");
-                haveGoodLight = false;
-            }
-            break;
-        default:
-            if (fabs((float)relAff[1]) > 200) {
-                logger.debug("The solution is not good because of b");
-                haveGoodLight = false;
-            }
-            break;
+    if (mOptimizeB.b()) {
+        if (fabs(currentExposure.getParameters()(1)) > 200) {
+            logger.debug("The solution is not good because of b");
+            haveGoodLight = false;
+        }
+    } else {
+        if (fabs((float)relAff[1]) > 200) {
+            logger.debug("The solution is not good because of b");
+            haveGoodLight = false;
+        }
     }
 
     bool haveGoodPoints = true;
@@ -402,7 +384,8 @@ void CML::Optimization::DSOTracker::computeResidual(PFrame frameToTrack, DSOTrac
 
    // std::cout << "RES SUM : " << resSum / (double)resInSum << std::endl;
 
-  // logger.debug("DSO Tracker num robust : " + std::to_string(numRobust));
+   logger.debug("Residual sum : " + std::to_string(resSum));
+   logger.debug("DSO Tracker num robust : " + std::to_string(numRobust));
 
     result.E[level] = E;
     result.numTermsInE[level] = numTermsInE;

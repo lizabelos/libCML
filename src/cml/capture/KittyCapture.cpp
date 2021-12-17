@@ -106,7 +106,7 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
     }
 
     std::string leftImagePath = mImages[0][mCurrentImage];
-    Image image = loadImage(leftImagePath);
+    Image image = loadPngImage(leftImagePath).second;
 
     mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
     mVignetteMax = 1;
@@ -171,9 +171,14 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::KittyCapture::multithreadNext() 
     CaptureImageMaker maker = mCaptureImageGenerator->create();
 
     if (mUseColor) {
-        maker.setImage(loadImage(mImages[2][mCurrentImage]));
+        auto images = loadPngImage(mImages[2][mCurrentImage]);
+        maker.setImage(images.first);
+        maker.setImage(images.second);
+    } else {
+        auto images = loadPngImage(mImages[0][mCurrentImage]);
+        maker.setImage(images.first);
+        maker.setImage(images.second);
     }
-    maker.setImage(loadGrayImage(mImages[0][mCurrentImage]).cast<float>());
 
     maker.setPath(mImages[0][mCurrentImage])
             .setTime(mTimes[mCurrentImage])

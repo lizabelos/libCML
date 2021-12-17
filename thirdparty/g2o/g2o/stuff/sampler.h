@@ -104,8 +104,6 @@ class G2O_STUFF_API Sampler {
    */
   // static void seedRand() { seedRand(static_cast<unsigned int>(std::time(NULL))); }
 
-  /** seed the random number generator */
-  static void seedRand(unsigned int seed) { std::srand(seed); }
 };
 
 }  // namespace g2o

@@ -39,8 +39,6 @@
 
 namespace ceres {
 
-inline void SetRandomState(int state) { srand(state); }
-
 inline int Uniform(int n) {
   if (n) {
     return rand() % n;

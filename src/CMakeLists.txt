@@ -75,10 +75,12 @@ add_library(CML STATIC
         fast/fast_11.c
         fast/fast_12.c
         fast/nonmax.c
+
+        lodepng/lodepng.cpp
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx jpeg8 jpeg12 jpeg16)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx gdcmjpeg8)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} /usr/include/suitesparse)
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)

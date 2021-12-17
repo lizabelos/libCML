@@ -465,7 +465,8 @@ namespace CML {
             Parameter maxFrames = createParameter("Maximum number of frames", 7);
             Parameter minFrameAge = createParameter("Minimum age for a frame", 1);
 
-            LightModeOptimization mTrackerLightMode = OptimizeLightAB;
+            Parameter mOptimizeA = createParameter("optimizeLightA", true);
+            Parameter mOptimizeB = createParameter("optimizeLightB", true);
 
             Parameter mOptimizeCalibration = createParameter("Optimize calibration", false);
 

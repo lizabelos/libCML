@@ -19,6 +19,24 @@ namespace CML {
             IPS_UNINITIALIZED           // not even traced once.
         } DSOTracerStatus;
 
+        inline std::string toString(DSOTracerStatus status) {
+            switch (status) {
+                case IPS_GOOD:
+                    return "Good";
+                case IPS_OOB:
+                    return "OOB";
+                case IPS_OUTLIER:
+                    return "Outlier";
+                case IPS_SKIPPED:
+                    return "Skipped";
+                case IPS_BADCONDITION:
+                    return "Bad Condition";
+                case IPS_UNINITIALIZED:
+                    return "Unitialized";
+            }
+            abort();
+        }
+
         typedef enum {
             DSOPT_ACTIVE=0, DSOPT_INACTIVE, DSOPT_OUTLIER, DSOPT_OOB, DSOPT_MARGINALIZED
         } DSOPointStatus;

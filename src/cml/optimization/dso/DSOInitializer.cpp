@@ -34,7 +34,7 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
         int wl = reference->getWidth(lvl), hl = reference->getHeight(lvl);
         mPixelSelector->setPotential(3);
         if(lvl == 0) {
-            int n = mPixelSelector->makeMaps(reference->getCaptureFrame(), statusMap, densities[lvl] * wl * hl, 1, false, 2);
+            int n = mPixelSelector->makeMaps(reference->getCaptureFrame(), statusMap, densities[lvl] * wl * hl, 1, 2);
         }
         else {
             mPixelSelector->makePixelStatus(reference->getCaptureFrame(), lvl, statusMapB, densities[lvl] * w0 * h0, mSparsityFactor);
@@ -50,6 +50,10 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
                 && reference->getCaptureFrame().getDerivativeImage(0).get(x, y).allFinite()) {
                     DSOInitializerPoint p;
                     //assert(patternNum==9);
+
+                    assertDeterministic("x", x);
+                    assertDeterministic("y", y);
+
 
                     p.p.x() = x+0.1;
                     p.p.y() = y+0.1;

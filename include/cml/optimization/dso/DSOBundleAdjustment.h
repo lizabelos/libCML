@@ -22,7 +22,7 @@ namespace CML {
 
             void createResidual(PFrame frame, PPoint point);
 
-            void addPoints(Set<PPoint, Hasher> points);
+            void addPoints(const Set<PPoint, Hasher>& points);
 
             void addNewFrame(PFrame frame, int immatureGroup);
 
@@ -248,21 +248,17 @@ namespace CML {
 
 
             Parameter maxFrames = createParameter("maxFrames", 7);
-            Parameter minFrameAge = createParameter("Minimum age for a frame", 1);
+            Parameter minFrameAge = createParameter("frameMinAge", 1);
 
-            LightModeOptimization mTrackerLightMode = OptimizeLightAB;
-            LightModeOptimization mBALightMode = OptimizeLightAB;
-
+            Parameter mOptimizeA = createParameter("optimizeLightA", true);
+            Parameter mOptimizeB = createParameter("optimizeLightB", true);
 
             bool mAbortBAOnFailture = false;
 
-            Parameter mOptimizeCalibration = createParameter("Optimize calibration", false);
+            Parameter mOptimizeCalibration = createParameter("optimizeCalibration", false);
 
             Mutex mLastOptimizedCameraMutex;
             HashMap<PFrame, Camera, Hasher> mLastOptimizedCamera;
-
-            Atomic<scalar_t> timerA, timerB, timerC;
-            Atomic<int> timerAc, timerBc, timerCc;
 
         };
 

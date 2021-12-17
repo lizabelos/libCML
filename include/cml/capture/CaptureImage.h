@@ -243,8 +243,15 @@ namespace CML {
             return *this;
         }
 
-        inline CaptureImageMaker &setImage(const FloatImage &image) {
+        inline CaptureImageMaker &setImage(const FloatImage &image, float noise = 0) {
             mGrayImage = image;
+            if (noise > 0) {
+                for (int i = 0; i < mGrayImage.value().getWidth() * mGrayImage.value().getHeight(); i++) {
+                    float r = static_cast<float>(rand()) / static_cast <float>(RAND_MAX);
+                    r = (r - 0.5f) * (noise * 2.0f);
+                    mGrayImage.value().data()[i] += r;
+                }
+            }
             return *this;
         }
 
