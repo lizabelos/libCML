@@ -217,91 +217,37 @@ JMESSAGE(JWRN_SIGNED_ARITH, "Corrupt JPEG data: using signed arithmetic")
 /* Macros to simplify using the error and trace message stuff */
 /* The first parameter is either type of cinfo pointer */
 
+#include <stdexcept>
+
 /* Fatal errors (print message and exit) */
 #define ERREXIT(cinfo,code)  \
-  ((cinfo)->err->msg_code = (code), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 #define ERREXIT1(cinfo,code,p1)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 #define ERREXIT2(cinfo,code,p1,p2)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (cinfo)->err->msg_parm.i[1] = (p2), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 #define ERREXIT3(cinfo,code,p1,p2,p3)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (cinfo)->err->msg_parm.i[1] = (p2), \
-   (cinfo)->err->msg_parm.i[2] = (p3), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 #define ERREXIT4(cinfo,code,p1,p2,p3,p4)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (cinfo)->err->msg_parm.i[1] = (p2), \
-   (cinfo)->err->msg_parm.i[2] = (p3), \
-   (cinfo)->err->msg_parm.i[3] = (p4), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 #define ERREXITS(cinfo,code,str)  \
-  ((cinfo)->err->msg_code = (code), \
-   strncpy((cinfo)->err->msg_parm.s, (str), JMSG_STR_PARM_MAX), \
-   (*(cinfo)->err->error_exit) ((j_common_ptr) (cinfo)))
+  throw std::runtime_error("jerror");
 
 #define MAKESTMT(stuff)    do { stuff } while (0)
 
 /* Nonfatal errors (we can keep going, but the data is probably corrupt) */
-#define WARNMS(cinfo,code)  \
-  ((cinfo)->err->msg_code = (code), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), -1))
-#define WARNMS1(cinfo,code,p1)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), -1))
-#define WARNMS2(cinfo,code,p1,p2)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (cinfo)->err->msg_parm.i[1] = (p2), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), -1))
+#define WARNMS(cinfo,code)
+#define WARNMS1(cinfo,code,p1)
+#define WARNMS2(cinfo,code,p1,p2)
 
 /* Informational/debugging messages */
-#define TRACEMS(cinfo,lvl,code)  \
-  ((cinfo)->err->msg_code = (code), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)))
-#define TRACEMS1(cinfo,lvl,code,p1)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)))
-#define TRACEMS2(cinfo,lvl,code,p1,p2)  \
-  ((cinfo)->err->msg_code = (code), \
-   (cinfo)->err->msg_parm.i[0] = (p1), \
-   (cinfo)->err->msg_parm.i[1] = (p2), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)))
-#define TRACEMS3(cinfo,lvl,code,p1,p2,p3)  \
-  MAKESTMT(int * _mp = (cinfo)->err->msg_parm.i; \
-     _mp[0] = (p1); _mp[1] = (p2); _mp[2] = (p3); \
-     (cinfo)->err->msg_code = (code); \
-     (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)); )
-#define TRACEMS4(cinfo,lvl,code,p1,p2,p3,p4)  \
-  MAKESTMT(int * _mp = (cinfo)->err->msg_parm.i; \
-     _mp[0] = (p1); _mp[1] = (p2); _mp[2] = (p3); _mp[3] = (p4); \
-     (cinfo)->err->msg_code = (code); \
-     (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)); )
-#define TRACEMS5(cinfo,lvl,code,p1,p2,p3,p4,p5)  \
-  MAKESTMT(int * _mp = (cinfo)->err->msg_parm.i; \
-     _mp[0] = (p1); _mp[1] = (p2); _mp[2] = (p3); _mp[3] = (p4); \
-     _mp[4] = (p5); \
-     (cinfo)->err->msg_code = (code); \
-     (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)); )
-#define TRACEMS8(cinfo,lvl,code,p1,p2,p3,p4,p5,p6,p7,p8)  \
-  MAKESTMT(int * _mp = (cinfo)->err->msg_parm.i; \
-     _mp[0] = (p1); _mp[1] = (p2); _mp[2] = (p3); _mp[3] = (p4); \
-     _mp[4] = (p5); _mp[5] = (p6); _mp[6] = (p7); _mp[7] = (p8); \
-     (cinfo)->err->msg_code = (code); \
-     (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)); )
-#define TRACEMSS(cinfo,lvl,code,str)  \
-  ((cinfo)->err->msg_code = (code), \
-   strncpy((cinfo)->err->msg_parm.s, (str), JMSG_STR_PARM_MAX), \
-   (*(cinfo)->err->emit_message) ((j_common_ptr) (cinfo), (lvl)))
+#define TRACEMS(cinfo,lvl,code)
+#define TRACEMS1(cinfo,lvl,code,p1)
+#define TRACEMS2(cinfo,lvl,code,p1,p2)
+#define TRACEMS3(cinfo,lvl,code,p1,p2,p3)
+#define TRACEMS4(cinfo,lvl,code,p1,p2,p3,p4)
+#define TRACEMS5(cinfo,lvl,code,p1,p2,p3,p4,p5)
+#define TRACEMS8(cinfo,lvl,code,p1,p2,p3,p4,p5,p6,p7,p8)
+#define TRACEMSS(cinfo,lvl,code,str)
 
 #endif /* JERROR_H */

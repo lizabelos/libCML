@@ -1,8 +1,15 @@
 #include <tiffio.h>
 #include <tiffio.hxx>
+
 #include "cml/image/Array2D.h"
 
 #if CML_HAVE_AVFORMAT
+#ifdef WIN32
+#define HAVE_BOOLEAN
+#endif
+#include <thirdparty/gdcmjpeg/8/jpeglib.h>
+#include "lodepng/lodepng.h"
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -64,7 +71,7 @@ inline std::string av_strerror(int errnum) {
 CML::Image CML::loadImage(std::string path) {
 
 #if CML_HAVE_AVFORMAT
-    logger.debug("Load image " + path);
+    // logger.debug("Load image " + path);
 
     FFMPEGContext ctx;
 
@@ -195,7 +202,7 @@ CML::Image CML::loadImage(std::string path) {
 CML::GrayImage CML::loadGrayImage(std::string path) {
 
 #if CML_HAVE_AVFORMAT
-    logger.debug("Load image " + path);
+    // logger.debug("Load image " + path);
 
     FFMPEGContext ctx;
 
@@ -528,5 +535,188 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
     TIFFClose(tif);
 
     return {image, colorImage};
+
+}
+
+CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &path) {
+/* This struct contains the JPEG decompression parameters and pointers to
+   * working space (which is allocated as needed by the JPEG library).
+   */
+    struct jpeg_decompress_struct cinfo;
+    /* We use our private extension JPEG error handler.
+     * Note that this struct must live as long as the main JPEG parameter
+     * struct, to avoid dangling-pointer problems.
+     */
+    /* More stuff */
+    FILE * infile;    /* source file */
+    JSAMPARRAY buffer;    /* Output row buffer */
+    int row_stride;    /* physical row width in output buffer */
+
+    /* In this example we want to open the input file before doing anything else,
+     * so that the setjmp() error recovery below can assume the file is open.
+     * VERY IMPORTANT: use "b" option to fopen() if you are on a machine that
+     * requires it in order to read binary files.
+     */
+
+    if ((infile = fopen(path.c_str(), "rb")) == nullptr) {
+        throw std::runtime_error("Can't open " + path);
+    }
+
+    /* Step 1: allocate and initialize JPEG decompression object */
+
+    jpeg_create_decompress(&cinfo);
+
+    /* Step 2: specify data source (eg, a file) */
+
+    jpeg_stdio_src(&cinfo, infile);
+
+    /* Step 3: read file parameters with jpeg_read_header() */
+
+    (void) jpeg_read_header(&cinfo, true);
+    /* We can ignore the return value from jpeg_read_header since
+     *   (a) suspension is not possible with the stdio data source, and
+     *   (b) we passed TRUE to reject a tables-only JPEG file as an error.
+     * See libjpeg.doc for more info.
+     */
+
+    /* Step 4: set parameters for decompression */
+
+    /* In this example, we don't need to change any of the defaults set by
+     * jpeg_read_header(), so we do nothing here.
+     */
+
+    /* Step 5: Start decompressor */
+
+    (void) jpeg_start_decompress(&cinfo);
+    /* We can ignore the return value since suspension is not possible
+     * with the stdio data source.
+     */
+
+    /* We may need to do some setup of our own at this point before reading
+     * the data.  After jpeg_start_decompress() we have the correct scaled
+     * output image dimensions available, as well as the output colormap
+     * if we asked for color quantization.
+     * In this example, we need to make an output work buffer of the right size.
+     */
+    /* JSAMPLEs per row in output buffer */
+    row_stride = cinfo.output_width * cinfo.output_components;
+    /* Make a one-row-high sample array that will go away when done with image */
+    buffer = (*cinfo.mem->alloc_sarray)
+            ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+
+    /* Step 6: while (scan lines remain to be read) */
+    /*           jpeg_read_scanlines(...); */
+
+    CML::FloatImage resultFloat;
+    CML::Image resultColor;
+    /* Here we use the library's state variable cinfo.output_scanline as the
+     * loop counter, so that we don't have to keep track ourselves.
+     */
+    switch (cinfo.num_components) {
+        case 1:
+            while (cinfo.output_scanline < cinfo.output_height) {
+                /* jpeg_read_scanlines expects an array of pointers to scanlines.
+                 * Here the array is only one element long, but you could ask for
+                 * more than one scanline at a time if that's more convenient.
+                 */
+                (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+                /* Assume put_scanline_someplace wants a pointer and sample count. */
+                for (int i = 0; i < cinfo.output_width; i++) {
+                    resultFloat(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i];
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i];
+                }
+            }
+            break;
+        case 3:
+            while (cinfo.output_scanline < cinfo.output_height) {
+                /* jpeg_read_scanlines expects an array of pointers to scanlines.
+                 * Here the array is only one element long, but you could ask for
+                 * more than one scanline at a time if that's more convenient.
+                 */
+                (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+                /* Assume put_scanline_someplace wants a pointer and sample count. */
+                for (int i = 0; i < cinfo.output_width; i++) {
+                    resultFloat(i, cinfo.output_scanline) = (float)(((unsigned char*)buffer[0])[i * 3] + ((unsigned char*)buffer[0])[i * 3 + 1] + ((unsigned char*)buffer[0])[i * 3 + 2]) / 3;
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * 3];
+                }
+            }
+            break;
+        case 4:
+            while (cinfo.output_scanline < cinfo.output_height) {
+                /* jpeg_read_scanlines expects an array of pointers to scanlines.
+                 * Here the array is only one element long, but you could ask for
+                 * more than one scanline at a time if that's more convenient.
+                 */
+                (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+                /* Assume put_scanline_someplace wants a pointer and sample count. */
+                for (int i = 0; i < cinfo.output_width; i++) {
+                    resultFloat(i, cinfo.output_scanline) = (float)(((unsigned char*)buffer[0])[i * 4] + ((unsigned char*)buffer[0])[i * 4 + 1] + ((unsigned char*)buffer[0])[i * 4 + 2]) / 3;
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * 4];
+                }
+            }
+            break;
+        default:
+            while (cinfo.output_scanline < cinfo.output_height) {
+                /* jpeg_read_scanlines expects an array of pointers to scanlines.
+                 * Here the array is only one element long, but you could ask for
+                 * more than one scanline at a time if that's more convenient.
+                 */
+                (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+                /* Assume put_scanline_someplace wants a pointer and sample count. */
+                for (int i = 0; i < cinfo.output_width; i++) {
+                    resultFloat(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * cinfo.num_components];
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * cinfo.num_components];
+                }
+            }
+            break;
+    }
+
+    /* Step 7: Finish decompression */
+
+    (void) jpeg_finish_decompress(&cinfo);
+    /* We can ignore the return value since suspension is not possible
+     * with the stdio data source.
+     */
+
+    /* Step 8: Release JPEG decompression object */
+
+    /* This is an important step since it will release a good deal of memory. */
+    jpeg_destroy_decompress(&cinfo);
+
+    /* After finish_decompress, we can close the input file.
+     * Here we postpone it until after no more JPEG errors are possible,
+     * so as to simplify the setjmp error logic above.  (Actually, I don't
+     * think that jpeg_destroy can do an error exit, but why assume anything...)
+     */
+    fclose(infile);
+
+    /* At this point you may want to check to see whether any corrupt-data
+     * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
+     */
+
+    /* And we're done! */
+    return {resultFloat, resultColor};
+}
+
+
+CML::Pair<CML::FloatImage, CML::Image> CML::loadPngImage(const std::string &path) {
+    std::vector<unsigned char> image; //the raw pixels
+    unsigned width, height;
+
+    //decode
+    unsigned error = lodepng::decode(image, width, height, path.c_str());
+
+    //if there's an error, display it
+    if(error) {
+        throw std::runtime_error("Decode error : " + std::string(lodepng_error_text(error)));
+    }
+
+    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+    CML::Image colorImage(width, height);
+    memcpy(colorImage.data(), image.data(), width * height * 4);
+
+    CML::FloatImage grayImage = colorImage.toGrayImage();
+
+    return {grayImage, colorImage};
 
 }

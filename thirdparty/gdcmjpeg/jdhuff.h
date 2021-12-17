@@ -48,7 +48,7 @@ typedef struct {
 
 /* Expand a Huffman table definition into the derived format */
 EXTERN(void) jpeg_make_d_derived_tbl
-  JPP((j_decompress_ptr cinfo, boolean isDC, int tblno,
+  JPP((j_decompress_ptr cinfo, bool isDC, int tblno,
        d_derived_tbl ** pdtbl));
 
 
@@ -64,8 +64,8 @@ EXTERN(void) jpeg_make_d_derived_tbl
  * bits, jpeg_fill_bit_buffer is called; it will attempt to fill get_buffer
  * as full as possible (not just to the number of bits needed; this
  * prefetching reduces the overhead cost of calling jpeg_fill_bit_buffer).
- * Note that jpeg_fill_bit_buffer may return FALSE to indicate suspension.
- * On TRUE return, jpeg_fill_bit_buffer guarantees that get_buffer contains
+ * Note that jpeg_fill_bit_buffer may return false to indicate suspension.
+ * On true return, jpeg_fill_bit_buffer guarantees that get_buffer contains
  * at least the requested number of bits --- dummy zeroes are inserted if
  * necessary.
  */
@@ -152,7 +152,7 @@ typedef struct {    /* Bitreading working state within an MCU */
   (bits_left -= (nbits))
 
 /* Load up the bit buffer to a depth of at least nbits */
-EXTERN(boolean) jpeg_fill_bit_buffer
+EXTERN(bool) jpeg_fill_bit_buffer
   JPP((bitread_working_state * state, register bit_buf_type get_buffer,
        register int bits_left, int nbits));
 
@@ -207,7 +207,7 @@ EXTERN(int) jpeg_huff_decode
  */
 
 #define huffd_common_fields \
-  boolean insufficient_data;  /* set TRUE after emmitting warning */ \
+  bool insufficient_data;  /* set true after emmitting warning */ \
   /* These fields are loaded into local variables at start of each MCU. \
    * In case of suspension, we exit WITHOUT updating them. \
    */ \

@@ -30,6 +30,9 @@ namespace CML {
 
         Array2D(int width, int height) : AbstractROArray2D<T>() {
             mMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>(width, height);
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                    mMatrix(x,y) = T(0);
+                }
             mData = mMatrix.data();
         }
 
@@ -204,6 +207,14 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE void gradientImage(GradientImage &output) const {
+            #if CML_USE_OPENMP
+            #pragma omp parallel for collapse(2) schedule(static)
+            #endif
+            for (int y = 0; y < getHeight(); y++) {
+                for (int x = 0; x < getWidth(); x++) {
+                    output(x, y) = Vector3f(0,0,0);
+                }
+            }
             #if CML_USE_OPENMP
             #pragma omp parallel for collapse(2) schedule(static)
             #endif
@@ -522,6 +533,9 @@ namespace CML {
 
     Pair<FloatImage, Image> loadTiffImage(const uint8_t *data, size_t lenght);
 
+    Pair<FloatImage, Image> loadJpegImage(const std::string &path);
+
+    Pair<FloatImage, Image> loadPngImage(const std::string &path);
 
 
 

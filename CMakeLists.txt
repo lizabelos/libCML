@@ -149,7 +149,6 @@ else()
 endif()
 
 add_subdirectory(thirdparty/gdcmjpeg)
-include_directories(thirdparty/gdcmjpeg)
 
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
@@ -246,15 +245,14 @@ target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 #target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)
 
 # target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
-target_compile_options(CML PUBLIC -flto)
-target_link_options(CML PUBLIC -flto -fopenmp)
+
 # target_link_options(CML PUBLIC -mllvm)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC -DDEBUG=1)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CML PUBLIC -O3 -fno-math-errno)
+    target_compile_options(CML PUBLIC -O2 -fno-math-errno)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -fno-math-errno -g)
     target_compile_definitions(CML PUBLIC -DNDEBUG=1)
