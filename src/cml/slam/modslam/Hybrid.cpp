@@ -10,6 +10,7 @@ Hybrid::Hybrid() : AbstractSlam() {
     mPhotometricInitializer->setAlias("dsoInitializer");
     mPhotometricTracker = new Optimization::DSOTracker(this);
     mPhotometricTracker->setViewableOnModel(true);
+    mPhotometricTracker->setAlias("dsoTracker");
     mPhotometricTracer = new Optimization::DSOTracer(this);
     mPhotometricTracer->setAlias("dsoTracer");
     mHybridTracer = new Optimization::DSOTracer(this);
