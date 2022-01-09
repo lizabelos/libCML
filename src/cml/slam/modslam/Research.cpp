@@ -2,6 +2,9 @@
 
 bool Hybrid::poseEstimationDecision() {
 
+    // true : should prefer dso
+    // false : should prefer orb
+
     Vector6 currentVariance;
     currentVariance.head<3>() = mLastIndirectTrackingResult.covariance.tail<3>();
     currentVariance.tail<3>() = mLastPhotometricTrackingResidual.covariance.tail<3>();
@@ -11,6 +14,12 @@ bool Hybrid::poseEstimationDecision() {
 
     scalar_t indirectUncertainty = v.head<3>().norm();
     scalar_t directUncertainty = v.tail<3>().norm();
+
+    if (!mLastPhotometricTrackingResidual.isCorrect) {
+        mStatTrackORBVar->addValue(indirectUncertainty);
+        mStatTrackDSOVar->addValue(indirectUncertainty * 2);
+        return false;
+    }
 
     mStatTrackORBVar->addValue(indirectUncertainty);
     mStatTrackDSOVar->addValue(directUncertainty);
@@ -97,8 +106,14 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         return BAINDIRECT;
     }
 
-    if (mBacondSaturatedRatio.f() > 0 && mLastPhotometricTrackingResidual.saturatedRatio() < mBacondSaturatedRatio.f()) {
-        return BADIRECT;
+    if (mBacondSaturatedRatioDir.b() == false) {
+        if (mBacondSaturatedRatio.f() > 0 && mLastPhotometricTrackingResidual.saturatedRatio() < mBacondSaturatedRatio.f()) {
+            return BADIRECT;
+        }
+    } else {
+        if (mBacondSaturatedRatio.f() > 0 && mLastPhotometricTrackingResidual.saturatedRatio() > mBacondSaturatedRatio.f()) {
+            return BAINDIRECT;
+        }
     }
 
     if (mScoreWeight.f() >= 0) {

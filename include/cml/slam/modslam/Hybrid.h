@@ -287,6 +287,7 @@ private:
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", true);
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 0);
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", -1.0);
+    Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", false);
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);
     Parameter mScoreWeight = createParameter("bacondScoreWeight", -1.0);
     Parameter mScoreWindow = createParameter("bacondScoreWindow", 1);

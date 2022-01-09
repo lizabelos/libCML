@@ -307,11 +307,45 @@ namespace CML {
 
                 if(!haveOneGood)
                 {
-                    logger.error("Big error ! Hope we can recover...");
-                    return false;
-                }
+                    if (mFailureMode.i() == 1) {
+                        logger.error("Big error ! Hope we can recover... (Mode 1)");
+                        camera = frameToTrack->getCamera() * cameras[0];
 
-                mLastCoarseRMSE = achievedRes;
+                        exposure.setParametersAndExposure(frameToTrack->getExposure());
+                        exposure.setParameters(initialExposure);
+
+                        mLastResidual = trackingResult;
+                        trackingResult = optimize(0, frameToTrack, reference, camera, exposure, &mTrackerContext);
+
+                        haveOneGood = true;
+                    } else if (mFailureMode.i() == 2) {
+                        logger.error("Big error ! Hope we can recover... (Mode 2)");
+                        camera = frameToTrack->getCamera() * cameras[0];
+
+                        exposure.setParametersAndExposure(frameToTrack->getExposure());
+                        exposure.setParameters(initialExposure);
+
+                        mLastResidual = trackingResult;
+                        trackingResult = optimize(0, frameToTrack, reference, camera, exposure, &mTrackerContext);
+
+                        camera = frameToTrack->getCamera() * cameras[0];
+
+                        exposure.setParametersAndExposure(frameToTrack->getExposure());
+                        exposure.setParameters(initialExposure);
+
+                        haveOneGood = true;
+                    } else {
+                        logger.error("Big error ! Hope we can recover... (Mode 0)");
+                        return false;
+                    }
+                } else {
+
+                    mLastCoarseRMSE = achievedRes;
+                    if(get(reference)->mFirstRMSE < 0) {
+                        get(reference)->mFirstRMSE = achievedRes;
+                    }
+
+                }
 
                 frameToTrack->setCamera(camera);
                 frameToTrack->setExposureParameters(exposure);
@@ -320,10 +354,6 @@ namespace CML {
 
                 residual = trackingResult;
 
-
-                if(get(reference)->mFirstRMSE < 0) {
-                    get(reference)->mFirstRMSE = achievedRes;
-                }
 
                 mStatisticSaturated->addValue((residual.numSaturated[0] / (scalar_t)residual.numTermsInE[0]));
                 mStatisticResidual->addValue(residual.E[0] / (scalar_t)residual.numTermsInE[0]);
@@ -469,6 +499,8 @@ namespace CML {
             Parameter mOptimizeB = createParameter("optimizeLightB", true);
 
             Parameter mOptimizeCalibration = createParameter("Optimize calibration", false);
+
+            Parameter mFailureMode = createParameter("failureMode", 2);
 
 
         };
