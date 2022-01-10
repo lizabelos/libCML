@@ -70,7 +70,7 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
     }
     auto d = computeDistinctiveDescriptors(descriptors);
     //return computeMedianDescriptors(descriptors);
-    assertDeterministic("Hash of distinctive descriptor", d.hash());
+    // assertDeterministic("Hash of distinctive descriptor", d.hash());
 
     return d;
 }
@@ -127,9 +127,11 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         numInliers++;
     }
 
+    float inliersRatio = (float)numInliers / (float)matchings.size();
+
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
-    if (numInliers >= 10) {
+    if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
         for (size_t i = 0; i < matchings.size(); i++) {
             if (outliers[i]) {
@@ -190,10 +192,11 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
         }
         numInliers++;
     }
+    float inliersRatio = (float)numInliers / (float)matchings.size();
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
-    if (numInliers >= 10) {
+    if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
         for (size_t i = 0; i < matchings.size(); i++) {
             if (outliers[i]) {

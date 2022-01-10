@@ -74,14 +74,20 @@ public:
 
     void viewOnReconstruction(DrawBoard &drawBoard) final {
 
-        for (auto frame : getMap().getGroupFrames(INDIRECTKEYFRAME)) {
-            drawBoard.color(1, 0, 0);
-            drawBoard.lineWidth(3);
+        for (auto frame : getMap().getGroupFrames(ORBTRACKEDFRAME)) {
+            drawBoard.color(0, 1, 0);
+            drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
         }
 
-        for (auto frame : getMap().getGroupFrames(DIRECTKEYFRAME)) {
+        for (auto frame : getMap().getGroupFrames(DSOTRACKEDFRAME)) {
             drawBoard.color(0, 0, 1);
+            drawBoard.lineWidth(5);
+            drawBoard.paintCamera(frame->getCamera());
+        }
+
+        for (auto frame : getMap().getGroupFrames(RECOVEREDFRAME)) {
+            drawBoard.color(1, 0, 0);
             drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
         }
@@ -199,6 +205,10 @@ private:
     }
 
 private:
+    const int ORBTRACKEDFRAME = getMap().createFrameGroup("ORB Tracked Frame");
+    const int DSOTRACKEDFRAME = getMap().createFrameGroup("DSO Tracked Frame");
+    const int RECOVEREDFRAME = getMap().createFrameGroup("Recovered Frame");
+
     const int INDIRECTKEYFRAME = getMap().createFrameGroup("Indirect Key Frame");
     const int DIRECTKEYFRAME = getMap().createFrameGroup("Direct Key Frame");
 
@@ -299,6 +309,7 @@ private:
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", -1);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
+    Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.5f);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
