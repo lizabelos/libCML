@@ -91,7 +91,7 @@ CML::Set<CML::PPoint, CML::Hasher> CML::Optimization::DSOTracer::activatePoints(
         projectedActivePoints.emplace_back(lastFrame->distort(p, 0));
     }
 
-    float maxType = 4;
+    float maxType = 10;
     DistanceMap distanceMap(lastFrame->getWidth(0), lastFrame->getHeight(0), mCurrentMinimumDistance * maxType);
     distanceMap.addPoints(projectedActivePoints);
 
