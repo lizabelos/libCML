@@ -363,6 +363,7 @@ void CML::Optimization::DSOInitializer::onInitializationSuccess() {
     float minir = 999;
 
     float sumID=1e-5, numID=1e-5;
+    List<float> allIR;
     for(size_t i = 0;i < mPoints[0].size(); i++)
     {
         auto &pointData = mPoints[0][i];
@@ -371,9 +372,10 @@ void CML::Optimization::DSOInitializer::onInitializationSuccess() {
         }
         sumID += pointData.iR;
         numID++;
+        allIR.emplace_back(pointData.iR);
         minir = std::min(minir, pointData.iR);
     }
-    float rescaleFactor = 1.0f / (sumID / numID);
+    float rescaleFactor = 0.5f / median(allIR);
 
 
    /* for (auto frame : mFrames) {
