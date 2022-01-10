@@ -33,7 +33,7 @@
 #include <cml/features/cornerTracker/VFC.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/features/bow/Relocalization.h>
-#include <cml/features/corner/OpenCV.h>
+//#include <cml/features/corner/OpenCV.h>
 
 #include <cml/gui/viewer/ReprojectionViewer.h>
 

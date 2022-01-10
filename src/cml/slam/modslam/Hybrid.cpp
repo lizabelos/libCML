@@ -311,6 +311,7 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
 
     if (mEnableDirect.b()) {
         if (!mTrackingOk) {
+            currentFrame->setGroup(RECOVEREDFRAME, true);
             mTrackingOk = mPhotometricTracker->trackWithMotionModel(currentFrame, mPhotometricTracker->getLastComputed(), getMap().getLastFrame(1)->getCamera(),getMap().getLastFrame(2)->getCamera(), mLastPhotometricTrackingResidual);
             if (mTrackingOk) {
                 mTrackedWithDirect = true;
@@ -318,6 +319,7 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 modeSum = modeSum + 2;
             }
         } else {
+            currentFrame->setGroup(ORBTRACKEDFRAME, true);
             Camera camera = currentFrame->getCamera();
             Exposure exposure = currentFrame->getExposure();
             mLastPhotometricTrackingResidual = mPhotometricTracker->optimize(mLastPhotometricTrackingResidual, 0, currentFrame, mPhotometricTracker->getLastComputed(), camera, exposure);
@@ -356,6 +358,8 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
 
 void Hybrid::trackWithDso(PFrame currentFrame) {
     assertThrow(mEnableDirect.b(), "You can't call this function with direct disabled");
+
+    currentFrame->setGroup(DSOTRACKEDFRAME, true);
 
     mTrackedWithIndirect = false;
     mTrackedWithDirect = false;
