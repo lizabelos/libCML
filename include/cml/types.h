@@ -803,28 +803,19 @@ namespace CML {
         }
 
     protected:
-        float gamma(float value) const { // Value between 0 and 1
-            if (value < 0.04045) {
-                return value / 12.92f;
-            } else {
-                return powf((value + 0.055f) / 1.055f, 2.4f);
-            }
-        }
-
-        template<int i> float weightedGray() const {
+        template<int i> inline float weightedGray() const {
             float v = (float)mColor[i] / 255.0f;
-            float g = gamma(v);
             float w = 0;
             if (i == 0) {
-                w = 0.2126;
+                w = 0.299;
             }
             if (i == 1) {
-                w = 0.7152;
+                w = 0.587;
             }
             if (i == 2) {
-                w = 0.0722;
+                w = 0.114;
             }
-            return w * g * 255.0f;
+            return w * v * 255.0f;
         }
 
     private:
