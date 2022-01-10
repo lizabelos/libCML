@@ -1,9 +1,8 @@
 #include "cml/features/corner/ORB.h"
-//#if CML_HAVE_OPENCV
+#if CML_HAVE_OPENCV
 #include "cml/features/corner/OpenCV.h"
-//#else
+#endif
 #include "cml/features/corner/FAST.h"
-//#endif
 
 #include "cml/image/Filter.h"
 #include "ORBPattern.cpp"
