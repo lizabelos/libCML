@@ -41,7 +41,6 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
 
     if (lLocalKeyFrames.size() <= 2) {
         logger.error("G2O BA : Not enough frames");
-        abort();
         return false;
     }
 
