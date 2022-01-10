@@ -208,11 +208,9 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
     }
 
     bool haveGoodPoints = true;
-    if ((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0] > 0.3) {
-        //logger.debug("The solution is not good because of too many saturated : " + std::to_string((scalar_t)oldResidual.numSaturated / (scalar_t)oldResidual.numTermsInE));
-        //haveGoodPoints = false;
-        logger.debug("Strange, the solution have a lot of saturated points : " + std::to_string((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0]));
-
+    if ((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0] > mSaturatedRatioThreshold.f()) {
+        haveGoodPoints = false;
+        logger.info("Strange, the solution have a lot of saturated points : " + std::to_string((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0]));
     }
 
     camera = reference->getCamera().compose(cameraOf(currentRefToNew));
