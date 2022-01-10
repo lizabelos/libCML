@@ -3,13 +3,14 @@
 
 #include "cml/image/Array2D.h"
 
-#if CML_HAVE_AVFORMAT
 #ifdef WIN32
 #define HAVE_BOOLEAN
 #endif
 #include <thirdparty/gdcmjpeg/8/jpeglib.h>
 #include "lodepng/lodepng.h"
 
+
+#if CML_HAVE_AVFORMAT
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
