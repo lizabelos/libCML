@@ -21,7 +21,7 @@ namespace CML {
 
     public:
         KittyCapture() = default;
-        KittyCapture(const std::string &path, bool useColor = false);
+        KittyCapture(const std::string &path, bool useColor = true);
         ~KittyCapture();
 
         bool isInit();
