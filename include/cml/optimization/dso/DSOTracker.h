@@ -212,6 +212,7 @@ namespace CML {
                 Vector3 flowVector;
                 //List<PPoint> inliers, outliers, oob;
                 bool isCorrect = false;
+                bool tooManySaturated = true;
                 List<scalar_t> levelCutoffRepeat;
                 Vector2 relAff;
                 Vector6 covariance;
@@ -276,13 +277,22 @@ namespace CML {
                         mLastOptimizedCamera.emplace_back(testCamera);
                     }
 
-                    // do we have a new winner?
-                    if(testTrackingResult.isCorrect && std::isfinite(testTrackingResult.rmse()) && !(testTrackingResult.rmse() >= achievedRes))
-                    {
+                    if (trackingResult.tooManySaturated == true && testTrackingResult.tooManySaturated == false && testTrackingResult.isCorrect && std::isfinite(testTrackingResult.rmse())) {
                         haveOneGood = true;
                         camera = testCamera;
                         exposure.setParametersAndExposure(testExposure);
                         trackingResult = testTrackingResult;
+                    }
+
+                    // do we have a new winner?
+                    if(testTrackingResult.isCorrect && std::isfinite(testTrackingResult.rmse()) && !(testTrackingResult.rmse() >= achievedRes))
+                    {
+                        if (trackingResult.tooManySaturated || !testTrackingResult.tooManySaturated) {
+                            haveOneGood = true;
+                            camera = testCamera;
+                            exposure.setParametersAndExposure(testExposure);
+                            trackingResult = testTrackingResult;
+                        }
                     }
 
                     // take over achieved res (always).
@@ -500,7 +510,7 @@ namespace CML {
 
             Parameter mOptimizeCalibration = createParameter("Optimize calibration", false);
 
-            Parameter mFailureMode = createParameter("failureMode", 2);
+            Parameter mFailureMode = createParameter("failureMode", 0);
             Parameter mSaturatedRatioThreshold = createParameter("saturatedThreshold", 0.5);
 
         };

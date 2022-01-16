@@ -16,7 +16,7 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
         return false;
     }*/
 
-    if (mTrackedWithDirect && mLastPhotometricTrackingResidual.isCorrect) {
+    if (mTrackedWithDirect) {
 
         scalar_t setting_maxShiftWeightT = 0.04 * (640 + 480);
         scalar_t setting_maxShiftWeightR = 0.0 * (640 + 480);

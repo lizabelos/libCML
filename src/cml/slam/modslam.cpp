@@ -224,11 +224,12 @@ int main(int argc, char *argv[])
 
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
-    logger.setLogLevel(IMPORTANT);
+    logger.setLogLevel(CML::ERR);
 
     printTypeSize();
 
-    srand(29071996);
+    // srand(29071996);
+    srand(time(nullptr));
 
 #if CML_ENABLE_GUI
     qRegisterMetaType<scalar_t>("scalar_t");

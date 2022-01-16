@@ -106,12 +106,7 @@ target_compile_options(yaml-cpp
     $<$<AND:${backport-msvc-runtime},${msvc-rt-mt-static}>:-MT>
     $<$<AND:${backport-msvc-runtime},${msvc-rt-mtd-dll}>:-MDd>
     $<$<AND:${backport-msvc-runtime},${msvc-rt-mt-dll}>:-MD>
-
-    # /wd4127 = disable warning C4127 "conditional expression is constant"
-    # http://msdn.microsoft.com/en-us/library/6t66728h.aspx
-    # /wd4355 = disable warning C4355 "'this' : used in base member initializer list
-    # http://msdn.microsoft.com/en-us/library/3c594ae3.aspx
-    $<$<CXX_COMPILER_ID:MSVC>:/W3 /wd4127 /wd4355>)
+)
 
 target_compile_definitions(yaml-cpp
   PRIVATE

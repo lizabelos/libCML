@@ -5,8 +5,9 @@ import os
 
 
 def system(command):
-    os.system(command + ">/dev/null 2>/dev/null")
-    return "", 0
+    # os.system(command)
+    # os.system(command + ">/dev/null 2>/dev/null")
+    # return "", 0
     for l in csv.reader([command], delimiter=' ', quotechar='"'):
         executable = l[0]
         wd = os.path.dirname(os.path.realpath(executable))
@@ -18,6 +19,12 @@ def system(command):
         return out.decode("utf-8"), err
 
 def dprint(s, end="\n"):
-    print(s, end=end)
+    if "\t" in s:
+        sconsole = s.split("\t")
+        sconsole = ["{:<15}".format(x) for x in sconsole]
+        sconsole = "|".join(sconsole)
+        print(sconsole, end=end)
+    else:
+        print(s, end=end)
     with open("output.txt", "a") as myfile:
         myfile.write(str(s) + end)

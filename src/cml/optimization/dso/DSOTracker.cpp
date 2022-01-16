@@ -215,7 +215,8 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
     camera = reference->getCamera().compose(cameraOf(currentRefToNew));
 
-    oldResidual.isCorrect = haveGoodLight && haveGoodPoints;
+    oldResidual.isCorrect = haveGoodLight;
+    oldResidual.tooManySaturated = haveGoodPoints;
     oldResidual.levelCutoffRepeat = levelCutoffRepeat;
     oldResidual.relAff = relAff;
     oldResidual.covariance = trackerContext->hessian.inverse().diagonal().head<6>();

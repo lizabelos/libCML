@@ -88,14 +88,15 @@ void Hybrid::indirectLocalOptimize(PFrame currentFrame) {
             mIndirectG2OBundleAdjustment->apply();
         }
     }
-    /*else {
+    else {
+     /*   mIndirectStopFlag = false;
+        bool result = mIndirectG2OBundleAdjustment->localOptimize(currentFrame, INDIRECTKEYFRAME, &mIndirectStopFlag, true);
+        if (result) {
+            mIndirectG2OBundleAdjustment->apply();
+        }
+       */ List<PPoint> points = getMap().getGroupMapPointsAsList(ACTIVEINDIRECTPOINT);
 
-        List<PPoint> points = getMap().getGroupMapPointsAsList(ACTIVEINDIRECTPOINT);
-
-        #if CML_USE_OPENMP
-        #pragma omp parallel for schedule(dynamic)
-        #endif
-        for (size_t i = 0; i < points.size(); i++) {
+      /*  for (size_t i = 0; i < points.size(); i++) {
             List<PFrame> frames;
             frames.reserve(50);
             for (auto frame : points[i]->getIndirectApparitions()) {
@@ -104,9 +105,9 @@ void Hybrid::indirectLocalOptimize(PFrame currentFrame) {
                 }
             }
             mIndirectCeresBundleAdjustment->optimizeSinglePoint(points[i], frames, false);
-        }
+        } */
 
-    }*/
+    }
 }
 
 void Hybrid::keyframeCulling() {
@@ -367,7 +368,11 @@ void Hybrid::indirectTrackImmature(PFrame currentFrame) {
 
             bool canActivate;
             if (mIndirectUncertaintyThreshold.f() < 0) {
-                canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true);
+                if (mOptimiseOrbEachTime.b()) {
+                    canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true);
+                } else {
+                    canActivate = true;
+                }
             } else {
                 canActivate = mIndirectCeresBundleAdjustment->optimizeSinglePoint(point, frames, true) && point->getUncertainty() < mIndirectUncertaintyThreshold.f();
             }

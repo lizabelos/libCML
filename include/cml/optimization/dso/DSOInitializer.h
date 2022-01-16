@@ -158,7 +158,7 @@ namespace CML {
 
             PStatistic mStatisticAlphaEnergy = createStatistic("Alpha Energy");
 
-            Parameter mDensityFactor = createParameter("densityFactor", 0.25f);
+            Parameter mDensityFactor = createParameter("densityFactor", 1.0f);
             Parameter mSettingsDesiredPointDensity = createParameter("pointDensity", 2000);
             Parameter mRegulalizationWeight = createParameter("regularizationWeight", 0.8f);
 

@@ -3,7 +3,7 @@
 
 #include "cml/maths/Utils.h"
 
-bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame currentFrame, int frameGroup, bool *pbStopFlag) {
+bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame currentFrame, int frameGroup, bool *pbStopFlag, bool fixFrames) {
 
     // Local KeyFrames: First Breath Search from Current Keyframe
     lLocalKeyFrames.clear();
@@ -68,6 +68,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
         vSE3->setEstimate(g2o::SE3Quat(frame->getCamera().getRotationMatrix().cast<number_t>(), frame->getCamera().getTranslation().cast<number_t>()));
         vSE3->setId(frame->getId() + idOffset);
+        vSE3->setFixed(fixFrames);
         mOptimizer->addVertex(vSE3);
         if(frame->getId() > maxKFid) {
             maxKFid = frame->getId() + idOffset;

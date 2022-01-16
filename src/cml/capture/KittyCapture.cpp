@@ -151,6 +151,8 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
     mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
     logger.info("Kitty Dataset " + id + " at '" + path + "' is open");
 
+    //mLut = GrayLookupTable::exp(255, 1.005f);
+
 }
 
 CML::KittyCapture::~KittyCapture() {
@@ -173,11 +175,11 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::KittyCapture::multithreadNext() 
     if (mUseColor) {
         auto images = loadPngImage(mImages[2][mCurrentImage]);
         maker.setImage(images.first);
-        maker.setImage(images.second);
+        //maker.setImage(images.second);
     } else {
         auto images = loadPngImage(mImages[0][mCurrentImage]);
         maker.setImage(images.first);
-        maker.setImage(images.second);
+        //maker.setImage(images.second);
     }
 
     maker.setPath(mImages[0][mCurrentImage])

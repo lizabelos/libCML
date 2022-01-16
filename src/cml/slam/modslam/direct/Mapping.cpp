@@ -60,6 +60,7 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
     mPhotometricTracer->traceNewCoarse(currentFrame, mPhotometricBA->ACTIVEKEYFRAME);
     mPhotometricBA->addNewFrame(currentFrame, mPhotometricTracer->IMMATUREPOINT);
     Set<PPoint, Hasher> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
+    logger.info("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
     mPhotometricBA->addPoints(photometricPoints);
 
     if (mEnableHybridPoint.b()) {
@@ -87,7 +88,7 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
 
     if (mBaMode == BADIRECT && !ok) {
         logger.error("BA failed.");
-        restartOrStop("BA failed");
+       // restartOrStop("BA failed");
         return;
     }
 

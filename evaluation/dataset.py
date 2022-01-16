@@ -34,6 +34,9 @@ class Dataset:
     def groundtruth(self):
         return self.g
 
+    def gt(self):
+        return self.g
+
     def use(self):
         if not self.useramdisk:
             return
@@ -79,14 +82,18 @@ def kittiGroundtruthPath(kittiFolder, i):
 
 
 def KITTI(folder):
-    lim=[130,20,130,2,2,60,70,25,120,80,30]
-    r=[4,3,1,6,7,10,9,5,8,0,2]
+    lim=[110,20,44,2.0,1.4,43,49,17,58,60,15]
+    r=[1,10,4,3,6,7,9,5,8,0,2]
     result = []
     folder = os.path.join(folder, "dataset")
     for i in r:
         name = "kitti_" + str(i).zfill(2)
         dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
         result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i), lim=lim[i])]
+    # for i in range(11,22):
+    #     name = "kitti_" + str(i).zfill(2)
+    #     dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
+    #     result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, None, None)]
     return result
 
 
@@ -94,5 +101,5 @@ def TUM(folder, r=range(1, 51)):
     result = []
     for i in r:
         dataset_folder = os.path.join(folder,"sequence_" + str(i).zfill(2))
-        result = result + [Dataset("TUM " + str(i).zfill(2), "tum", dataset_folder, tumGroundtruthPath(folder, i))]
+        result = result + [Dataset("TUM " + str(i).zfill(2), "tum", dataset_folder, tumGroundtruthPath(folder, i), lim=10)]
     return result

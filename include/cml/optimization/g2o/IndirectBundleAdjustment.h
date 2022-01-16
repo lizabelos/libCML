@@ -24,7 +24,7 @@ namespace CML::Optimization::G2O {
             }
         }
 
-        bool localOptimize(PFrame frame, int frameGroup, bool *pbStopFlag);
+        bool localOptimize(PFrame frame, int frameGroup, bool *pbStopFlag, bool fixFrames = false);
 
         void apply();
 

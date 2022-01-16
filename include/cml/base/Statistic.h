@@ -37,11 +37,15 @@ namespace CML {
 
         inline void addValue(scalar_t y) {
             LockGuard lg(mObserversMutex);
+            assertDeterministic(getName(), y);
             mWaitingValues.emplace_back(y);
         }
 
         inline void addValue(scalar_t x, scalar_t y) {
             LockGuard lg(mObserversMutex);
+            assertDeterministic(getName() + " x", x);
+            assertDeterministic(getName() + " y", y);
+
             for (Observer *observer : mObservers) {
                 observer->onNewValue(this, x, y);
             }

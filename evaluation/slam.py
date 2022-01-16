@@ -12,6 +12,7 @@ class SLAM(ABC):
     def __init__(self):
         self.tmp = None
         self.stats = {}
+        self.error = "Unknown error"
 
     def __del__(self):
         shutil.rmtree(self.outputdir(), ignore_errors=True)
@@ -48,8 +49,20 @@ class SLAM(ABC):
     def elapsed(self):
         pass
 
+    def getError(self):
+        return self.error
+
     def processLogForStats(self, log):
-        stats_table = [x.split(" ")[1:] for x in log.split("\n") if x.startswith("STAT")]
+        log = log.split("\n")
+
+        allDeadly = [x for x in log if "[DEADLY]" in x]
+        allError = [x for x in log if "[ERROR]" in x]
+
+        if len(allDeadly) > 0:
+            self.error = ";".join([x for x in allDeadly])
+        elif len(allError) > 0:
+            self.error = allError[-1]
+        stats_table = [x.split(" ")[1:] for x in log if x.startswith("STAT")]
         stats = {}
         for name, x, y in stats_table:
             if not name in stats:

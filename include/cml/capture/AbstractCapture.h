@@ -95,7 +95,7 @@ namespace CML {
             }
             mQueue.notifyPop();
             mCurrentImageCount++;
-            mTimer.waitFor(result->getTime() - mFirstTime);
+            // mTimer.waitFor(result->getTime() - mFirstTime);
             return result;
         }
 

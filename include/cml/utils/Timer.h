@@ -53,9 +53,9 @@ namespace CML {
             mStart = end;
         }
 
-        void stopAndPrint(std::string comment) {
+        void stopAndPrint(const std::string &comment) {
             stop();
-            logger.info(comment + " : " + std::to_string(getValue()));
+            // logger.info(comment + " : " + std::to_string(getValue()));
         }
 
         void stopAndPrintToCout(std::string comment) {

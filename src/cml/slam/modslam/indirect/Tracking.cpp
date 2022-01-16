@@ -226,8 +226,17 @@ bool Hybrid::indirectTrackLocalMap(PFrame currentFrame) {
     if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
         assertDeterministic("Indirect covariance norm", mLastIndirectTrackingResult.covariance.norm());
         if (mLastIndirectTrackingResult.isOk) {
-            currentFrame->setCamera(mLastIndirectTrackingResult.camera);
-            assertDeterministic("Refining with ORB");
+
+            int numInliers = currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size() - outliers.size();
+            float inliersRatio = numInliers / (float)currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size();
+
+            assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
+
+            if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+
+                currentFrame->setCamera(mLastIndirectTrackingResult.camera);
+                assertDeterministic("Refining with ORB");
+            }
         }
     }
 

@@ -12,12 +12,16 @@ bool Hybrid::poseEstimationDecision() {
 
     Vector6 v = mTrackingDecisionCovariances.accumulate(mTrackcondUncertaintyWindow.i());
 
+    if (v.allFinite()) {
+        v.normalize();
+    }
+
     scalar_t indirectUncertainty = v.head<3>().norm();
     scalar_t directUncertainty = v.tail<3>().norm();
 
     if (!mLastPhotometricTrackingResidual.isCorrect) {
-        mStatTrackORBVar->addValue(indirectUncertainty);
-        mStatTrackDSOVar->addValue(indirectUncertainty * 2);
+       // mStatTrackORBVar->addValue(indirectUncertainty);
+       // mStatTrackDSOVar->addValue(indirectUncertainty * 2);
         return false;
     }
 
@@ -102,8 +106,8 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         else return BAINDIRECT;
     }
 
-    if (mBaMinimumOrbPoint.i() > 0 && mLastNumTrackedPoints > mBaMinimumOrbPoint.i()) {
-        return BAINDIRECT;
+    if (mBaMinimumOrbPoint.i() > 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
+        return BADIRECT;
     }
 
     if (mBacondSaturatedRatioDir.b() == false) {
