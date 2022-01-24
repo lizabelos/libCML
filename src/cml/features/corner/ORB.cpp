@@ -50,7 +50,7 @@ void CML::Features::ORB::reinitialize() {
     int sumFeatures = 0;
     for( int level = 0; level < nlevels-1; level++ )
     {
-        mnFeaturesPerLevel[level] = round(nDesiredFeaturesPerScale);
+        mnFeaturesPerLevel[level] = fastRound(nDesiredFeaturesPerScale);
         sumFeatures += mnFeaturesPerLevel[level];
         nDesiredFeaturesPerScale *= factor;
     }
@@ -68,7 +68,7 @@ void CML::Features::ORB::reinitialize() {
     int vmin = ceil(HALF_PATCH_SIZE * sqrt(2.f) / 2);
     const double hp2 = HALF_PATCH_SIZE*HALF_PATCH_SIZE;
     for (v = 0; v <= vmax; ++v)
-        umax[v] = round(sqrt(hp2 - v * v));
+        umax[v] = fastRound(sqrt(hp2 - v * v));
 
     // Make sure we are symmetric
     for (v = HALF_PATCH_SIZE, v0 = 0; v >= vmin; --v)
@@ -100,7 +100,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
     mImages[0] = captureImage.getGrayImage(0).cast<unsigned char>();
     for (int i = 1; i < nlevels; i++) {
         float scale = mvInvScaleFactor[i];
-        Vector2i sz(round((float)captureImage.getWidth(0) * scale), round((float)captureImage.getHeight(0) * scale));
+        Vector2i sz(fastRound((float)captureImage.getWidth(0) * scale), fastRound((float)captureImage.getHeight(0) * scale));
 #if CML_HAVE_OPENCV && CML_ORB_USEOPENCVIMAGE
         mImages[i] = OpenCV::resize(mImages[i - 1], sz.x(), sz.y());
 #else
@@ -266,7 +266,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys, List<Corner>& vResultKeys, const int &minX, const int &maxX, const int &minY, const int &maxY, const int &N, const int &level) {
 
     // Compute how many initial nodes
-    const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
+    const int nIni = fastRound(static_cast<float>(maxX-minX)/(maxY-minY));
 
     const float hX = static_cast<float>(maxX-minX)/nIni;
 
@@ -530,15 +530,16 @@ CML::Binary256Descriptor CML::Features::ORB::computeDescriptor(const Corner &cor
     alignas(64) int32_t ib_x[256];
     alignas(64) int32_t ib_y[256];
 
+    // todo : use sse here
     for (int i = 0; i < 256; i++) {
         float x_a = bit_pattern_31_[i * 4 + 0];
         float y_a = bit_pattern_31_[i * 4 + 1];
         float x_b = bit_pattern_31_[i * 4 + 2];
         float y_b = bit_pattern_31_[i * 4 + 3];
-        ia_x[i] = round((x_a * cos_angle - y_a * sin_angle));
-        ia_y[i] = round((x_a * sin_angle + y_a * cos_angle));
-        ib_x[i] = round((x_b * cos_angle - y_b * sin_angle));
-        ib_y[i] = round((x_b * sin_angle + y_b * cos_angle));
+        ia_x[i] = fastRound((x_a * cos_angle - y_a * sin_angle));
+        ia_y[i] = fastRound((x_a * sin_angle + y_a * cos_angle));
+        ib_x[i] = fastRound((x_b * cos_angle - y_b * sin_angle));
+        ib_y[i] = fastRound((x_b * sin_angle + y_b * cos_angle));
     }
 
 
@@ -819,7 +820,6 @@ CML::Binary256Descriptor CML::Features::ORB::computeDescriptor(const Corner &cor
 
     return Binary256Descriptor((uint64_t*)f);
 
-#undef ROUND
 #undef GET_VALUE
 
 

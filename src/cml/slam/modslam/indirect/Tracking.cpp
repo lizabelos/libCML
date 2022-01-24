@@ -305,14 +305,23 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
         logger.error("Update local key frames : no features ?");
         return;
     }
+
     HashMap<PFrame, int, Hasher> keyframeCounter;
-    for(size_t i = 0; i < currentFrame->getFeaturePoints(currentFrameData->featureId).size(); i++)
+    keyframeCounter.reserve(100);
+
+    List<PFrame> tmpIndirectApparitions;
+    tmpIndirectApparitions.reserve(1000);
+
+    size_t featurePointsSize = currentFrame->getFeaturePoints(currentFrameData->featureId).size();
+
+    for(size_t i = 0; i < featurePointsSize; i++)
     {
         OptPPoint pMP = currentFrame->getMapPoint(FeatureIndex(currentFrameData->featureId, i));
         if (pMP.isNull()) {
             continue;
         }
-        for(auto frame : pMP->getIndirectApparitions()) {
+        pMP->getIndirectApparitions(tmpIndirectApparitions);
+        for(auto frame : tmpIndirectApparitions) {
             if (!frame->isGroup(INDIRECTKEYFRAME)) {
                 continue;
             }

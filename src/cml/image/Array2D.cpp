@@ -424,29 +424,133 @@ CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, in
 
 }
 
+
 template<>
-CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kernel) const {
+CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kernel, bool oldVersion) const {
 
-    Array2D<float> newImage(*this);
+    if (!oldVersion) {
 
-    int KSizeX = kernel.mMatrix.rows();
-    int KSizeY = kernel.mMatrix.cols();
+        Array2D<float> newImage(*this);
 
-    int limitRow = newImage.mMatrix.rows() - KSizeX;
-    int limitCol = newImage.mMatrix.cols() - KSizeY;
+        const int res_shiftx = (kernel.getWidth() - 1) / 2;
+        const int res_shifty = (kernel.getHeight() - 1) / 2;
+        //const int res_shiftx = 0;
+        //const int res_shifty = 0;
 
-#if CML_USE_OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
-#endif
-    for (int col = KSizeY; col < limitCol; col++) {
-        for (int row = KSizeX; row < limitRow; row++) {
-            newImage.mMatrix(row,
-                             col) = (static_cast<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>>(mMatrix.block(
-                    row, col, KSizeX, KSizeY)).cwiseProduct(kernel.mMatrix)).sum();
+        float tmp[4] __attribute__ ((aligned (16)));
+        __m128 mkernel[kernel.getHeight()][kernel.getWidth()]  __attribute__ ((aligned (16)));
+        for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+            for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                tmp[0] = kernel(ker_x, ker_y);
+                tmp[1] = tmp[0];
+                tmp[2] = tmp[0];
+                tmp[3] = tmp[0];
+                mkernel[ker_y][ker_x] = _mm_load_ps(tmp);
+            }
         }
-    }
 
-    return newImage;
+#pragma omp for schedule(static)
+        for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
+            int img_x;
+            for (img_x = 0; img_x < (getWidth() - kernel.getWidth()) - 4; img_x = img_x + 4) {
+
+                __m128 accumulation  __attribute__ ((aligned (16)));
+                __m128 datablock  __attribute__ ((aligned (16)));
+                float tmp[4] __attribute__ ((aligned (16)));
+
+                accumulation = _mm_setzero_ps();
+                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                        datablock = _mm_loadu_ps(&mMatrix(img_x + ker_x, img_y + ker_y));
+                        accumulation = _mm_add_ps(_mm_mul_ps(mkernel[ker_y][ker_x], datablock), accumulation);
+                    }
+                }
+
+                _mm_store_ps(tmp, accumulation);
+                newImage(img_x + res_shiftx + 0, img_y + res_shifty) = tmp[0];
+                newImage(img_x + res_shiftx + 1, img_y + res_shifty) = tmp[1];
+                newImage(img_x + res_shiftx + 2, img_y + res_shifty) = tmp[2];
+                newImage(img_x + res_shiftx + 3, img_y + res_shifty) = tmp[3];
+
+            }
+
+            for (img_x = -res_shiftx; img_x < res_shiftx; img_x++) {
+
+                float accumulation = 0;
+                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
+                    }
+                }
+                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+            }
+
+            for (img_x = (getWidth() - kernel.getWidth()) - 4; img_x + res_shiftx < getWidth(); img_x++) {
+
+                float accumulation = 0;
+                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
+                    }
+                }
+                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+            }
+
+        }
+
+        for (int img_y = -res_shifty; img_y < res_shifty; img_y++) {
+            int img_x;
+            for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
+
+                float accumulation = 0;
+                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
+                    }
+                }
+                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+            }
+        }
+
+        for (int img_y = getHeight() - kernel.getHeight(); img_y + res_shifty < getHeight(); img_y++) {
+            int img_x;
+            for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
+
+                float accumulation = 0;
+                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
+                    }
+                }
+                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+            }
+        }
+
+        return newImage;
+    } else {
+
+        Array2D<float> newImage(*this);
+
+        int KSizeX = kernel.mMatrix.rows();
+        int KSizeY = kernel.mMatrix.cols();
+
+        int limitRow = newImage.mMatrix.rows() - KSizeX;
+        int limitCol = newImage.mMatrix.cols() - KSizeY;
+
+        for (int col = KSizeY; col < limitCol; col++) {
+            for (int row = KSizeX; row < limitRow; row++) {
+                newImage.mMatrix(row,
+                                 col) = (static_cast<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>>(mMatrix.block(
+                        row, col, KSizeX, KSizeY)).cwiseProduct(kernel.mMatrix)).sum();
+            }
+        }
+
+        return newImage;
+    }
 }
 
 CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, size_t lenght) {

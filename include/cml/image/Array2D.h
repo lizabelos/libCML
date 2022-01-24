@@ -157,6 +157,20 @@ namespace CML {
             return mData[y * getWidth() + x];
         }
 
+        EIGEN_STRONG_INLINE T getBorder(int x, int y) const {
+            int w = getWidth();
+            int h = getHeight();
+            x = abs(x);
+            y = abs(y);
+            x = (w - x) - 1;
+            y = (h - y) - 1;
+            x = abs(x);
+            y = abs(y);
+            x = (w - x) - 1;
+            y = (h - y) - 1;
+            return mData[y * getWidth() + x];
+        }
+
         EIGEN_STRONG_INLINE T interpolate(const Vector2f &pos) const override {
 
             const float x = pos.x();
@@ -322,7 +336,7 @@ namespace CML {
             return Array2D<T>(mMatrix.rowwise().reverse());
         }
 
-        Array2D<T> convolution(const Array2D<T> &kernel) const;
+        Array2D<T> convolution(const Array2D<T> &kernel, bool oldVersion = false) const;
 
         Array2D<T> blur() const {
 
@@ -356,11 +370,28 @@ namespace CML {
             return newImage;
         }
 
+
+        template<typename U>
+        Array2D<U> castToUChar() const {
+            Array2D<U> result(getWidth(), getHeight());
+            for (int y = 0; y < result.getHeight(); y++) {
+                for (int x = 0; x < result.getWidth(); x++) {
+                    result(x, y) = fastRound(get(x,y));
+                }
+            }
+            return result;
+        }
+
         template<typename U>
         Array2D<U> cast() const {
+            if constexpr ((std::is_same<T, float>::value || std::is_same<T, double>::value) && std::is_same<U, unsigned char>::value) {
+                return castToUChar<U>();
+            }
             Array2D<U> result(mMatrix.template cast<U>());
             return result;
         }
+
+
 
         [[nodiscard]] Array2D<float> toGrayImage() const {
             return Array2D<float>(mMatrix.unaryExpr([](const T& elem) -> float {

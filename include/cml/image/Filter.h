@@ -97,9 +97,9 @@ namespace CML {
             return kernel;
         }
 
-        EIGEN_STRONG_INLINE FloatImage applyGaussian(const FloatImage &image, int sx, int sy, scalar_t sigmaX, scalar_t sigmaY) {
+        EIGEN_STRONG_INLINE FloatImage applyGaussian(const FloatImage &image, int sx, int sy, scalar_t sigmaX, scalar_t sigmaY, bool oldVersion = false) {
             FloatImage filter = gaussian(sx, sy, sigmaX, sigmaY);
-            return image.convolution(filter);
+            return image.convolution(filter, oldVersion);
         }
 
         EIGEN_STRONG_INLINE FloatImage averaging(int height, int width) {

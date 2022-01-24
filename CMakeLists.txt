@@ -55,7 +55,7 @@ if (USE_OPENMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-option(USE_GOOGLE_HASH "Use Google Hash" OFF)
+option(USE_GOOGLE_HASH "Use Google Hash" ON)
 
 # set(BLA_VENDOR Intel10_64lp)
 find_package(BLAS QUIET)
@@ -238,7 +238,7 @@ add_subdirectory(src)
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 
 #if (NOT ANDROID)
-#target_compile_options(CML PUBLIC -march=native)
+#
 #endif()
 #target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=64)
 #target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)

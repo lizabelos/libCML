@@ -392,6 +392,11 @@ namespace CML {
 
     inline scalar_t atan_fast(scalar_t v) { return atan_single(v); }
 
+    inline int32_t fastRound(float v) {
+        __m128d t = _mm_set_sd( v );
+        return _mm_cvtsd_si32(t);
+    }
+
     template <typename T> int sign(T val) {
         return (T(0) < val) - (val < T(0));
     }
