@@ -5,7 +5,16 @@ import os
 import time
 from utils import system
 import yaml
+import hashlib
 
+def sha256sum(filename):
+    h  = hashlib.sha256()
+    b  = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(filename, 'rb', buffering=0) as f:
+        for n in iter(lambda : f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
 
 class SLAM(ABC):
 
@@ -32,6 +41,13 @@ class SLAM(ABC):
 
         if onfinish is not None:
             onfinish()
+
+    def getHash(self):
+        return sha256sum(self.getslampath())
+
+    @abstractmethod
+    def getslampath(self):
+        pass
 
     @abstractmethod
     def start(self, d):
@@ -122,3 +138,9 @@ class ModSLAM(SLAM):
 
     def setconfig(self, name, value):
         self.config[name] = value
+
+    def getconfig(self):
+        return self.config
+
+    def getslampath(self):
+        return self.modslampath
