@@ -2,7 +2,13 @@ import subprocess
 from subprocess import Popen
 import csv
 import os
+import numpy as np
 
+def intrange(a, b, c = 1):
+    return [int(x) for x in np.arange(a,b,c)]
+
+def floatrange(a, b, c = 1.0):
+    return [float(x) for x in np.arange(a,b,c)]
 
 def system(command):
     # os.system(command)
@@ -26,5 +32,7 @@ def dprint(s, end="\n"):
         print(sconsole, end=end)
     else:
         print(s, end=end)
-    with open("output.txt", "a") as myfile:
-        myfile.write(str(s) + end)
+    with open("output.csv", "ab") as myfile:
+        encoded = str(s) + end
+        encoded = encoded.encode("utf-8")
+        myfile.write(encoded)

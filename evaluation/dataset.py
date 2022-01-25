@@ -83,7 +83,7 @@ def kittiGroundtruthPath(kittiFolder, i):
 
 def KITTI(folder):
     lim=[110,20,44,2.0,1.4,43,49,17,58,60,15]
-    r=[1,10,4,3,6,7,9,5,8,0,2]
+    r=[2,1,10,4,3,6,7,9,5,8,0]
     result = []
     folder = os.path.join(folder, "dataset")
     for i in r:

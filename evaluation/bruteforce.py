@@ -51,55 +51,61 @@ def intrange(a, b, c = 1):
 def floatrange(a, b, c = 1.0):
     return [float(x) for x in np.arange(a,b,c)]
 
-def bruteforceFindBest():
+def bruteforceFindBest(currentParam):
     datasets, datasets_names, slams, slams_names = parse_config()
     alteration = list(floatrange(1,10.5,0.5))
     alteration = [1/x for x in alteration[::-1] if x != 1] + alteration
 
-    pow10tmp = [math.pow(10,i) for i in range(-4,9)]
-    #pow10 = []
-    #for i in range(0,len(pow10tmp)):
-    #   for j in floatrange(1,10,0.5):
-    #        pow10 = pow10 + [pow10tmp[i] * j]
-    pow10 = pow10tmp
+    pow10tmp = [math.pow(10,i) for i in range(1,11)]
+    pow10 = []
+    for i in range(0,len(pow10tmp)):
+       for j in [1.0, 5.0]:
+            pow10 = pow10 + [pow10tmp[i] * j]
+    #pow10 = pow10tmp
 
     print(pow10)
 
     params = [
         #["dsoTracer.desiredPointDensity", intrange(250,2200,250)],
         #["dsoTracer.immatureDensity", intrange(250,2200,250)],
-        #["orbUncertaintyThreshold", [-1] + pow10],
-        #["orbInlierRatioThreshold", floatrange(0.1,1.05,0.05)],
-        ["dsoInitializer.densityFactor", floatrange(0.1,1.05,0.05)],
-        ["dsoTracker.saturatedThreshold", floatrange(0.34,0.43,0.01)],
+       # ["dsoInitializer.densityFactor", floatrange(0.1,1.05,0.05)],
+        #
+        ["bacondMinimumOrbPoint",  intrange(0,300,10)],
+        ["bacondSaturatedRatio", floatrange(0.01,0.16,0.01)],
         ["dsoInitializer.regularizationWeight", floatrange(0.0, 1.05, 0.05)],
         ["dsoInitializer.pointDensity", intrange(600,2200,200)],
-        #["trackcondUncertaintyWeight", floatrange(0.1,2,0.1)],
-        #["trackcondUncertaintyWindow", intrange(1,30)],
-        #["bacondScoreWeight", [0.0125*x for x in alteration]],
-        #["bacondScoreWindow", intrange(1,30)],
+        ["orbInlierRatioThreshold", floatrange(0.35,0.75,0.01)],
+        #["orbUncertaintyThreshold", [-1] + pow10],
+        ["dsoTracker.saturatedThreshold", floatrange(0.30,0.45,0.01)],
+        ["orbKeyframeRatio", floatrange(0.30,0.95,0.01)],
+        ["orbKeyframeReflimit",  intrange(0,300,10)],
+        ["dsoKeyframeResidualRatio", [2.0 * x for x in alteration]],
+        ["dsoKeyframeResidualRatio", [1.0 * x for x in alteration]],
+        ["orbInlierNumThreshold", intrange(0,35,5)],
+        ["trackcondUncertaintyWeight", floatrange(0.1,2,0.1)],
+        ["trackcondUncertaintyWindow", intrange(1,30)],
+        ["bacondScoreWeight", [0.0125*x for x in alteration]],
+        ["bacondScoreWindow", intrange(1,30)],
         #["numOrbCorner", intrange(500,2050,50)],
-        #["dsoBa.iterations", intrange(1,8)],
-        #["dsoBa.maxFrames", intrange(4,8)],
+        ["dsoBa.iterations", intrange(1,8)],
+        ["dsoBa.maxFrames", intrange(4,8)],
         #["dsoBa.optimizeLightA", ["true", "false"]],
         #["dsoBa.optimizeLightB", ["true", "false"]],
         #["dsoTracker.optimizeLightA", ["true", "false"]],
         #["dsoTracker.optimizeLightB", ["true", "false"]],
-        #["dsoBa.forceAccept", ["true", "false"]],
-        #["dsoBa.fixLambda", ["true", "false"]],
-        # ["dsoBa.fixedLambda", [0.00005 * x for x in alteration]],
+        ["dsoBa.fixedLambda", [0.000030, 0.000035, 0.000040, 0.000045, 0.000046, 0.000047, 0.000048, 0.000049, 0.000050, 0.000051, 0.000052, 0.000053, 0.000054, 0.000055, 0.000060, 0.000065, 0.000070, 0.000075, 0.000080]],
         #["bacondUncertaintyWeight", floatrange(0,2,0.2)],
         #["bacondUncertaintyWindow", intrange(1,8)],
-        # ["orbBa.numIteration", intrange(0,10)],
-        # ["orbBa.refineIteration", intrange(0,10)],
-        # ["orbBa.removeEdge", ["true", "false"]],
-        # ["bacondSaturatedRatio", floatrange(0,0.25,0.01)]
+        ["orbBa.numIteration", intrange(0,10)],
+        ["orbBa.refineIteration", intrange(0,10)],
+        ["orbBa.removeEdge", ["true", "false"]],
+        ["bacondSaturatedRatio", floatrange(0,0.25,0.01)]
     ]
 
     dprint("Hello :)\n\n")
     # currentParam = {'numOrbCorner': 500, 'trackcondUncertaintyWeight': 0.4, 'bacondScoreWeight': 0.02, 'trackcondUncertaintyWindow': 8}
-    currentParam = {}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+    # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
     currentMin = 99999999
     currentMaxSuccess = 0
     while True:
@@ -126,7 +132,7 @@ def bruteforceFindBest():
 
                     s = slams[0]
                     name = slams_names[0]
-                    context = s[0](s[1], "modslam.yaml")
+                    context = s[0](s[1], "modslam.yaml") # todo : waaaaaaaaaaarniiiiiiiiing
                     for p in currentParam:
                         context.setconfig(p, currentParam[p])
                     context.setconfig(param[0], v)
@@ -140,8 +146,8 @@ def bruteforceFindBest():
                         toprint = toprint + str(ate) + "\t"
                         currentSum = currentSum + ate
                         currentSuccess = currentSuccess + 1
-                        #if ate > datasets[i].lim():
-                        #    break
+                        if ate > datasets[i].lim() * 1.2:
+                            break
                     except Exception as e:
                         toprint = toprint + context.getError() + "\t"
                         break
@@ -171,7 +177,7 @@ def bruteforceFindBest():
 
             if currentMinI is not None:
                 bestParamModif = [param[0],param[1][currentMinI]]
-                currentParam[param[0]] = param[1][currentMinI]
+                # currentParam[param[0]] = param[1][currentMinI]
 
             #dprint("=========================")
             #dprint(currentParam)
@@ -186,4 +192,7 @@ def bruteforceFindBest():
         dprint("\n\n\n\n\n")
 
 if __name__ == "__main__":
-    bruteforceFindBest()
+    pow10 = [-1] + [math.pow(10,i) for i in range(1,11)]
+    for i in pow10:
+        p = {"orbUncertaintyThreshold": i}
+        bruteforceFindBest(p)

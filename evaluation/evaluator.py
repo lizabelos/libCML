@@ -11,6 +11,7 @@ from evo.tools.file_interface import csv_read_matrix
 from evo.tools.settings import SETTINGS
 
 from utils import system
+from database import addResultToJson, getResultFromJson
 
 
 class EvoEvaluator:
@@ -214,5 +215,22 @@ class SysEvoEvaluator:
 
 
 def fromslam(context):
-    return EvoEvaluator.fromslam(context)
+    h = context.getHash()
+    p = context.getconfig()
+    res = None
+    try:
+        res = EvoEvaluator.fromslam(context)
+        addResultToJson(h, p, res.ape_rmse(), context.d.name())
+    except:
+        addResultToJson(h, p, context.getError(), context.d.name())
+    return res
     #return SysEvoEvaluator.fromslam(context)
+
+def evaluateOn(context, dataset):
+    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name())
+    if r is not None:
+        return r
+    context.run(dataset)
+    evaluator = fromslam(context)
+    ate = evaluator.ape_rmse()
+    return ate

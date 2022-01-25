@@ -17,8 +17,6 @@ dsoBa.optimizeLightB: true
 dsoInitializer.densityFactor: 0.9
 dsoInitializer.pointDensity: 2000
 dsoInitializer.regularizationWeight: 0.45
-dsoKeyframeResidualRatio: 2.0
-dsoKeyframeWeight: 1.0
 dsoTracer.desiredPointDensity: 800
 dsoTracer.immatureDensity: 600
 dsoTracker.optimizeLightA: true
@@ -35,10 +33,7 @@ numOrbCorner: 1250
 orbBa.numIteration: 5
 orbBa.refineIteration: 0
 orbBa.removeEdge: true
-orbInlierNumThreshold: 10
 orbInlierRatioThreshold: 0.51
-orbKeyframeReflimit: 200
-orbKeyframeRatio: 0.9
 orbUncertaintyThreshold: -1
 trackcondForce: 0
 trackcondUncertaintyWeight: 0.75
