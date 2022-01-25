@@ -29,7 +29,7 @@ cmake_policy(SET CMP0072 NEW)
 #######################################################################################################################
 
 option(ENABLE_GUI "Enable GUI" ON)
-option(USE_OPENMP "Use OpenMP" OFF)
+option(USE_OPENMP "Use OpenMP" ON)
 option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
 
 #######################################################################################################################
@@ -55,7 +55,7 @@ if (USE_OPENMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-option(USE_GOOGLE_HASH "Use Google Hash" ON)
+option(USE_GOOGLE_HASH "Use Google Hash" OFF)
 
 # set(BLA_VENDOR Intel10_64lp)
 find_package(BLAS QUIET)

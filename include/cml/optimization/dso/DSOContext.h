@@ -51,6 +51,10 @@ namespace CML {
                 return data;
             }
 
+            Ptr<DSOFrame, NonNullable> unsafe_get(PFrame frame) {
+                return frame->getPrivateData().unsafe_get<DSOFrame>(mFramePrivateDataInstance);
+            }
+
             void free(PPoint point) {
                 point->getPrivate().free(mPointPrivateDataInstance, "DSOContext::free");
             }

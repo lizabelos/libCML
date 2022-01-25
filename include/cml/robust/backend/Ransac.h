@@ -72,7 +72,7 @@ namespace CML::Robust {
 
             if (parallel) {
                 #if CML_USE_OPENMP
-                #pragma omp parallel for schedule(dynamic)
+                #pragma omp  for schedule(dynamic)
                 #endif
                 for (size_t i = 0; i < numIterations; i++) {
 

@@ -159,7 +159,7 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
     int scaleConsistencyFailures = 0, frontFailures = 0, parallaxFailures = 0, finiteFailures = 0;
 
     #if CML_USE_OPENMP
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp  for schedule(dynamic)
     #endif
     for (size_t i = 0; i < matchings.size(); i++) {
 
@@ -328,7 +328,7 @@ void Hybrid::indirectTrackImmature(PFrame currentFrame) {
     auto immatureIndirectPoint = getMap().getGroupMapPointsAsList(IMMATUREINDIRECTPOINT);
 
     #if CML_USE_OPENMP
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp  for schedule(dynamic)
     #endif
     for (size_t i = 0; i < immatureIndirectPoint.size(); i++) {
 

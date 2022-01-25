@@ -31,7 +31,7 @@ namespace CML::Features {
             allPairs.resize(descriptorsA.size());
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for
+            #pragma omp  for
             #endif
             for (int i = 0; i < descriptorsA.size(); i++) {
                 allPairs[i].resize(descriptorsB.size());

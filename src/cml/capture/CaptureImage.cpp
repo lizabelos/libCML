@@ -138,15 +138,18 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
     if (!captureImageMaker.mGrayImage.has_value()) {
         undistortedGrayImage = FloatImage(undistortedColorImage.getWidth(), undistortedColorImage.getHeight());
         wh = undistortedGrayImage.getWidth() * undistortedGrayImage.getHeight();
-        #if CML_USE_OPENMP
-        #pragma omp parallel for schedule(static)
-        #endif
         if (captureImageMaker.mLut.has_value()) {
+            #if CML_USE_OPENMP
+            #pragma omp  for schedule(static)
+            #endif
             for (int i = 0; i < wh; i++) {
                 undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(
                         undistortedColorImage.data()[i].gray());
             }
         } else {
+            #if CML_USE_OPENMP
+            #pragma omp  for schedule(static)
+            #endif
             for (int i = 0; i < wh; i++) {
                 undistortedGrayImage.data()[i] = undistortedColorImage.data()[i].gray();
             }
@@ -154,14 +157,17 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
     } else {
         undistortedGrayImage = captureImageMaker.mGrayImage.value();
         wh = undistortedGrayImage.getWidth() * undistortedGrayImage.getHeight();
-        #if CML_USE_OPENMP
-        #pragma omp parallel for schedule(static)
-        #endif
         if (captureImageMaker.mLut.has_value()) {
+            #if CML_USE_OPENMP
+            #pragma omp  for schedule(static)
+            #endif
             for (int i = 0; i < wh; i++) {
                 undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(undistortedGrayImage.data()[i]);
             }
         } else {
+            #if CML_USE_OPENMP
+            #pragma omp  for schedule(static)
+            #endif
             for (int i = 0; i < wh; i++) {
                 undistortedGrayImage.data()[i] = undistortedGrayImage.data()[i];
             }
@@ -170,7 +176,7 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
 
     if (captureImageMaker.mInverseVignette.has_value()) {
         #if CML_USE_OPENMP
-        #pragma omp parallel for schedule(static)
+        #pragma omp  for schedule(static)
         #endif
         for (int i = 0; i < wh; i++) {
             undistortedGrayImage.data()[i] *= captureImageMaker.mInverseVignette.value().data()[i];

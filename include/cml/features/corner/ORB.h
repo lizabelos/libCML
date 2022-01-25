@@ -107,12 +107,18 @@ namespace CML::Features {
         List<float> mvLevelSigma2;
         List<float> mvInvLevelSigma2;
 
+        Array2D<float> mFilter;
+
+        List<Binary256Descriptor> desc;
+
+
         Ptr<ORBVocabulary, Nullable> mVocabulary;
         scalar_t mScaleFactor;
 
         List<GrayImage> mImages, mBluredImages;
         List<List<Corner>> mAllKeypoints;
         List<Corner> mCorners;
+        List<Corner> vToDistributeKeys;
         List<Binary256Descriptor> mDescriptors;
 
 

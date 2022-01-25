@@ -64,7 +64,7 @@ namespace CML {
         static Array2D<T> from(const AbstractROArray2D<T> &other) {
             Array2D<T> result(other.getWidth(), other.getHeight());
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 0; y < other.getHeight(); y++) {
                 for (int x = 0; x < other.getWidth(); x++) {
@@ -76,7 +76,7 @@ namespace CML {
 
         static void from(const AbstractROArray2D<T> &other, Array2D<T> &result) {
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 0; y < other.getHeight(); y++) {
                 for (int x = 0; x < other.getWidth(); x++) {
@@ -210,7 +210,7 @@ namespace CML {
             GradientImage output(getWidth(), getHeight(), Vector3f(0, 0, 0));
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 1; y < getHeight() - 1; y++) {
                 for (int x = 1; x < getWidth() - 1; x++) {
@@ -222,7 +222,7 @@ namespace CML {
 
         EIGEN_STRONG_INLINE void gradientImage(GradientImage &output) const {
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 0; y < getHeight(); y++) {
                 for (int x = 0; x < getWidth(); x++) {
@@ -230,7 +230,7 @@ namespace CML {
                 }
             }
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 1; y < getHeight() - 1; y++) {
                 for (int x = 1; x < getWidth() - 1; x++) {
@@ -276,6 +276,8 @@ namespace CML {
         }
 
         [[nodiscard]] Array2D<T> resize(int newWidth, int newHeight) const;
+
+        void resize(int newWidth, int newHeight, Array2D<T> &result) const;
         /*
         [[nodiscard]] Array2D<T> resize(int newWidth, int newHeight) const {
             assertThrow(newWidth > 0 && newWidth < 10000 && newHeight > 0 && newHeight < 10000,
@@ -297,7 +299,7 @@ namespace CML {
             int newWidth = getWidth() / 2, newHeight = getHeight() / 2;
             Array2D<T> result(newWidth, newHeight);
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 0; y < newHeight; y++) {
                 for (int x = 0; x < newWidth; x++) {
@@ -312,7 +314,7 @@ namespace CML {
             int newWidth = getWidth() / 2, newHeight = getHeight() / 2;
             Array2D<T> result(newWidth, newHeight);
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int y = 0; y < newHeight; y++) {
                 for (int x = 0; x < newWidth; x++) {
@@ -336,7 +338,118 @@ namespace CML {
             return Array2D<T>(mMatrix.rowwise().reverse());
         }
 
-        Array2D<T> convolution(const Array2D<T> &kernel, bool oldVersion = false) const;
+        template <typename U> void convolution(const Array2D<float> &kernel, Array2D<U> &newImage) const {
+#pragma omp single
+            {
+                if (newImage.getWidth() != getWidth() || newImage.getHeight() != getHeight()) {
+                    newImage = Array2D<U>(getWidth(), getHeight());
+                }
+            }
+
+
+            const int res_shiftx = (kernel.getWidth() - 1) / 2;
+            const int res_shifty = (kernel.getHeight() - 1) / 2;
+            //const int res_shiftx = 0;
+            //const int res_shifty = 0;
+            float tmp[4] __attribute__ ((aligned (16)));
+            __m128 mkernel[kernel.getHeight()][kernel.getWidth()]  __attribute__ ((aligned (16)));
+            for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                    tmp[0] = kernel(ker_x, ker_y);
+                    tmp[1] = tmp[0];
+                    tmp[2] = tmp[0];
+                    tmp[3] = tmp[0];
+                    mkernel[ker_y][ker_x] = _mm_load_ps(tmp);
+                }
+            }
+
+#pragma omp for schedule(static)
+            for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
+                int img_x;
+                for (img_x = 0; img_x < (getWidth() - kernel.getWidth()) - 4; img_x = img_x + 4) {
+
+                    __m128 accumulation  __attribute__ ((aligned (16)));
+                    __m128 datablock  __attribute__ ((aligned (16)));
+                    float tmp[4] __attribute__ ((aligned (16)));
+
+                    accumulation = _mm_setzero_ps();
+                    for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            tmp[0] = mMatrix(img_x + ker_x + 0, img_y + ker_y);
+                            tmp[1] = mMatrix(img_x + ker_x + 1, img_y + ker_y);
+                            tmp[2] = mMatrix(img_x + ker_x + 2, img_y + ker_y);
+                            tmp[3] = mMatrix(img_x + ker_x + 3, img_y + ker_y);
+                            datablock = _mm_load_ps(tmp);
+                            accumulation = _mm_add_ps(_mm_mul_ps(mkernel[ker_y][ker_x], datablock), accumulation);
+                        }
+                    }
+
+                    _mm_store_ps(tmp, accumulation);
+                    newImage(img_x + res_shiftx + 0, img_y + res_shifty) = tmp[0];
+                    newImage(img_x + res_shiftx + 1, img_y + res_shifty) = tmp[1];
+                    newImage(img_x + res_shiftx + 2, img_y + res_shifty) = tmp[2];
+                    newImage(img_x + res_shiftx + 3, img_y + res_shifty) = tmp[3];
+
+                }
+
+                for (img_x = -res_shiftx; img_x < res_shiftx; img_x++) {
+
+                    float accumulation = 0;
+                    for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            accumulation = accumulation + (kernel.get(ker_x, ker_y) * (float)getBorder(img_x + ker_x, img_y + ker_y));
+                        }
+                    }
+                    newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+                }
+
+                for (img_x = (getWidth() - kernel.getWidth()) - 4; img_x + res_shiftx < getWidth(); img_x++) {
+
+                    float accumulation = 0;
+                    for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            accumulation = accumulation + (kernel.get(ker_x, ker_y) * (float)getBorder(img_x + ker_x, img_y + ker_y));
+                        }
+                    }
+                    newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+                }
+
+            }
+
+#pragma omp for schedule(static)
+            for (int img_y = -res_shifty; img_y < res_shifty; img_y++) {
+                int img_x;
+                for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
+
+                    float accumulation = 0;
+                    for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            accumulation = accumulation + (kernel.get(ker_x, ker_y) * (float)getBorder(img_x + ker_x, img_y + ker_y));
+                        }
+                    }
+                    newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+                }
+            }
+
+#pragma omp for schedule(static)
+            for (int img_y = getHeight() - kernel.getHeight(); img_y < (getHeight() - res_shifty); img_y++) {
+                int img_x;
+                for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
+
+                    float accumulation = 0;
+                    for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            accumulation = accumulation + (kernel.get(ker_x, ker_y) * (float)getBorder(img_x + ker_x, img_y + ker_y));
+                        }
+                    }
+                    newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
+
+                }
+            }
+        }
 
         Array2D<T> blur() const {
 
@@ -349,7 +462,7 @@ namespace CML {
             int limitCol = newImage.mMatrix.cols() - KSizeY;
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for ( int col = KSizeY; col < limitCol; col++ ) {
                 for (int row = KSizeX; row < limitRow; row++) {
@@ -374,6 +487,7 @@ namespace CML {
         template<typename U>
         Array2D<U> castToUChar() const {
             Array2D<U> result(getWidth(), getHeight());
+            #pragma omp for schedule(static)
             for (int y = 0; y < result.getHeight(); y++) {
                 for (int x = 0; x < result.getWidth(); x++) {
                     result(x, y) = fastRound(get(x,y));
@@ -383,12 +497,35 @@ namespace CML {
         }
 
         template<typename U>
+        void castToUChar(Array2D<U> &result) const {
+            #pragma omp single
+            {
+                if (result.getWidth() != getWidth() || result.getHeight() != getHeight()) {
+                    result = Array2D<U>(getWidth(), getHeight());
+                }
+            }
+            #pragma omp for schedule(static)
+            for (int y = 0; y < result.getHeight(); y++) {
+                for (int x = 0; x < result.getWidth(); x++) {
+                    result(x, y) = fastRound(get(x,y));
+                }
+            }
+        }
+
+        template<typename U>
         Array2D<U> cast() const {
             if constexpr ((std::is_same<T, float>::value || std::is_same<T, double>::value) && std::is_same<U, unsigned char>::value) {
                 return castToUChar<U>();
+            } else {
+                Array2D<U> result(getWidth(), getHeight());
+                #pragma omp for
+                for (int y = 0; y < result.getHeight(); y++) {
+                    for (int x = 0; x < result.getWidth(); x++) {
+                        result(x, y) = get(x,y);
+                    }
+                }
+                return result;
             }
-            Array2D<U> result(mMatrix.template cast<U>());
-            return result;
         }
 
 
@@ -409,7 +546,7 @@ namespace CML {
             Array2D<float> output(getWidth(), getHeight(), 0.0f);
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for collapse(2) schedule(static)
+            #pragma omp  for collapse(2) schedule(static)
             #endif
             for (int x = 0; x < getWidth(); x++) {
                 for (int y = 0; y < getHeight(); y++) {
@@ -433,7 +570,7 @@ namespace CML {
             T m = max();
             const int wh = getWidth() * getHeight();
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
                 mMatrix.data()[i] = mMatrix.data()[i] / m;
@@ -443,7 +580,7 @@ namespace CML {
         void elementWiseInverse() {
             const int wh = getWidth() * getHeight();
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
                 mMatrix.data()[i] = T(1) / mMatrix.data()[i];
@@ -454,7 +591,7 @@ namespace CML {
             Array2D<T> result(getWidth(), getHeight());
             const int wh = getWidth() * getHeight();
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
                 if (data()[i] > max) {

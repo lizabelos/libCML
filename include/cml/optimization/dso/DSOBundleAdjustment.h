@@ -191,6 +191,14 @@ namespace CML {
 
             Set<PPoint, Hasher> mOutliers;
 
+            List<Matrix<Dynamic, Dynamic>> sdt_tH;
+            List<Vector<Dynamic>> sdt_tb;
+
+
+            Matrix<Dynamic, Dynamic> HL_top, HA_top, H_sc;
+            Vector<Dynamic> bL_top, bA_top, bM_top, b_sc;
+
+
             PStatistic mStatisticEnergyP = createStatistic("P Energy ( All residuals )");
             PStatistic mStatisticEnergyR = createStatistic("R Energy");
             PStatistic mStatisticEnergyL = createStatistic("L Energy ( Linearized )");

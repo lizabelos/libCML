@@ -1004,37 +1004,32 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
         lambda = mFixedLambda.f();
     }
 
-    Matrix<Dynamic, Dynamic> HL_top, HA_top, H_sc;
-    Vector<Dynamic> bL_top, bA_top, bM_top, b_sc;
-
     List<Pair<PPoint, Ptr<DSOPoint, NonNullable>>> points = getPointsAsList();
 
     // accumulateAF_MT
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
-    for (int i = 0; i < points.size(); i++) {
-        addToHessianTop(points[i].first, points[i].second, DSORES_ACTIVE);
-    }
-    stitchDoubleTop(mAccumulatorActive, HA_top, bA_top, false);
+    //#pragma omp parallel
+    {
 
-    // accumulateLF_MT
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
-    for (int i = 0; i < points.size(); i++) {
-        addToHessianTop(points[i].first, points[i].second, DSORES_LINEARIZED);
-    }
-    stitchDoubleTop(mAccumulatorLinearized, HL_top, bL_top, true);
+        #pragma omp for
+        for (int i = 0; i < points.size(); i++) {
+            addToHessianTop(points[i].first, points[i].second, DSORES_ACTIVE);
+        }
+        stitchDoubleTop(mAccumulatorActive, HA_top, bA_top, false);
 
-    // accumulateSCF_MT
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
-    for (int i = 0; i < points.size(); i++) {
-        addToHessianSC(points[i].first, points[i].second, true);
+        // accumulateLF_MT
+        #pragma omp for
+        for (int i = 0; i < points.size(); i++) {
+            addToHessianTop(points[i].first, points[i].second, DSORES_LINEARIZED);
+        }
+        stitchDoubleTop(mAccumulatorLinearized, HL_top, bL_top, true);
+
+        // accumulateSCF_MT
+        #pragma omp for
+        for (int i = 0; i < points.size(); i++) {
+            addToHessianSC(points[i].first, points[i].second, true);
+        }
+        stitchDoubleSC(H_sc, b_sc);
     }
-    stitchDoubleSC(H_sc, b_sc);
 
     // stitched Delta
     Vector<Dynamic> d = Vector<Dynamic>(CPARS+getFrames().size()*8);
@@ -1539,7 +1534,7 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
         }
 
         DSORawResidualJacobian &rJ = r->efsJ;
-        int htIDX = get(point->getReferenceFrame())->id + get(r->elements.frame)->id * getFrames().size();
+        int htIDX = unsafe_get(point->getReferenceFrame())->id + unsafe_get(r->elements.frame)->id * getFrames().size();
         Vector8f dp = mAdHTdeltaF[htIDX].cast<float>();
 
 
@@ -1645,19 +1640,44 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
 void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrix<Dynamic, Dynamic> &fH, Vector<Dynamic> &fb, bool usePrior) {
 
-    fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-    fb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
-
-    Mutex mutex;
+    #pragma omp single
+    {
+        if (fH.rows() != getFrames().size() * 8 + 4) {
+            fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
+            fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
+        } else {
+            fH.setZero();
+            fb.setZero();
+        }
+        if (sdt_tH.size() != omp_get_num_threads()) {
+            sdt_tH.resize(omp_get_num_threads());
+            sdt_tb.resize(omp_get_num_threads());
+            for (int i = 0; i < sdt_tH.size(); i++) {
+                sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+                sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+            }
+        }
+        if (sdt_tH[0].rows() != getFrames().size() * 8 + 4) {
+            for (int i = 0; i < sdt_tH.size(); i++) {
+                sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+                sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+            }
+        }
+    }
 
     #if CML_USE_OPENMP
-    #pragma omp for collapse(2) schedule(static) ordered
+    #pragma omp for
     #endif
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
-            Matrix<Dynamic, Dynamic> tH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-            Vector<Dynamic> tb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+            int tid = omp_get_thread_num();
+
+            Matrix<Dynamic, Dynamic> &tH = sdt_tH[tid]; // Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+            Vector<Dynamic> &tb = sdt_tb[tid]; //Vector<Dynamic>::Zero(getFrames().size()*8+4);
+
+            tH.setZero();
+            tb.setZero();
 
             int hIdx = 4 + h * 8;
             int tIdx = 4 + t * 8;
@@ -1688,40 +1708,40 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
             tb.head<4>().noalias() += accH.block<4, 1>(0, 8 + 4);
 
-            LockGuard lg(mutex);
-            fH += tH;
-            fb += tb;
+            #pragma omp critical
+            {
+                fH += tH;
+                fb += tb;
+            }
 
 
 
         }
     }
 
-    if(usePrior)
+#pragma omp single
     {
-        fH.diagonal().head<4>() += mCPrior;
-        fb.head<4>() += mCPrior.cwiseProduct(mCDeltaF.cast<scalar_t>());
-        for(size_t h=0;h<getFrames().size();h++)
-        {
-            auto self = get(getFrames()[h]);
-            fH.diagonal().segment<8>(4+h*8) += self->prior;
-            fb.segment<8>(4+h*8) += self->prior.cwiseProduct(self->delta_prior);
+        if (usePrior) {
+            fH.diagonal().head<4>() += mCPrior;
+            fb.head<4>() += mCPrior.cwiseProduct(mCDeltaF.cast<scalar_t>());
+            for (size_t h = 0; h < getFrames().size(); h++) {
+                auto self = get(getFrames()[h]);
+                fH.diagonal().segment<8>(4 + h * 8) += self->prior;
+                fb.segment<8>(4 + h * 8) += self->prior.cwiseProduct(self->delta_prior);
+            }
+        }
+
+        for (size_t h = 0; h < getFrames().size(); h++) {
+            int hIdx = 4 + h * 8;
+            fH.block<4, 8>(0, hIdx).noalias() = fH.block<8, 4>(hIdx, 0).transpose();
+
+            for (size_t t = h + 1; t < getFrames().size(); t++) {
+                int tIdx = 4 + t * 8;
+                fH.block<8, 8>(hIdx, tIdx).noalias() += fH.block<8, 8>(tIdx, hIdx).transpose();
+                fH.block<8, 8>(tIdx, hIdx).noalias() = fH.block<8, 8>(hIdx, tIdx).transpose();
+            }
         }
     }
-
-    for(size_t h=0;h<getFrames().size();h++)
-    {
-        int hIdx = 4+h*8;
-        fH.block<4,8>(0,hIdx).noalias() = fH.block<8,4>(hIdx,0).transpose();
-
-        for(size_t t=h+1;t<getFrames().size();t++)
-        {
-            int tIdx = 4+t*8;
-            fH.block<8,8>(hIdx, tIdx).noalias() += fH.block<8,8>(tIdx, hIdx).transpose();
-            fH.block<8,8>(tIdx, hIdx).noalias() = fH.block<8,8>(hIdx, tIdx).transpose();
-        }
-    }
-
 }
 
 void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DSOPoint, NonNullable> self, bool shiftPriorToZero) {

@@ -368,7 +368,7 @@ void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> 
     Array2D<float> output(cp.getWidth(0), cp.getHeight(0), 0.0f);
     makeMaps(cp, output.data(), density, recursionsLeft, thFactor);
 
-    // #pragma omp parallel for collapse(2) // todo : thread safe list
+    // #pragma omp  for collapse(2) // todo : thread safe list
     for (int i = 32; i < cp.getWidth(0) - 32; i++) {
         for (int j = 32; j < cp.getHeight(0) - 32; j++) {
             if (output(i, j) != 0 && cp.getDerivativeImage(0).get(i, j).allFinite()) {

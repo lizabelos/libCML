@@ -31,13 +31,13 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
                           (currentFrame->getWidth(0) + currentFrame->getHeight(0)) +
                           setting_maxShiftWeightRT * CML::sqrt(mLastPhotometricTrackingResidual.flowVector[2]) /
                           (currentFrame->getWidth(0) + currentFrame->getHeight(0)) +
-                          setting_maxAffineWeight * abs(log(refToFh[0])) > 1;
+                          setting_maxAffineWeight * abs(log(refToFh[0])) > mDsoKeyframeWeight.f();
 
         if (mFirstDirectRMSE < 0) {
             mFirstDirectRMSE = mLastPhotometricTrackingResidual.rmse();
         }
 
-        bool trackingResidualTooBig = mLastPhotometricTrackingResidual.rmse() > 2 * mFirstDirectRMSE;
+        bool trackingResidualTooBig = mLastPhotometricTrackingResidual.rmse() > mDsoKeyframeResidualRatio.f() * mFirstDirectRMSE;
         //bool trackingResidualTooBig = false;
 
         if (flowTooBig) {

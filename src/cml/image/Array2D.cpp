@@ -6,6 +6,7 @@
 #ifdef WIN32
 #define HAVE_BOOLEAN
 #endif
+
 #include <thirdparty/gdcmjpeg/8/jpeglib.h>
 #include "lodepng/lodepng.h"
 
@@ -359,7 +360,7 @@ CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, 
     CML::Array2D<CML::ColorRGBA> result(newWidth, newHeight);
 
 #if CML_USE_OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp  for collapse(2) schedule(static)
 #endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
@@ -384,7 +385,7 @@ CML::Array2D<float> CML::Array2D<float>::resize(int newWidth, int newHeight) con
     CML::Array2D<float> result(newWidth, newHeight);
 
 #if CML_USE_OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp  for collapse(2) schedule(static)
 #endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
@@ -409,7 +410,7 @@ CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, in
     CML::Array2D<unsigned char> result(newWidth, newHeight);
 
 #if CML_USE_OPENMP
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp  for collapse(2) schedule(static)
 #endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
@@ -424,142 +425,35 @@ CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, in
 
 }
 
-
 template<>
-CML::Array2D<float> CML::Array2D<float>::convolution(const Array2D<float> &kernel, bool oldVersion) const {
-
-    if (!oldVersion) {
-
-        Array2D<float> newImage(*this);
-
-        const int res_shiftx = (kernel.getWidth() - 1) / 2;
-        const int res_shifty = (kernel.getHeight() - 1) / 2;
-        //const int res_shiftx = 0;
-        //const int res_shifty = 0;
-
-        float tmp[4] __attribute__ ((aligned (16)));
-        __m128 mkernel[kernel.getHeight()][kernel.getWidth()]  __attribute__ ((aligned (16)));
-        for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-            for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                tmp[0] = kernel(ker_x, ker_y);
-                tmp[1] = tmp[0];
-                tmp[2] = tmp[0];
-                tmp[3] = tmp[0];
-                mkernel[ker_y][ker_x] = _mm_load_ps(tmp);
-            }
+void CML::Array2D<unsigned char>::resize(int newWidth, int newHeight, Array2D<unsigned char> &result) const {
+#pragma omp single
+    {
+        if (result.getWidth() != newWidth || result.getHeight() != newHeight) {
+            result = CML::Array2D<unsigned char>(newWidth, newHeight);
         }
+    }
 
-#pragma omp for schedule(static)
-        for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
-            int img_x;
-            for (img_x = 0; img_x < (getWidth() - kernel.getWidth()) - 4; img_x = img_x + 4) {
-
-                __m128 accumulation  __attribute__ ((aligned (16)));
-                __m128 datablock  __attribute__ ((aligned (16)));
-                float tmp[4] __attribute__ ((aligned (16)));
-
-                accumulation = _mm_setzero_ps();
-                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                        datablock = _mm_loadu_ps(&mMatrix(img_x + ker_x, img_y + ker_y));
-                        accumulation = _mm_add_ps(_mm_mul_ps(mkernel[ker_y][ker_x], datablock), accumulation);
-                    }
-                }
-
-                _mm_store_ps(tmp, accumulation);
-                newImage(img_x + res_shiftx + 0, img_y + res_shifty) = tmp[0];
-                newImage(img_x + res_shiftx + 1, img_y + res_shifty) = tmp[1];
-                newImage(img_x + res_shiftx + 2, img_y + res_shifty) = tmp[2];
-                newImage(img_x + res_shiftx + 3, img_y + res_shifty) = tmp[3];
-
-            }
-
-            for (img_x = -res_shiftx; img_x < res_shiftx; img_x++) {
-
-                float accumulation = 0;
-                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
-                    }
-                }
-                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
-
-            }
-
-            for (img_x = (getWidth() - kernel.getWidth()) - 4; img_x + res_shiftx < getWidth(); img_x++) {
-
-                float accumulation = 0;
-                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
-                    }
-                }
-                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
-
-            }
-
+#if CML_USE_OPENMP
+#pragma omp  for collapse(2) schedule(static)
+#endif
+    for (int y = 0; y < newHeight; y++) {
+        for (int x = 0; x < newWidth; x++) {
+            result(x, y) = interpolate(Vector2f(
+                    (float) x / (float) newWidth * ((float) getWidth() - 0.5f),
+                    (float) y / (float) newHeight * ((float) getHeight() - 0.5f)
+            ));
         }
-
-        for (int img_y = -res_shifty; img_y < res_shifty; img_y++) {
-            int img_x;
-            for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
-
-                float accumulation = 0;
-                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
-                    }
-                }
-                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
-
-            }
-        }
-
-        for (int img_y = getHeight() - kernel.getHeight(); img_y + res_shifty < getHeight(); img_y++) {
-            int img_x;
-            for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
-
-                float accumulation = 0;
-                for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
-                    for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
-                        accumulation = accumulation + (kernel.get(ker_x, ker_y) * getBorder(img_x + ker_x, img_y + ker_y));
-                    }
-                }
-                newImage(img_x + res_shiftx, img_y + res_shifty) = accumulation;
-
-            }
-        }
-
-        return newImage;
-    } else {
-
-        Array2D<float> newImage(*this);
-
-        int KSizeX = kernel.mMatrix.rows();
-        int KSizeY = kernel.mMatrix.cols();
-
-        int limitRow = newImage.mMatrix.rows() - KSizeX;
-        int limitCol = newImage.mMatrix.cols() - KSizeY;
-
-        for (int col = KSizeY; col < limitCol; col++) {
-            for (int row = KSizeX; row < limitRow; row++) {
-                newImage.mMatrix(row,
-                                 col) = (static_cast<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>>(mMatrix.block(
-                        row, col, KSizeX, KSizeY)).cwiseProduct(kernel.mMatrix)).sum();
-            }
-        }
-
-        return newImage;
     }
 }
 
 CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, size_t lenght) {
-    std::istringstream input_TIFF_stream(std::string((char*)str, lenght));
+    std::istringstream input_TIFF_stream(std::string((char *)str, lenght));
 
 //Populate input_TIFF_stream with TIFF image data
 //...
 
-    TIFF* tif = TIFFStreamOpen("MemTIFF", &input_TIFF_stream);
+    TIFF *tif = TIFFStreamOpen("MemTIFF", &input_TIFF_stream);
 
     if (!tif) {
         throw std::runtime_error("Can't open the tiff file");
@@ -580,14 +474,14 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
     if (!buf) {
         throw std::runtime_error("tiff can't malloc ?");
     }
-    uint8_t *buf8 = (uint8_t*)buf;
+    uint8_t *buf8 = (uint8_t *) buf;
 
     uint32_t mask = 0;
     for (uint32_t i = 0; i < bitspersample; i++) {
         mask ^= 1U << i;
     }
 
-    float factor = 255.0f / (float)pow(2, bitspersample);
+    float factor = 255.0f / (float) pow(2, bitspersample);
 
     for (uint32_t y = 0; y < height; y++) {
         TIFFReadScanline(tif, buf, y);
@@ -603,22 +497,22 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
                 uint32_t left = currentBitPosition % 8;
                 uint32_t right = (32 - bitspersample) - left;
 
-                uint32_t *pintensity = (uint32_t*)&buf8[pos];
+                uint32_t *pintensity = (uint32_t *) &buf8[pos];
                 uint32_t intensity = *pintensity;
 
                 intensity = intensity >> right;
                 intensity = intensity & mask;
 
-                float value = (float)intensity * factor;
+                float value = (float) intensity * factor;
 
                 if (c == 0) {
-                    colorImage(x,y).g() = value;
+                    colorImage(x, y).g() = value;
 
                 } else if (c == 1) {
-                    colorImage(x,y).b() = value;
+                    colorImage(x, y).b() = value;
 
                 } else if (c == 2) {
-                    colorImage(x,y).r() = value;
+                    colorImage(x, y).r() = value;
 
                 }
 
@@ -628,9 +522,9 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
 
             }
 
-            avg /= (float)depth;
+            avg /= (float) depth;
 
-            image(x,y)=avg;
+            image(x, y) = avg;
 
         }
     }
@@ -653,7 +547,7 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
      * struct, to avoid dangling-pointer problems.
      */
     /* More stuff */
-    FILE * infile;    /* source file */
+    FILE *infile;    /* source file */
     JSAMPARRAY buffer;    /* Output row buffer */
     int row_stride;    /* physical row width in output buffer */
 
@@ -727,8 +621,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i];
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i];
+                    resultFloat(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i];
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i];
                 }
             }
             break;
@@ -741,8 +635,10 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = (float)(((unsigned char*)buffer[0])[i * 3] + ((unsigned char*)buffer[0])[i * 3 + 1] + ((unsigned char*)buffer[0])[i * 3 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * 3];
+                    resultFloat(i, cinfo.output_scanline) =
+                            (float) (((unsigned char *) buffer[0])[i * 3] + ((unsigned char *) buffer[0])[i * 3 + 1] +
+                                     ((unsigned char *) buffer[0])[i * 3 + 2]) / 3;
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * 3];
                 }
             }
             break;
@@ -755,8 +651,10 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = (float)(((unsigned char*)buffer[0])[i * 4] + ((unsigned char*)buffer[0])[i * 4 + 1] + ((unsigned char*)buffer[0])[i * 4 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * 4];
+                    resultFloat(i, cinfo.output_scanline) =
+                            (float) (((unsigned char *) buffer[0])[i * 4] + ((unsigned char *) buffer[0])[i * 4 + 1] +
+                                     ((unsigned char *) buffer[0])[i * 4 + 2]) / 3;
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * 4];
                 }
             }
             break;
@@ -769,8 +667,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * cinfo.num_components];
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char*)buffer[0])[i * cinfo.num_components];
+                    resultFloat(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
+                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
                 }
             }
             break;
@@ -812,7 +710,7 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadPngImage(const std::string &path
     unsigned error = lodepng::decode(image, width, height, path.c_str());
 
     //if there's an error, display it
-    if(error) {
+    if (error) {
         throw std::runtime_error("Decode error : " + std::string(lodepng_error_text(error)));
     }
 

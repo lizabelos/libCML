@@ -375,7 +375,7 @@ namespace CML {
             int wh = mNewSize.x() * mNewSize.y();
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
                 if (std::isfinite(mUndistortMap.data()[i][0])) {
@@ -398,7 +398,7 @@ namespace CML {
             int wh = mNewSize.x() * mNewSize.y();
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
                 if (std::isfinite(mUndistortMap.data()[i][0])) {

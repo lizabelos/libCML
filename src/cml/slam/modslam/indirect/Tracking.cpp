@@ -22,7 +22,9 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     assertDeterministic("Hash of ORB extracted descriptors", computeHashOfDescriptors(currentFrameData->descriptors));
 */
 
+    #pragma omp parallel
     mCornerExtractor->compute(currentFrame->getCaptureFrame());
+
     currentFrameData->descriptors = mCornerExtractor->getDescriptors();
 
     assertDeterministic("Number of ORB points extracted", currentFrameData->descriptors.size());
@@ -131,7 +133,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
-    if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+    if (numInliers >= mOrbInlierNumThreshold.i() && inliersRatio > mOrbInlierRatioThreshold.f()) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
         for (size_t i = 0; i < matchings.size(); i++) {
             if (outliers[i]) {
@@ -196,7 +198,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
-    if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+    if (numInliers >= mOrbInlierNumThreshold.i() && inliersRatio > mOrbInlierRatioThreshold.f()) {
         currentFrame->setCamera(mLastIndirectTrackingResult.camera);
         for (size_t i = 0; i < matchings.size(); i++) {
             if (outliers[i]) {
@@ -440,8 +442,8 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
 
     int numTrackedRef = indirectNumTrackedRef();
 
-    if (numTrackedRef > 200) {
-        numTrackedRef = 200;
+    if (numTrackedRef > mOrbKeyframeReflimit.i()) {
+        numTrackedRef = mOrbKeyframeReflimit.i();
     }
 
     // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
@@ -451,7 +453,7 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     //scalar_t threshold = exp(log(numTrackedRef) * 0.975);
 
-    scalar_t threshold = numTrackedRef * 0.9;
+    scalar_t threshold = numTrackedRef * mOrbKeyframeRatio.f();
     logger.important("Num tracked ref : " + std::to_string(numTrackedRef));
     logger.important("Indirect keyframe threshold : " + std::to_string(threshold));
     logger.important("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));

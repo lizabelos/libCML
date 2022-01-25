@@ -170,7 +170,7 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
         resolutionsStr += std::to_string(currentFrame->getWidth(i)) + "x" + std::to_string(currentFrame->getHeight(i));
     }
 
-    CML::logger.important("New frame. Id = " + std::to_string(currentFrame->getId()) + ". Pyramid resolutions : " + resolutionsStr);
+    CML::logger.raw("New frame. Id = " + std::to_string(currentFrame->getId()) + ". Pyramid resolutions : " + resolutionsStr + "\n");
 
     return currentFrame;
 }

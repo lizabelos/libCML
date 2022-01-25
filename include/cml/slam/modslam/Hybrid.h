@@ -310,7 +310,15 @@ private:
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", -1);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
     Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.5f);
+    Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 10);
+
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
+
+    Parameter mOrbKeyframeReflimit = createParameter("orbKeyframeReflimit", 200);
+    Parameter mOrbKeyframeRatio = createParameter("orbKeyframeRatio", 0.9f);
+
+    Parameter mDsoKeyframeWeight = createParameter("dsoKeyframeWeight", 1.0f);
+    Parameter mDsoKeyframeResidualRatio = createParameter("dsoKeyframeResidualRatio", 2.0f);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

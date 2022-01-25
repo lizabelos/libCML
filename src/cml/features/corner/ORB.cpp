@@ -20,6 +20,8 @@ AbstractFunction(parent), nlevels(_nlevels), iniThFAST(_iniThFAST), minThFAST(_m
 
     reinitialize();
 
+    mFilter = Filter::gaussian(7, 7, 2, 2);
+
 }
 
 void CML::Features::ORB::reinitialize() {
@@ -94,64 +96,49 @@ void CML::Features::ORB::reinitialize() {
 
 void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
-    mCorners.clear();
-    mDescriptors.clear();
-
-    mImages[0] = captureImage.getGrayImage(0).cast<unsigned char>();
-    for (int i = 1; i < nlevels; i++) {
-        float scale = mvInvScaleFactor[i];
-        Vector2i sz(fastRound((float)captureImage.getWidth(0) * scale), fastRound((float)captureImage.getHeight(0) * scale));
-#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVIMAGE
-        mImages[i] = OpenCV::resize(mImages[i - 1], sz.x(), sz.y());
-#else
-        mImages[i] = mImages[i - 1].resize(sz.x(), sz.y());
-#endif
+    #pragma omp single
+    {
+        mCorners.clear();
+        mDescriptors.clear();
     }
 
-   // List<List<Corner>> allKeypoints;
+    captureImage.getGrayImage(0).castToUChar(mImages[0]);
+    for (int i = 1; i < nlevels; i++) {
+        mImages[i - 1].resize(fastRound((float)captureImage.getWidth(0) * mvInvScaleFactor[i]), fastRound((float)captureImage.getHeight(0) * mvInvScaleFactor[i]), mImages[i]);
+    }
+
     computeKeyPointsOctTree();
 
-    // auto gaussianFilter = Filter::gaussian(7, 7, 2, 2);
-
-    int offset = 0;
     for (int level = 0; level < nlevels; ++level)
     {
-        List<Corner>& keypoints = mAllKeypoints[level];
-        int nkeypointsLevel = (int)keypoints.size();
+        int nkeypointsLevel = (int)mAllKeypoints[level].size();
 
         if(nkeypointsLevel == 0) {
             continue;
         }
 
         // preprocess the resized image
-        //mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
-        //mBluredImages[level] = OpenCV::gaussianBlur(mImages[level], 7, 7, 2, 2);
-#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVIMAGE
-        mBluredImages[level] = OpenCV::blur(mImages[level], 7, 7);
-#else
-        mBluredImages[level] = Filter::applyGaussian(mImages[level].cast<float>(), 7, 7, 2, 2).cast<unsigned char>();
-#endif
+        mImages[level].convolution(mFilter, mBluredImages[level]);
+
 
         // Compute the descriptors
-        List<Binary256Descriptor> desc;
-        computeDescriptors(mBluredImages[level], keypoints, desc);
-
-        offset += nkeypointsLevel;
+        computeDescriptors(mBluredImages[level], mAllKeypoints[level], desc);
 
         // Scale keypoint coordinates
-        if (level != 0)
+        #pragma omp single
         {
-            float scale = mvScaleFactor[level]; //getScale(level, firstLevel, scaleFactor);
-            for (Corner &keypoint : keypoints) {
-                keypoint.scalePoint(scale);
-
+            if (level != 0) {
+                float scale = mvScaleFactor[level]; //getScale(level, firstLevel, scaleFactor);
+                for (Corner &keypoint: mAllKeypoints[level]) {
+                    keypoint.scalePoint(scale);
+                }
             }
-        }
-        // And add the keypoints to the output
-        for (int j = 0; j < keypoints.size(); j++) {
-            keypoints[j].padPoint(0.5, 0.5);
-            mCorners.emplace_back(keypoints[j]);
-            mDescriptors.emplace_back(desc[j]);
+            // And add the keypoints to the output
+            for (int j = 0; j < mAllKeypoints[level].size(); j++) {
+                mAllKeypoints[level][j].padPoint(0.5, 0.5);
+                mCorners.emplace_back(mAllKeypoints[level][j]);
+                mDescriptors.emplace_back(desc[j]);
+            }
         }
 
     }
@@ -162,8 +149,11 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
 void CML::Features::ORB::computeKeyPointsOctTree() {
 
-    for (int i = 0; i < nlevels; i++) {
-        mAllKeypoints[i].clear();
+    #pragma omp single
+    {
+        for (int i = 0; i < nlevels; i++) {
+            mAllKeypoints[i].clear();
+        }
     }
 
     const float W = 30;
@@ -175,8 +165,11 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
         const int maxBorderX = mImages[level].getWidth() - EDGE_THRESHOLD+3;
         const int maxBorderY = mImages[level].getHeight() - EDGE_THRESHOLD+3;
 
-        List<Corner> vToDistributeKeys;
-        vToDistributeKeys.reserve(mNumCorner.i() * 10);
+#pragma omp single
+        {
+            vToDistributeKeys.clear();
+            vToDistributeKeys.reserve(mNumCorner.i() * 10);
+        }
 
         const float width = (maxBorderX-minBorderX);
         const float height = (maxBorderY-minBorderY);
@@ -198,6 +191,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 maxY = maxBorderY;
             }
 
+            #pragma omp for ordered
             for(int j=0; j<nCols; j++)
             {
                 const float iniX =minBorderX+j*wCell;
@@ -209,14 +203,6 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
-#if CML_HAVE_OPENCV && CML_ORB_USEOPENCVFAST
-                List<Corner> vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), iniThFAST, true);
-
-                if(vKeysCell.empty())
-                {
-                    vKeysCell = OpenCV::FAST(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), minThFAST, true);
-                }
-#else
                 List<Corner> vKeysCell;
                 FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST, FAST_9, true);
 
@@ -224,8 +210,8 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 {
                     FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST, FAST_9, true);
                 }
-#endif
 
+                #pragma omp ordered
                 if(!vKeysCell.empty())
                 {
                     for(Corner &corner : vKeysCell)
@@ -239,25 +225,29 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
             }
         }
 
-        List<Corner> & keypoints = mAllKeypoints[level];
-        distributeOctTree(vToDistributeKeys, keypoints, minBorderX, maxBorderX, minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);
-
-        const int scaledPatchSize = PATCH_SIZE*mvScaleFactor[level];
-
-        // Add border to coordinates and scale information
-        const int nkps = keypoints.size();
-        for(int i=0; i<nkps ; i++)
+        #pragma omp single
         {
-            keypoints[i].padPoint(minBorderX, minBorderY);
-            keypoints[i].setLevel(level);
-            keypoints[i].setScaleFactor(mScaleFactor);
-            keypoints[i].setSize(scaledPatchSize);
+            List<Corner> &keypoints = mAllKeypoints[level];
+            distributeOctTree(vToDistributeKeys, keypoints, minBorderX, maxBorderX, minBorderY, maxBorderY,
+                              mnFeaturesPerLevel[level], level);
+
+            const int scaledPatchSize = PATCH_SIZE * mvScaleFactor[level];
+
+            // Add border to coordinates and scale information
+            const int nkps = keypoints.size();
+            for (int i = 0; i < nkps; i++) {
+                keypoints[i].padPoint(minBorderX, minBorderY);
+                keypoints[i].setLevel(level);
+                keypoints[i].setScaleFactor(mScaleFactor);
+                keypoints[i].setSize(scaledPatchSize);
+            }
+            logger.important("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
         }
 
-        logger.important("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
     }
 
     // compute orientations
+    #pragma omp for
     for (int level = 0; level < nlevels; ++level) {
         computeOrientation(mImages[level], mAllKeypoints[level], umax);
     }
@@ -500,10 +490,14 @@ void CML::Features::ORB::distributeOctTree(const List<Corner>& vToDistributeKeys
 
 void CML::Features::ORB::computeDescriptors(const GrayImage &image, List<Corner> &keypoints, List<Binary256Descriptor> &descriptors) {
 
-    descriptors.resize(keypoints.size());
+    #pragma omp single
+    {
+        descriptors.clear();
+        descriptors.resize(keypoints.size());
+    }
 
     #if CML_USE_OPENMP
-    #pragma omp parallel for schedule(static)
+    #pragma omp  for schedule(static)
     #endif
     for (size_t i = 0; i < keypoints.size(); i++) {
         descriptors[i] = computeDescriptor(keypoints[i], image);

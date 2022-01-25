@@ -585,7 +585,7 @@ void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoi
             //List<float>& idepthl = mNewCD->mIdepth[lvl];	// dotnt need to make a temp copy of depth, since I only
             // read values with weightSumsl>0, and write ones with weightSumsl<=0.
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(static)
+            #pragma omp  for schedule(static)
             #endif
             for(int i=wl;i<wh;i++)
             {
@@ -624,7 +624,7 @@ void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoi
         //List<float>& idepthl = mNewCD->mIdepth[lvl];	// dotnt need to make a temp copy of depth, since I only
         // read values with weightSumsl>0, and write ones with weightSumsl<=0.
         #if CML_USE_OPENMP
-        #pragma omp parallel for schedule(static)
+        #pragma omp  for schedule(static)
         #endif
         for(int i=wl;i<wh;i++)
         {

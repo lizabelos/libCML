@@ -24,7 +24,7 @@ namespace CML {
 
             if (parallel) {
                 #if CML_USE_OPENMP
-                #pragma omp parallel for schedule(dynamic)
+                #pragma omp  for schedule(dynamic)
                 #endif
                 for (size_t i = 0; i < pointsA.size(); i++) {
                     results[i] = triangulate(cameraA, cameraB, pointsA[i], pointsB[i]);
@@ -47,7 +47,7 @@ namespace CML {
             results.resize(matchings.size());
 
             #if CML_USE_OPENMP
-            #pragma omp parallel for schedule(dynamic)
+            #pragma omp  for schedule(dynamic)
             #endif
             for (size_t i = 0; i < matchings.size(); i++) {
                 results[i] = triangulate(frameA, frameB, matchings[i]);
@@ -63,7 +63,7 @@ namespace CML {
 
             if (parallel) {
                 #if CML_USE_OPENMP
-                #pragma omp parallel for schedule(dynamic)
+                #pragma omp  for schedule(dynamic)
                 #endif
                 for (size_t i = 0; i < matchings.size(); i++) {
                     results[i] = triangulate(frameA, frameB, matchings[i]);
