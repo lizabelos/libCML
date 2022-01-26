@@ -133,7 +133,7 @@ def bruteforceFindBest(currentParam):
 
                     s = slams[0]
                     name = slams_names[0]
-                    context = s[0](s[1], "modslam.yaml")
+                    context = s[0](s[1], "modslam.yaml") # todo : waaaaaaaaaaarniiiiiiiiing
                     for p in currentParam:
                         context.setconfig(p, currentParam[p])
                     context.setconfig(param[0], v)
