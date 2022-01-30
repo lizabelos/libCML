@@ -10,15 +10,19 @@ def intrange(a, b, c = 1):
 def floatrange(a, b, c = 1.0):
     return [float(x) for x in np.arange(a,b,c)]
 
-def system(command):
+def system(command, disable_openmp=True):
+    my_env = os.environ.copy()
+    if disable_openmp:
+        my_env["OMP_NUM_THREADS"]="1"
     # os.system(command)
     # os.system(command + ">/dev/null 2>/dev/null")
     # return "", 0
+    # print(command)
     for l in csv.reader([command], delimiter=' ', quotechar='"'):
         executable = l[0]
         wd = os.path.dirname(os.path.realpath(executable))
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
-        p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd)
+        p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
         out, err = p.communicate()
         errcode = p.returncode
         # print("Command finished")

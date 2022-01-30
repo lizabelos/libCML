@@ -13,14 +13,14 @@ def statsOn(configName, tableName):
 
         context.run(datasets[i])
 
-        try:
+        if True:
             evaluation = evaluator.fromslam(context)
             ate = evaluation.ape_rmse()
             rpe = evaluation.rpe_rmse()
 
             print(ate)
-        except:
-            print("Error : " + str(context.getError()))
+        #except:
+        #    print("Error : " + str(context.getError()))
 
 if __name__ == "__main__":
     statsOn("modslam.yaml", "modslam.csv")
