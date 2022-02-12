@@ -320,7 +320,7 @@ private:
     Parameter mDsoKeyframeWeight = createParameter("dsoKeyframeWeight", 1.0f);
     Parameter mDsoKeyframeResidualRatio = createParameter("dsoKeyframeResidualRatio", 2.0f);
 
-    Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", true);
+    Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", false);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
