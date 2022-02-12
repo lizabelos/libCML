@@ -1,10 +1,29 @@
+import json
 import os
 import matplotlib.pyplot as plt
+import yaml
+
 from database import loadJsonFile, hashOfDict
 import copy
 from statistics import mean
 from scipy.stats import sem
 from math import sqrt
+
+from utils import floatrange
+
+colorsByDataset = {"KITTI 00" : '#1f77b4',
+          "KITTI 01" : '#ff7f0e',
+          "KITTI 02" : '#2ca02c',
+          "KITTI 03" : '#d62728',
+          "KITTI 04" : '#9467bd',
+          "KITTI 05" : '#8c564b',
+          "KITTI 06" : '#e377c2',
+          "KITTI 07" : '#7f7f7f',
+          "KITTI 08" : '#bcbd22',
+          "KITTI 09" : '#17becf',
+          "KITTI 10" : '#1777c2',
+          "Group": "#000000"
+          }
 
 def distanceBetweenNode(p1, p2):
     if p1["datasetname"] != p2["datasetname"]:
@@ -27,106 +46,21 @@ def distanceBetweenNode(p1, p2):
             continue
     return dist, diff
 
-class RangeBasedDict:
+def lowerErrorMedian(l):
+    s = len(l)
+    if s == 1:
+        return 0
+    lsorted = sorted(l)
+    sleft = int(s / 4)
+    return abs(lsorted[sleft] - mean(l))
 
-    def __init__(self, dataset):
-        self.values = []
-        self.minX = None
-        self.maxX = None
-        self.x = None
-        self.y = None
-        self.yavg = None
-        self.num = None
-        self.dataset = dataset
-
-    def addValue(self, x, y, param):
-        # todo : add a weight proportional to the distance of all the other values !!!
-        # todo : graph des failures
-        if self.minX is None:
-            self.minX = x
-            self.maxX = x
-        self.minX = min(self.minX, x)
-        self.maxX = max(self.maxX, x)
-        self.values.append([x, y, None, param])
-
-    def addRangeBasedDict(self, other):
-        self.values = self.values + other.values
-        self.minX = other.minX
-        self.maxX = other.maxX
-
-    def computeWeight(self):
-        for i in range(0, len(self.values)):
-            distTotal = 0
-            for j in range(0, len(self.values)):
-                if i == j:
-                    continue
-                distanceBetweenNode(self.values[i][3], self.values[j][3])
-                dist, diff = distanceBetweenNode(self.values[i][3], self.values[j][3])
-                distTotal += dist
-            self.values[i][2] = distTotal
-
-    def compute(self, resolution = 10, rnone = True):
-        increment = (self.maxX - self.minX) / resolution
-        if increment == 0:
-            return False
-        self.computeWeight()
-        x = [0 for i in range(0, resolution)]
-        y = []
-        weight = []
-        weightSum = [0 for i in range(0, resolution)]
-        weightedY = []
-        num = [0 for i in range(0, resolution)]
-        for i in range(0, resolution):
-            y.append([])
-            weight.append([])
-            weightedY.append([])
-        for value in self.values:
-            index = int((value[0] - self.minX) * 0.999 / increment)
-            if index < 0 or index >= len(x):
-                continue
-            x[index] = x[index] + value[0]
-            y[index].append(value[1])
-            weight[index].append(value[2])
-            weightedY[index].append(value[1] * value[2])
-            weightSum[index] = weightSum[index] + value[2]
-            num[index] = num[index] + 1
-        for i in range(0, resolution):
-            if num[i] == 0:
-                if rnone:
-                    return False
-            else:
-                x[i] = x[i] / num[i]
-        self.x = x
-        self.y = y
-        self.yavg = [sum(weightedY[i]) / weightSum[i] for i in range(0, len(self.y))]
-        self.num = num
-        return True
-
-def syncMinAndMaxOf(d):
-    voteForMin = {}
-    voteForMax = {}
-    for k in d:
-        if k.minX not in voteForMin:
-            voteForMin[k.minX] = 0
-        if k.maxX not in voteForMax:
-            voteForMax[k.maxX] = 0
-        voteForMin[k.minX] = voteForMin[k.minX] + 1
-        voteForMax[k.maxX] = voteForMax[k.maxX] + 1
-    minX = None
-    minVote = 0
-    for min in voteForMin:
-        if voteForMin[min] > minVote:
-            minVote = voteForMin[min]
-            minX = min
-    maxX = None
-    maxVote = 0
-    for max in voteForMax:
-        if voteForMax[max] > maxVote:
-            maxVote = voteForMax[max]
-            maxX = max
-    for k in d:
-        k.minX = minX
-        k.maxX = maxX
+def upperErrorMedian(l):
+    s = len(l)
+    if s == 1:
+        return 0
+    lsorted = sorted(l)
+    sright = int(s / 4 * 3)
+    return abs(lsorted[sright] - mean(l))
 
 def removeDuplicate(x):
     return list(dict.fromkeys(x))
@@ -182,45 +116,169 @@ def uncertaintyBaseOf(dataset):
 
     return lim[int(dataset.split(" ")[1])]
 
-def lowerErrorMedian(l):
-    s = len(l)
-    if s == 1:
-        return 0
-    lsorted = sorted(l)
-    sleft = int(s / 4)
-    return abs(lsorted[sleft] - mean(l))
-
-def upperErrorMedian(l):
-    s = len(l)
-    if s == 1:
-        return 0
-    lsorted = sorted(l)
-    sright = int(s / 4 * 3)
-    return abs(lsorted[sright] - mean(l))
-
-def lowerErrorBase(l, dataset):
-    return uncertaintyBaseOf(dataset) / sqrt(len(l))
-
-def upperErrorBase(l, dataset):
-    return uncertaintyBaseOf(dataset) / sqrt(len(l))
-
-def lowerError(l, dataset):
-    if len(l) == 0:
-        return None
-    return lowerErrorMedian(l)
-
-def upperError(l, dataset):
-    if len(l) == 0:
-        return None
-    return upperErrorMedian(l)
-
 def safeMean(l):
     if len(l) == 0:
         return None
     else:
         return mean(l)
 
-def plot(d, param, datasets, folder):
+class PlotSet:
+
+    def __init__(self, dataset, all_x = None, all_y = None, lower_y = None, upper_y = None):
+        self.dataset = dataset
+        if all_x is not None and all_y is not None:
+            self.all_x = all_x
+            self.all_y = all_y
+            self.x_set = set(self.all_x)
+            self.lower_y = lower_y
+            self.upper_y = upper_y
+        else:
+            self.all_x = []
+            self.x_set = set()
+            self.all_y = []
+            self.lower_y = []
+            self.upper_y = []
+        self.errors = {}
+
+    def addValue(self, x, y, param):
+        self.all_x.append(x)
+        self.all_y.append(y)
+        self.x_set.add(x)
+        self.lower_y.append(0)
+        self.upper_y.append(0)
+
+    def addError(self, x, y, param, n = 1):
+        if x not in self.errors:
+            self.errors[x] = n
+        else:
+            self.errors[x] = self.errors[x] + n
+
+    def sort(self):
+        all_values = []
+        for i in range(0, len(self.all_x)):
+            all_values.append([self.all_x[i], self.all_y[i]])
+        all_values = sorted(all_values, key=lambda k: k[0])
+        for i in range(0, len(self.all_x)):
+            self.all_x[i] = all_values[i][0]
+            self.all_y[i] = all_values[i][1]
+
+    def tryMergeSameDataset(l, mergingMode = "all"):
+        if len(l) == 0:
+            return PlotSet("None")
+        dataset = l[0].dataset
+        all_x_in_common = None
+        if mergingMode == "all":
+            all_x_in_common = set()
+            for i in range(0, len(l)):
+                for cur_x in l[i].all_x:
+                    all_x_in_common.add(cur_x)
+        if mergingMode == "common":
+            all_x_in_common = l[0].all_x
+            for i in range(1, len(l)):
+                all_x_in_common = elementInCommon(all_x_in_common, l[i].all_x)
+        all_x_in_common = sorted(list(all_x_in_common))
+        new_y = []
+        for i in range(0, len(all_x_in_common)):
+            current_y = []
+            for j in range(0, len(l)):
+                for k in range(0, len(l[j].all_x)):
+                    if l[j].all_x[k] == all_x_in_common[i]:
+                        current_y.append(l[j].all_y[k])
+            new_y.append(current_y)
+
+        lower_y = [lowerErrorMedian(elem) for elem in new_y]
+        upper_y = [upperErrorMedian(elem) for elem in new_y]
+        new_y = [mean(elem) for elem in new_y]
+        plotSet = PlotSet(dataset, all_x_in_common, new_y, lower_y, upper_y)
+        for elem in l:
+            for error in elem.errors:
+                plotSet.addError(error, None, None, elem.errors[error])
+        return plotSet
+
+    def tryMergeDifferentDataset(l, weighted = False):
+        if len(l) == 0:
+            return PlotSet("None")
+        dataset = "Group"
+        all_x_in_common = l[0].all_x
+        for i in range(1, len(l)):
+            all_x_in_common = elementInCommon(all_x_in_common, l[i].all_x)
+        all_x_in_common = sorted(all_x_in_common)
+        new_y = []
+        new_lower_y = []
+        new_upper_y = []
+        weight_sum = len(l)
+        if weighted:
+            weight_sum = sum([numFramesOf(elem.dataset) for elem in l])
+        for i in range(0, len(all_x_in_common)):
+            current_y = []
+            current_lower = []
+            current_upper = []
+            for j in range(0, len(l)):
+                for k in range(0, len(l[j].all_x)):
+                    if l[j].all_x[k] == all_x_in_common[i]:
+                        if weighted:
+                            current_y.append(l[j].all_y[k] * numFramesOf(l[j].dataset))
+                        else:
+                            current_y.append(l[j].all_y[k])
+                        current_lower.append(l[j].lower_y[k])
+                        current_upper.append(l[j].upper_y[k])
+            new_y.append(current_y)
+            new_lower_y.append(current_lower)
+            new_upper_y.append(current_upper)
+
+        lower_y = [mean(elem) for elem in new_lower_y]
+        upper_y = [mean(elem) for elem in new_upper_y]
+        new_y = [sum(elem) / weight_sum for elem in new_y]
+        plotSet = PlotSet(dataset, all_x_in_common, new_y, lower_y, upper_y)
+        for elem in l:
+            for error in elem.errors:
+                plotSet.addError(error, None, None, elem.errors[error])
+        return plotSet
+
+    def movingAverage(self, iter = 5, delta = 0.75):
+        self.sort()
+        delta_inv = (1 - delta) / 2
+        for i in range(0, iter):
+            for j in range(1, len(self.all_y) - 1):
+                self.all_y[j] = self.all_y[j] * delta + self.all_y[j - 1] * delta_inv + self.all_y[j + 1] * delta_inv
+
+    def plot(self, axis):
+        self.sort()
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color=colorsByDataset[self.dataset], linestyle = 'None', label=self.dataset,  markersize=2)
+
+    def plotImportant(self, axis):
+        self.sort()
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=1.0, zorder=0, color=colorsByDataset[self.dataset], linestyle = 'None', label=self.dataset,  markersize=2)
+
+    def plotPoint(self):
+        plt.plot(self.all_x, self.all_y, marker="o", zorder=500, alpha=0.25, color=colorsByDataset[self.dataset], linestyle = 'None', markersize=2)
+
+    def plotError(self, axis):
+        x = []
+        y = []
+        for error in self.errors:
+            x.append(error)
+            y.append(self.errors[error])
+        if len(y) == 0:
+            return
+        m = min(y)
+        y = [elem - m for elem in y]
+        m = max(y)
+        if m == 0:
+            return
+        diffs = []
+        for a in x:
+            for b in x:
+                if a == b:
+                    continue
+                diffs.append(abs(a - b))
+        diffs = sorted(diffs)
+        minXdiff = diffs[int(len(diffs) / 20)]
+        y = [(elem / 50) / m for elem in y]
+        # todo : show each bar with color ?
+        axis.bar(x, y, width=minXdiff * 0.9, color="#cccccc", label="Error", zorder=0)
+
+def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, hashFilter = None):
     values = []
     alreadyTaken = set()
     for ref_id in d:
@@ -233,106 +291,128 @@ def plot(d, param, datasets, folder):
         if ref_id in alreadyTaken:
             continue
 
-        rangedBasedDict = RangeBasedDict(d[ref_id]["datasetname"])
+        if hashFilter is not None:
+            elem = copy.deepcopy(d[ref_id])
+            del elem["datasetname"]
+            del elem["ate"]
+            del elem["edges"]
+            h = hashOfDict(elem)
+            if h != hashFilter:
+                continue
+
+        rangedBasedDict = PlotSet(d[ref_id]["datasetname"])
 
         alreadyTaken.add(ref_id)
 
         ate = None
+        minAte = 9999999999
+        maxAte = 0
         try:
             #print(d[id])
-            ate = float(d[ref_id]["ate"])
+            ate = float(d[ref_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
+            cur_x = d[ref_id][param]
+            cur_y = ate
+            minAte = min(minAte,ate)
+            maxAte = max(maxAte,ate)
+            rangedBasedDict.addValue(cur_x, cur_y, d[ref_id])
         except:
-            continue
+            cur_x = d[ref_id][param]
+            cur_y = 1
+            rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
 
-        cur_x = d[ref_id][param]
-        cur_y = ate
-        rangedBasedDict.addValue(cur_x, cur_y, d[ref_id])
+
 
         for cur_id in d[ref_id]["edges"][param]:
             alreadyTaken.add(cur_id)
             ate = None
             try:
                 #print(d[id])
-                ate = float(d[cur_id]["ate"])
+                ate = float(d[cur_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
+                cur_x = d[cur_id][param]
+                cur_y = ate
+                minAte = min(minAte,ate)
+                maxAte = max(maxAte,ate)
+                rangedBasedDict.addValue(cur_x, cur_y, d[cur_id])
             except:
-                continue
+                cur_x = d[cur_id][param]
+                cur_y = 1
+                rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
 
-            cur_x = d[cur_id][param]
-            cur_y = ate
-            rangedBasedDict.addValue(cur_x, cur_y, d[cur_id])
+        if (removeConstant == False or maxAte != minAte) and len(rangedBasedDict.x_set) > 3:
+            #rangedBasedDict.movingAverage()
+            values.append(rangedBasedDict)
+        else:
+            print("Removing constant values. Diff : " + str(abs(maxAte - minAte)))
 
-        values.append(rangedBasedDict)
+    cols = 4
+    rows = int((len(values) + 2) / cols) + 2
 
-    syncMinAndMaxOf(values)
 
-    if len(values) == 0:
-        return
-    print("Found " + str(len(values)) + "potential plot")
 
-    newValues = []
+    fig, axs = plt.subplots(rows, cols, figsize=(8.27,11.69))
+
     valuesInDataset = {}
+    averageByDataset = []
+    i = 0
     for value in values:
-        if value.compute():
-            newValues.append(value)
-            if value.dataset not in valuesInDataset:
-                valuesInDataset[value.dataset] = []
-            valuesInDataset[value.dataset].append(value)
-    values = newValues
 
-    if len(values) == 0:
-        print("No enough values inside each plot")
+        axis = axs[int(i/cols),int(i%cols)]
+
+        value.plot(axis)
+        value.plotError(axis)
+        axis.set_title(value.dataset)
+        axis.set(xlabel=param, ylabel='ATE')
+        axis.label_outer()
+        # axis.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        # naming the x axis
+        # plt.xlabel(param)
+        # naming the y axis
+        # plt.ylabel('Absolute Trajectory Error')
+
+        i = i + 1
+
+    if i == 0:
         return
 
+    axis = axs[int(i/cols),int(i%cols)]
 
-    f = plt.figure()
-
-    yInDataset = None
-    xGlobal = None
+    for value in values:
+        if value.dataset not in valuesInDataset:
+            valuesInDataset[value.dataset] = []
+        valuesInDataset[value.dataset].append(value)
+        if not onlyAverage:
+            value.plotPoint()
 
     for dataset in valuesInDataset:
-        # todo : use a new rangedBasedDict instead, to get the benefit of the weight !
-        # y = [0 for i in range(0, len(valuesInDataset[dataset][0].yavg))]
-        # for value in valuesInDataset[dataset]:
-        #     for i in range(0, len(valuesInDataset[dataset][0].yavg)):
-        #         y[i] = y[i] + value.yavg[i]
-        # y = [v / len(valuesInDataset[dataset]) for v in y]
-        rbd = RangeBasedDict(dataset)
-        for value in valuesInDataset[dataset]:
-            rbd.addRangeBasedDict(value)
-        rbd.compute()
-        y = rbd.yavg
-        plt.plot(valuesInDataset[dataset][0].x, y, label=dataset + " (" + str(len(valuesInDataset[dataset])) + " set)", linewidth=1.0)
-        if yInDataset is None:
-            xGlobal = valuesInDataset[dataset][0].x
-            yInDataset = [0 for i in range(0, len(valuesInDataset[dataset][0].yavg))]
-        yInDataset = [yInDataset[i] + y[i] for i in range(0,len(y))]
+        avg = PlotSet.tryMergeSameDataset(valuesInDataset[dataset])
+        if avg.dataset != "None":
+            if not onlyAverage:
+                avg.plot(axis)
+            averageByDataset.append(avg)
 
-    yInDataset = [v / len(valuesInDataset) for v in yInDataset]
-    if len(valuesInDataset) > 1:
-        plt.plot(xGlobal, yInDataset, label="Average", linewidth=3.0)
+    avg = PlotSet.tryMergeDifferentDataset(averageByDataset)
+    if avg.dataset != "None":
+        avg.plotImportant(axis)
+        avg.plotError(axis)
 
-    # plt.errorbar(x_intersection, y_sum, yerr=[lowerErrY_sum, upperErrY_sum], fmt='o')
+    #axis.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
 
-    plt.legend()
-
-    # naming the x axis
-    plt.xlabel(param)
-    # naming the y axis
-    plt.ylabel('Absolute Trajectory Error')
+    axis.set(xlabel=param, ylabel='ATE')
 
     # giving a title to my graph
-    plt.title("ATE according to " + param)
+    # plt.title("ATE according to " + param)
 
     # function to show the plot
     #plt.show()
     os.makedirs("plot/" + folder, exist_ok=True)
-    f.savefig("plot/" + folder + "/" + param + ".pdf")
+    fig.savefig("plot/" + folder + "/" + param + ".pdf", bbox_inches="tight")
 
+    plt.clf()
 
 def makeGraphEdges(d):
     print("Making the graph...", end="")
     for ref_id in d:
-        print(".", end="")
+        #print(".", end="")
         d[ref_id]["edges"] = {}
         for target_id in d:
             if ref_id == target_id:
@@ -347,17 +427,193 @@ def makeGraphEdges(d):
     print("done!")
     return d
 
+def printBestResult(d, divideByNumFrames = False, multiplyByNumFrames = False, maximiseBest = False):
+    paramToDatasetToAte = {}
+    paramToDatasetToAteNonWeigted = {}
+    paramToParam = {}
+    lim=[77,20,41,1,1,40,49,16,51,58,15]
+    for id in d:
+        elem = copy.deepcopy(d[id])
+        datasetname = elem["datasetname"]
+        ate = None
+        try:
+            ate = float(elem["ate"])
+            ate2 = ate
+            if divideByNumFrames:
+                ate = ate / numFramesOf(datasetname)
+            if multiplyByNumFrames:
+                ate = ate * numFramesOf(datasetname)
+            if maximiseBest:
+                ate = ate / lim[int(datasetname.split(" ")[1])]
+                if ate < 1:
+                    ate = 0
+                ate = ate / numFramesOf(datasetname)
+        except:
+            continue
+        del elem["datasetname"]
+        #del elem["edges"]
+        del elem["ate"]
+        h = hashOfDict(elem)
+        paramToParam[h] = elem
+        if h not in paramToDatasetToAte:
+            paramToDatasetToAte[h] = {}
+            paramToDatasetToAteNonWeigted[h] = {}
+        if datasetname not in paramToDatasetToAte[h]:
+            paramToDatasetToAte[h][datasetname] = []
+            paramToDatasetToAteNonWeigted[h][datasetname] = []
+        paramToDatasetToAte[h][datasetname].append(ate)
+        paramToDatasetToAteNonWeigted[h][datasetname].append(ate2)
+
+    bestCount = 0
+    bestAvg = 99999
+    bestParam = None
+    for param in paramToDatasetToAte:
+        all_avg = []
+        for dataset in paramToDatasetToAte[param]:
+            avg = mean(paramToDatasetToAte[param][dataset])
+            all_avg.append(avg)
+        count = len(all_avg)
+        if count < bestCount:
+            continue
+        avg = sum(all_avg)
+        if avg < bestAvg or count > bestCount:
+            bestAvg = avg
+            bestParam = param
+            bestCount = count
+
+    if bestParam is not None:
+        bestAvg = sum([mean(paramToDatasetToAteNonWeigted[bestParam][v]) for v in paramToDatasetToAteNonWeigted[bestParam]])
+        numBest = 0
+        for v in paramToDatasetToAteNonWeigted[bestParam]:
+            m = mean(paramToDatasetToAteNonWeigted[bestParam][v])
+            l=lim[int(v.split(" ")[1])]
+            if m < l:
+                numBest = numBest + 1
+        print("Best param : " + str(bestParam))
+        print("Best average : " + str(bestAvg))
+        print("Num best : " + str(numBest))
+        print("Comparaison : " + str(bestAvg * 100 / 350) + "%")
+        print(paramToDatasetToAteNonWeigted[bestParam])
+        with open("best.yaml", "w") as outfile:
+            yaml.dump(paramToParam[bestParam], outfile)
+
+    return bestParam
+
+
+def missingExperiencesForValue(value, range):
+    missing = set(range)
+    for x in value.all_x:
+        if x in missing:
+            missing.remove(x)
+    for x in value.errors:
+        if x in missing:
+            missing.remove(x)
+    print("Missing : " + str(missing))
+
+def missingExperiencesForParam(d, param, dataset, range):
+    print("Computing missing experiences")
+    values = []
+    alreadyTaken = set()
+    for ref_id in d:
+        if d[ref_id]["datasetname"] != dataset:
+            continue
+
+        if param not in d[ref_id]["edges"]:
+            continue
+
+        if ref_id in alreadyTaken:
+            continue
+
+        rangedBasedDict = PlotSet(d[ref_id]["datasetname"])
+
+        alreadyTaken.add(ref_id)
+
+        ate = None
+        minAte = 9999999999
+        maxAte = 0
+        try:
+            #print(d[id])
+            ate = float(d[ref_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
+            cur_x = d[ref_id][param]
+            cur_y = ate
+            minAte = min(minAte,ate)
+            maxAte = max(maxAte,ate)
+            rangedBasedDict.addValue(cur_x, cur_y, d[ref_id])
+        except:
+            cur_x = d[ref_id][param]
+            cur_y = 1
+            rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
+
+
+
+        for cur_id in d[ref_id]["edges"][param]:
+            alreadyTaken.add(cur_id)
+            ate = None
+            try:
+                #print(d[id])
+                ate = float(d[cur_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
+                cur_x = d[cur_id][param]
+                cur_y = ate
+                minAte = min(minAte,ate)
+                maxAte = max(maxAte,ate)
+                rangedBasedDict.addValue(cur_x, cur_y, d[cur_id])
+            except:
+                cur_x = d[cur_id][param]
+                cur_y = 1
+                rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
+
+        if len(rangedBasedDict.x_set) > 3:
+            rangedBasedDict.movingAverage()
+            values.append(rangedBasedDict)
+        else:
+            print("Removing constant values. Diff : " + str(abs(maxAte - minAte)))
+
+    for value in values:
+        missingExperiencesForValue(value, range)
+
+def missingExperiences(d, datasets):
+    params = [
+        ["bacondScoreWeight", floatrange(0.1,2,0.1)],
+        ["orbInlierRatioThreshold", floatrange(0.0,1.01,0.01)]
+    ]
+
+    for param in params:
+        for dataset in datasets:
+            missingExperiencesForParam(d, param[0], dataset, param[1])
+
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with keys and values of x
+    z.update(y)    # modifies z with keys and values of y
+    return z
+
 if __name__ == "__main__":
     filenames = [x for x in os.listdir(".") if x.endswith(".json")]
     d = None
     for filename in filenames:
         print("Loading " + filename)
         if d is None:
-            d = loadJsonFile(filename)
+            d = loadJsonFile(filename, cache=False)
         else:
-            d = {**d, **loadJsonFile(filename)}
+            d = merge_two_dicts(d, loadJsonFile(filename, cache=False))
+
+
     params = [x for x in d[next(iter(d))] if x != "ate" and x != "datasetname"]
     datasets = removeDuplicate([d[x]["datasetname"] for x in d])
+    print(datasets)
+    print("Best result by sum of ate : ")
+    bestHash = printBestResult(d)
+
+
+    #print("Best result by sum of ate divided by num frames : ")
+    #printBestResult(d, divideByNumFrames=True)
+    #print("Best result by sum of ate multiplied by num frames : ")
+    #printBestResult(d, multiplyByNumFrames=True)
+    #print("Best result : ")
+    #printBestResult(d, maximiseBest=True)
     d = makeGraphEdges(d)
+    # missingExperiences(d, datasets)
+    #for dataset in datasets:
+    #    for param in params:
+    #        plot(d, param, [dataset], folder=dataset)
     for param in params:
-        plot(d, param, datasets, folder="ALL_KITTI")
+        plot(d, param, datasets, folder="All", onlyAverage=True, hashFilter = bestHash)

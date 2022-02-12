@@ -115,12 +115,12 @@ class ModSLAM(SLAM):
         # print("Configuration file : " + config_filename)
 
         executable = self.modslampath
-        args = "-c \"" + config_filename + "\" -t -z -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
+        args = "-c \"" + config_filename + "\" -t -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
         command = executable + " " + args
 
         # print(command)
 
-        out, err = system(command)
+        out, err = system(command, comment=d.name())
         self.processLogForStats(out)
 
     def outputlog(self):

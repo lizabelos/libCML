@@ -1,19 +1,35 @@
 import json
 import hashlib
+import os
 import threading
 
 mutex = threading.Lock()
+cachedDatabase = None
 
-def loadJsonFile(path):
-    try:
-        with open(path, "r") as infile:
-            return json.load(infile)
-    except:
-        return {}
+def loadJsonFile(path, cache = True):
+    global cachedDatabase
+    if cachedDatabase is None or cache == False:
+        try:
+            with open(path, "r") as infile:
+                cachedDatabase = json.load(infile)
+        except:
+            cachedDatabase = {}
+    return cachedDatabase
 
 def saveJsonFile(path, d):
-    with open(path, "w") as outfile:
+    global cachedDatabase
+    if os.path.isfile(path + ".bak.bak"):
+        os.remove(path + ".bak.bak")
+    with open(path + ".new", "w") as outfile:
         json.dump(d, outfile, indent=4)
+    if os.path.isfile(path + ".bak"):
+        os.rename(path + ".bak", path + ".bak.bak")
+    if os.path.isfile(path):
+        os.rename(path, path + ".bak")
+    os.rename(path + ".new", path)
+    if os.path.isfile(path + ".bak.bak"):
+        os.remove(path + ".bak.bak")
+    cachedDatabase = d
 
 def hashOfDict(d):
     hash_object = hashlib.md5(json.dumps(d, sort_keys=True).encode('utf-8'))

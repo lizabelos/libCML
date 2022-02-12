@@ -1,8 +1,12 @@
 import subprocess
+import time
 from subprocess import Popen
 import csv
 import os
 import numpy as np
+import threading
+
+currentStatus = {}
 
 def intrange(a, b, c = 1):
     return [int(x) for x in np.arange(a,b,c)]
@@ -10,7 +14,7 @@ def intrange(a, b, c = 1):
 def floatrange(a, b, c = 1.0):
     return [float(x) for x in np.arange(a,b,c)]
 
-def system(command, disable_openmp=True):
+def system(command, comment="", disable_openmp=True):
     my_env = os.environ.copy()
     if disable_openmp:
         my_env["OMP_NUM_THREADS"]="1"
@@ -23,20 +27,50 @@ def system(command, disable_openmp=True):
         wd = os.path.dirname(os.path.realpath(executable))
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
         p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
-        out, err = p.communicate()
-        errcode = p.returncode
-        # print("Command finished")
-        return out.decode("utf-8"), err
+
+
+        while p.poll() is None:
+            line = p.stdout.readline().decode("utf-8")
+            if "(" in line and ")" in line:
+                line = comment + "," + line[line.find("(")+1:line.find(")")]
+                currentStatus[threading.get_ident()] = line
+
+        return "", 0
+
+def cls():
+    os.system('cls' if os.name=='nt' else 'clear')
+
+def printStatusThread():
+    while True:
+        toPrint = ""
+        currentStatusCopy = currentStatus
+        for threadId in currentStatusCopy:
+            toPrint = toPrint + "#" + str(threadId) + ": " + str(currentStatusCopy[threadId]) + "\n"
+        cls()
+        print(toPrint, end='')
+        time.sleep(5)
+
+def launchPrintStatusThread():
+    thread = threading.Thread(target = printStatusThread)
+    thread.daemon = True
+    thread.start()
 
 def dprint(s, end="\n"):
     if "\t" in s:
         sconsole = s.split("\t")
         sconsole = ["{:<15}".format(x) for x in sconsole]
         sconsole = "|".join(sconsole)
-        print(sconsole, end=end)
+        pass
+        # currentStatus[threading.get_ident()] = sconsole
+        # print(sconsole, end=end)
     else:
-        print(s, end=end)
+        # currentStatus[threading.get_ident()] = s
+        # print(s, end=end)
+        pass
     with open("output.csv", "ab") as myfile:
         encoded = str(s) + end
         encoded = encoded.encode("utf-8")
         myfile.write(encoded)
+
+def cprint(s, end="\n"):
+    currentStatus[threading.get_ident()] = s
