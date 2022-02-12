@@ -6,8 +6,6 @@
 #include "cml/map/InternalCalibration.h"
 
 
-#include <opencv2/imgcodecs.hpp>
-
 
 // Inspired by Direct Spare Odometry
 CML::TUMCapture::TUMCapture(std::string path) {
@@ -129,23 +127,8 @@ CML::TUMCapture::TUMCapture(std::string path) {
     mCurrentIndex = 0;
 
 
-
-    {
-        cv::Mat m = cv::imread(mPath + "/vignette.png", cv::IMREAD_UNCHANGED);
-        if (m.rows == 0 || m.cols == 0) {
-            mVignette = nullptr;
-        }
-        else if (m.type() != CV_16U) {
-            throw std::runtime_error("Invalid vignette file format !");
-        } else {
-            CML::Array2D<uint16_t> vignette16(m.cols, m.rows);
-            memcpy(vignette16.data(), m.data, 2 * m.rows * m.cols);
-            mVignette = new FloatImage;
-            *mVignette = vignette16.cast<float>();
-            mVignette->normalize();
-            mVignette->elementWiseInverse();
-        }
-    }
+    mVignette = new FloatImage;
+    *mVignette = loadPngImage(mPath + "/vignette.png").first;
 
     logger.info("TUM Capture " + path + " is open");
 

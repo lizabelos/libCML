@@ -33,7 +33,7 @@ CML::EurocCapture::EurocCapture(const std::string &path) {
     }
 
     std::string leftImagePath = mImages[mCurrentImage];
-    Image image = loadImage(leftImagePath);
+    Image image = loadPngImage(leftImagePath).second;
 
     mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
     mCalibration = parseInternalEurocCalibration(path + "/mav0/cam0/sensor.yaml", mCaptureImageGenerator->getOutputSize());
@@ -63,7 +63,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::EurocCapture::multithreadNext() 
     CaptureImageMaker maker = mCaptureImageGenerator->create();
 
 
-    maker.setImage(loadGrayImage(mImages[mCurrentImage]).cast<float>());
+    maker.setImage(loadPngImage(mImages[mCurrentImage]).second);
 
     maker.setPath(mImages[mCurrentImage])
             .setTime(mTimes[mCurrentImage])

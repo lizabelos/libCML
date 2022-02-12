@@ -13,7 +13,7 @@ CML::RobotCarCapture::RobotCarCapture(const std::string &path, bool useColor) {
     }
 
     std::string leftImagePath = mImages[mCurrentImage];
-    Image image = loadImage(leftImagePath);
+    Image image = loadPngImage(leftImagePath).second;
 
     mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
     float w = image.getWidth();
@@ -40,7 +40,7 @@ CML::Ptr<CML::CaptureImage, 1> CML::RobotCarCapture::multithreadNext() {
 
     CaptureImageMaker maker = mCaptureImageGenerator->create();
 
-    maker.setImage(loadImage(mImages[mCurrentImage]));
+    maker.setImage(loadPngImage(mImages[mCurrentImage]).second);
 
     maker.setPath(mImages[mCurrentImage])
             .setTime(mTimes[mCurrentImage])

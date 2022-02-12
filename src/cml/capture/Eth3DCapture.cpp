@@ -13,7 +13,7 @@ CML::Eth3DCapture::Eth3DCapture(const std::string &path) {
     }
 
     std::string leftImagePath = mImages[mCurrentImage];
-    Image image = loadImage(leftImagePath);
+    Image image = loadPngImage(leftImagePath).second;
 
     mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
     float w = image.getWidth();
@@ -54,7 +54,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::Eth3DCapture::multithreadNext() 
 
     CaptureImageMaker maker = mCaptureImageGenerator->create();
 
-    maker.setImage(loadImage(mImages[mCurrentImage]));
+    maker.setImage(loadPngImage(mImages[mCurrentImage]).second);
 
     maker.setPath(mImages[mCurrentImage])
             .setTime(mTimes[mCurrentImage])

@@ -19,7 +19,7 @@ namespace CML {
             size_t size;
             decompressFile(1, &data, &size);
             auto images = loadTiffImage(data, size);
-            mMask = loadGrayImage(zipPath + ".mask.bmp");
+            mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
 
             int histogram[256];
             for (int i = 0; i < 256; i++) {

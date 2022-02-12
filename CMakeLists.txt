@@ -134,7 +134,7 @@ endif()
 # endif()
 
 
-option(ENABLE_OPENCV "Enable OpenCV (Version 4)" ${ENABLE_DEFAULT_EXTERNAL_LIB})
+option(ENABLE_OPENCV "Enable OpenCV (Version 4)" OFF)
 if (ENABLE_OPENCV)
     find_package(OpenCV 4.0 REQUIRED)
 endif()
@@ -247,6 +247,10 @@ target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 # target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
 
 # target_link_options(CML PUBLIC -mllvm)
+
+target_compile_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
+target_link_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
+
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC -DDEBUG=1)

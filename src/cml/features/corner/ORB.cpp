@@ -143,7 +143,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
     }
 
-    logger.important("Extracted " + std::to_string(mCorners.size()) + " orb coners");
+    //logger.important("Extracted " + std::to_string(mCorners.size()) + " orb coners");
 
 }
 
@@ -241,7 +241,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 keypoints[i].setScaleFactor(mScaleFactor);
                 keypoints[i].setSize(scaledPatchSize);
             }
-            logger.important("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
+            logger.debug("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
         }
 
     }

@@ -48,7 +48,7 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
     // Find the first video stream
     for(unsigned int i = 0; i<mFormatCtx->nb_streams; i++) {
         AVCodecParameters *pLocalCodecParameters = mFormatCtx->streams[i]->codecpar;
-        AVCodec *pLocalCodec = avcodec_find_decoder(pLocalCodecParameters->codec_id);
+        AVCodec *pLocalCodec = (AVCodec*)avcodec_find_decoder(pLocalCodecParameters->codec_id);
 
 
         if (pLocalCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {

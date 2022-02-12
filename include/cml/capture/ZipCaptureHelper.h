@@ -7,7 +7,6 @@
 #if CML_HAVE_LIBZIP
 
 #include <zip.h>
-#include <opencv2/imgcodecs.hpp>
 
 namespace CML {
 
@@ -41,24 +40,7 @@ namespace CML {
             uint8_t *data;
             size_t size;
             decompressFile(id, &data, &size);
-
-            cv::Mat m = cv::imdecode(cv::Mat(size,1,CV_8U, data), cv::IMREAD_UNCHANGED);
-            if(m.rows * m.cols==0)
-            {
-                throw std::runtime_error("Can't load image " + getFilename(id) + " of size " + std::to_string(size));
-            }
-
-            cv::Mat fm1;
-            m.convertTo(fm1, CV_32FC1);
-            FloatImage i1(fm1.cols, fm1.rows);
-            memcpy(i1.data(), fm1.data, m.rows * m.cols * sizeof(float));
-
-            cv::Mat fm4;
-            m.convertTo(fm4, CV_32FC4);
-            Image i4(fm4.cols, fm4.rows);
-            memcpy(i4.data(), fm4.data, m.rows * m.cols * 4);
-
-            return {i1, i4};
+            return loadJpegImage(data, size);
         }
 
         inline void decompressFile(const std::string &filename, uint8_t **data, size_t *size) {

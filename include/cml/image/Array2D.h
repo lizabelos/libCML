@@ -338,6 +338,18 @@ namespace CML {
             return Array2D<T>(mMatrix.rowwise().reverse());
         }
 
+        float getKernel(int x, int y, const Array2D<float> &kernel) const {
+            const int res_shiftx = (kernel.getWidth() - 1) / 2;
+            const int res_shifty = (kernel.getHeight() - 1) / 2;
+            float v = 0;
+            for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                    v += mMatrix(x + ker_x - res_shiftx, y + ker_y - res_shifty);
+                }
+            }
+            return v;
+        }
+
         template <typename U> void convolution(const Array2D<float> &kernel, Array2D<U> &newImage) const {
 #pragma omp single
             {
@@ -695,13 +707,9 @@ namespace CML {
 
     };
 
-    Image loadImage(std::string fileName);
-
-    GrayImage loadGrayImage(std::string fileName);
-
     Pair<FloatImage, Image> loadTiffImage(const uint8_t *data, size_t lenght);
 
-    Pair<FloatImage, Image> loadJpegImage(const std::string &path);
+    Pair<FloatImage, Image> loadJpegImage(const uint8_t *str, size_t lenght);
 
     Pair<FloatImage, Image> loadPngImage(const std::string &path);
 

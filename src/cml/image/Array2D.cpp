@@ -10,349 +10,15 @@
 #include <thirdparty/gdcmjpeg/8/jpeglib.h>
 #include "lodepng/lodepng.h"
 
-
-#if CML_HAVE_AVFORMAT
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libavutil/imgutils.h>
-}
-#define DEFAULT_RESIZE_ALGORITHM SWS_BICUBIC
-#endif
-
-#define CML_IMAGE_HORIZONTALFLIP false
-
 namespace CML {
 
     Atomic<size_t> __array2DCounter = 0;
 
-#if CML_HAVE_AVFORMAT
-
-    class FFMPEGContext {
-
-    public:
-        FFMPEGContext() {
-
-        }
-
-        ~FFMPEGContext() {
-            if (mFrame != nullptr) {
-                av_frame_free(&mFrame);
-            }
-            if (mCodecCtx != nullptr) {
-                avcodec_close(mCodecCtx);
-                avcodec_free_context(&mCodecCtx);
-            }
-            if (mFormatCtx != nullptr) {
-                avformat_close_input(&mFormatCtx);
-            }
-        }
-
-        AVFormatContext *mFormatCtx = nullptr; // ok
-        int mVideoStream = -1;
-        AVCodecContext *mCodecCtx = nullptr; // ok
-        AVFrame *mFrame = nullptr; // ok
-        AVCodec *mCodec = nullptr;
-        AVCodecParameters *mCodecParameters = nullptr;
-    };
-
-#endif
 }
 
-#if CML_HAVE_AVFORMAT
-
-inline std::string av_strerror(int errnum) {
-    char buffer[1024];
-    av_strerror(errnum, buffer, 1024);
-    return buffer;
-}
-
-#endif
-
-CML::Image CML::loadImage(std::string path) {
-
-#if CML_HAVE_AVFORMAT
-    // logger.debug("Load image " + path);
-
-    FFMPEGContext ctx;
-
-    // Open video file
-    int errorCode = avformat_open_input(&ctx.mFormatCtx, path.c_str(), nullptr, nullptr);
-    if (errorCode != 0) {
-        throw std::runtime_error("Can't open '" + path + ". " + av_strerror(errorCode));
-    }
-
-    // Retrieve stream information
-    if (avformat_find_stream_info(ctx.mFormatCtx, nullptr) < 0) {
-        throw std::runtime_error("Could not find stream information for '" + path + "'");
-    }
-
-    //av_dump_format(mFormatCtx, 0, path.c_str(), 0);
-
-    // Find the first video stream
-    for (unsigned int i = 0; i < ctx.mFormatCtx->nb_streams; i++) {
-        AVCodecParameters *pLocalCodecParameters = ctx.mFormatCtx->streams[i]->codecpar;
-        AVCodec *pLocalCodec = avcodec_find_decoder(pLocalCodecParameters->codec_id);
-
-
-        if (pLocalCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
-            ctx.mVideoStream = i;
-            ctx.mCodec = pLocalCodec;
-            ctx.mCodecParameters = pLocalCodecParameters;
-            if (ctx.mCodec != nullptr) break;
-        }
-    }
-
-    if (ctx.mVideoStream == -1) {
-        throw std::runtime_error("Could not find any compatible video stream for '" + path + "'");
-    }
-
-
-    // Copy context
-    ctx.mCodecCtx = avcodec_alloc_context3(ctx.mCodec);
-    if (!ctx.mCodecCtx) {
-        throw std::runtime_error("Couldn't allocate codec context for '" + path + "'");
-    }
-
-    if (avcodec_parameters_to_context(ctx.mCodecCtx, ctx.mCodecParameters) < 0) {
-        fprintf(stderr, "Couldn't copy codec context");
-        throw std::runtime_error("Couldn't copy codec context for '" + path + "'");
-    }
-
-    // Open codec
-    if (avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
-        throw std::runtime_error("Couldn't open codec for '" + path + "'");
-    }
-
-    ctx.mFrame = av_frame_alloc();
-    if (!ctx.mFrame) {
-        throw std::runtime_error("Couldn't allocate frame for '" + path + "'");
-    }
-
-    //mPacket = av_packet_alloc();
-    //if (!mPacket) {
-    //    throw std::runtime_error("Couldn't allocate packet for '" + path + "'");
-    // }
-
-    AVPacket packet;
-
-    while (av_read_frame(ctx.mFormatCtx, &packet) >= 0) {
-
-        if (packet.stream_index == ctx.mVideoStream) {
-
-            int response = avcodec_send_packet(ctx.mCodecCtx, &packet);
-            if (response < 0) {
-                throw std::runtime_error("Error while sending a packet to the decoder");
-            }
-
-            while (response >= 0) {
-
-                response = avcodec_receive_frame(ctx.mCodecCtx, ctx.mFrame);
-                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
-                    break;
-                } else if (response < 0) {
-                    // std::string error = av_err2str(response);
-                    throw std::runtime_error("Error while receiving a frame from the decoder");
-                }
-
-                if (response >= 0) {
-
-                    // Create the frame
-                    unsigned int width = ctx.mFrame->width;
-                    unsigned int height = ctx.mFrame->height;
-
-                    Image image(width, height);
-
-                    uint8_t *const data[8] = {(uint8_t *) image.data(), nullptr, nullptr, nullptr, nullptr, nullptr,
-                                              nullptr};
-                    const int stride[8] = {(int) (width * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
-
-                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat) ctx.mFrame->format, width,
-                                                         height, AV_PIX_FMT_RGBA, DEFAULT_RESIZE_ALGORITHM, NULL, NULL,
-                                                         NULL);
-                    sws_scale(sws_ctx, (uint8_t const *const *) ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data,
-                              stride);
-                    sws_freeContext(sws_ctx);
-
-                    av_packet_unref(&packet);
-
-                    if (CML_IMAGE_HORIZONTALFLIP) {
-                        return image.horizontalFlip();
-                    } else {
-                        return image;
-                    }
-
-                }
-
-            }
-
-        }
-
-        av_packet_unref(&packet);
-
-    }
-
-    throw std::runtime_error("The image file seems to be corrupted : " + path);
-#else
-    throw std::runtime_error("No codec to decode the image. Please recompile with ffmpeg");
-#endif
-
-}
-
-
-CML::GrayImage CML::loadGrayImage(std::string path) {
-
-#if CML_HAVE_AVFORMAT
-    // logger.debug("Load image " + path);
-
-    FFMPEGContext ctx;
-
-    // Open video file
-    int errorCode = avformat_open_input(&ctx.mFormatCtx, path.c_str(), nullptr, nullptr);
-    if (errorCode != 0) {
-        throw std::runtime_error("Can't open '" + path + ". " + av_strerror(errorCode));
-    }
-
-    // Retrieve stream information
-    if (avformat_find_stream_info(ctx.mFormatCtx, nullptr) < 0) {
-        throw std::runtime_error("Could not find stream information for '" + path + "'");
-    }
-
-    //av_dump_format(mFormatCtx, 0, path.c_str(), 0);
-
-    // Find the first video stream
-    for (unsigned int i = 0; i < ctx.mFormatCtx->nb_streams; i++) {
-        AVCodecParameters *pLocalCodecParameters = ctx.mFormatCtx->streams[i]->codecpar;
-        AVCodec *pLocalCodec = avcodec_find_decoder(pLocalCodecParameters->codec_id);
-
-
-        if (pLocalCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
-            ctx.mVideoStream = i;
-            ctx.mCodec = pLocalCodec;
-            ctx.mCodecParameters = pLocalCodecParameters;
-            if (ctx.mCodec != nullptr) break;
-        }
-    }
-
-    if (ctx.mVideoStream == -1) {
-        throw std::runtime_error("Could not find any compatible video stream for '" + path + "'");
-    }
-
-
-    // Copy context
-    ctx.mCodecCtx = avcodec_alloc_context3(ctx.mCodec);
-    if (!ctx.mCodecCtx) {
-        throw std::runtime_error("Couldn't allocate codec context for '" + path + "'");
-    }
-
-    if (avcodec_parameters_to_context(ctx.mCodecCtx, ctx.mCodecParameters) < 0) {
-        fprintf(stderr, "Couldn't copy codec context");
-        throw std::runtime_error("Couldn't copy codec context for '" + path + "'");
-    }
-
-    // Open codec
-    if (avcodec_open2(ctx.mCodecCtx, ctx.mCodec, nullptr) < 0) {
-        throw std::runtime_error("Couldn't open codec for '" + path + "'");
-    }
-
-    ctx.mFrame = av_frame_alloc();
-    if (!ctx.mFrame) {
-        throw std::runtime_error("Couldn't allocate frame for '" + path + "'");
-    }
-
-    //mPacket = av_packet_alloc();
-    //if (!mPacket) {
-    //    throw std::runtime_error("Couldn't allocate packet for '" + path + "'");
-    // }
-
-    AVPacket packet;
-
-    while (av_read_frame(ctx.mFormatCtx, &packet) >= 0) {
-
-        if (packet.stream_index == ctx.mVideoStream) {
-
-            int response = avcodec_send_packet(ctx.mCodecCtx, &packet);
-            if (response < 0) {
-                throw std::runtime_error("Error while sending a packet to the decoder");
-            }
-
-            while (response >= 0) {
-
-                response = avcodec_receive_frame(ctx.mCodecCtx, ctx.mFrame);
-                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
-                    break;
-                } else if (response < 0) {
-                    // std::string error = av_err2str(response);
-                    throw std::runtime_error("Error while receiving a frame from the decoder");
-                }
-
-                if (response >= 0) {
-
-                    // Create the frame
-                    unsigned int width = ctx.mFrame->width;
-                    unsigned int height = ctx.mFrame->height;
-
-                    GrayImage image(width, height);
-                    uint8_t *const data[8] = {(uint8_t *) image.data(), nullptr, nullptr, nullptr, nullptr, nullptr,
-                                              nullptr};
-                    const int stride[8] = {(int) (image.getWidth() * sizeof(uint8_t)), 0, 0, 0, 0, 0, 0, 0};
-
-                    SwsContext *sws_ctx = sws_getContext(width, height, (AVPixelFormat) ctx.mFrame->format, width,
-                                                         height, AV_PIX_FMT_GRAY8, DEFAULT_RESIZE_ALGORITHM, NULL, NULL,
-                                                         NULL);
-                    sws_scale(sws_ctx, (uint8_t const *const *) ctx.mFrame->data, ctx.mFrame->linesize, 0, height, data,
-                              stride);
-                    sws_freeContext(sws_ctx);
-
-                    av_packet_unref(&packet);
-
-                    if (CML_IMAGE_HORIZONTALFLIP) {
-                        return image.horizontalFlip();
-                    } else {
-                        return image;
-                    }
-
-                }
-
-            }
-
-        }
-
-        av_packet_unref(&packet);
-
-    }
-
-    throw std::runtime_error("The image file seems to be corrupted : " + path);
-#else
-    throw std::runtime_error("No codec to decode the image. Please recompile with ffmpeg");
-#endif
-
-
-}
 
 template<>
 CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, int newHeight) const {
-#if CML_HAVE_SWSCALE
-    Image result(newWidth, newHeight);
-
-    struct SwsContext *resizeContext;
-    resizeContext = sws_getContext(getWidth(), getHeight(), AV_PIX_FMT_RGBA, newWidth, newHeight, AV_PIX_FMT_RGBA,
-                                   DEFAULT_RESIZE_ALGORITHM, NULL, NULL, NULL);
-
-    const uint8_t *const data1[8] = {(const uint8_t *) data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-    uint8_t *const data2[8] = {(uint8_t *) result.data(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-
-    const int stride1[8] = {(int) (getWidth() * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
-    const int stride2[8] = {(int) (newWidth * sizeof(uint8_t) * 4), 0, 0, 0, 0, 0, 0, 0};
-
-    sws_scale(resizeContext, (const uint8_t *const *) data1, stride1, 0, getHeight(), (uint8_t *const *) data2,
-              stride2);
-
-    sws_freeContext(resizeContext);
-
-    return result;
-#else
     if (newWidth == getWidth() && newHeight == getHeight()) {
         return *this;
     }
@@ -372,7 +38,6 @@ CML::Array2D<CML::ColorRGBA> CML::Array2D<CML::ColorRGBA>::resize(int newWidth, 
     }
 
     return result;
-#endif
 
 }
 
@@ -537,7 +202,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
 
 }
 
-CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &path) {
+
+CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, size_t lenght) {
 /* This struct contains the JPEG decompression parameters and pointers to
    * working space (which is allocated as needed by the JPEG library).
    */
@@ -551,23 +217,26 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const std::string &pat
     JSAMPARRAY buffer;    /* Output row buffer */
     int row_stride;    /* physical row width in output buffer */
 
-    /* In this example we want to open the input file before doing anything else,
-     * so that the setjmp() error recovery below can assume the file is open.
-     * VERY IMPORTANT: use "b" option to fopen() if you are on a machine that
-     * requires it in order to read binary files.
-     */
-
-    if ((infile = fopen(path.c_str(), "rb")) == nullptr) {
-        throw std::runtime_error("Can't open " + path);
-    }
 
     /* Step 1: allocate and initialize JPEG decompression object */
 
     jpeg_create_decompress(&cinfo);
 
-    /* Step 2: specify data source (eg, a file) */
+    /* Step 2: specify data source  */
 
-    jpeg_stdio_src(&cinfo, infile);
+    {
+
+        /* The source object is made permanent so that a series of JPEG images
+         * can be read from a single buffer by calling jpeg_memory_src
+         * only before the first one.
+         * This makes it unsafe to use this manager and a different source
+         * manager serially with the same JPEG object.  Caveat programmer.
+         */
+        cinfo.src = (struct jpeg_source_mgr *)(*cinfo.mem->alloc_small) ((j_common_ptr)&cinfo, JPOOL_PERMANENT, sizeof(jpeg_source_mgr));
+        cinfo.src->resync_to_restart = jpeg_resync_to_restart; /* use default method */
+        cinfo.src->next_input_byte = str;
+        cinfo.src->bytes_in_buffer = lenght;
+    }
 
     /* Step 3: read file parameters with jpeg_read_header() */
 

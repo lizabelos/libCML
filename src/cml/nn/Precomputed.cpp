@@ -8,7 +8,7 @@ CML::NN::Precomputed::Precomputed(std::string suffix) : mSuffix(suffix) {
 }
 
 CML::FloatImage CML::NN::Precomputed::load(const CaptureImage &captureImage) {
-    FloatImage image = loadGrayImage(captureImage.getPath() + mSuffix).cast<float>();
+    FloatImage image = loadPngImage(captureImage.getPath() + mSuffix).first;
     image = captureImage.getInternalCalibration().removeDistortion(image);
     return image;
 }
