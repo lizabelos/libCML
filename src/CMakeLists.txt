@@ -189,7 +189,7 @@ if (ENABLE_GUI)
     target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
 
     if (MINGW)
-        target_link_libraries(CML opengl32 glu32 freeglut mingw32)
+        target_link_libraries(CML opengl32 glu32 mingw32)
     endif()
 
 endif()
@@ -224,5 +224,4 @@ else()
     target_link_libraries(modslam CML)
     target_include_directories(modslam PUBLIC ../include/cml/slam/modslam)
 
-    file(COPY ../include/cml/slam/modslam.yaml DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
