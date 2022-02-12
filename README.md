@@ -15,9 +15,10 @@ libCML is a SLAM library and scientific tool, which include a novel fast thread-
 
 MODSLAM is a mixed ORB-SLAM2 and DSO SLAM system. If you are using this work, please cite : 
 ```bibtex
-@article{modslam2021,
-  title={MOD SLAM: Mixed Method for a More Robust SLAM Without LoopClosing},
-  author={Thomas Belos, Pascal Monasse, Eva Dokladalova},
+@inproceedings{modslam2021,
+  title={MOD SLAM: Mixed Method for a More Robust SLAM without Loop Closing},
+  author={Belos, T., Monasse, P. and Dokladalova, E.},
+  booktitle={In Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)}
 }
 ```
 
