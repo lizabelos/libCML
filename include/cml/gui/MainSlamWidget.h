@@ -37,8 +37,8 @@ namespace CML {
         ~MainSlamWidget();
 
         inline void saveImagesTo(std::string path) {
-            mFilterVariance.setValue(0.0001);
-            onVarianceFilterChange(0.0001);
+            mFilterVariance.setValue(0.001);
+            onVarianceFilterChange(0.001);
             return mModelWidget.saveImagesTo(path);
         }
 

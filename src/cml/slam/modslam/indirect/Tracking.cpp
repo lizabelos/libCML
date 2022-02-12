@@ -106,7 +106,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
     }
 
     assertDeterministic("Number of matching for indirect tracking with motion model", matchings.size());
-    logger.important("Found " + std::to_string(matchings.size()) + " matchings from last frame");
+    logger.info("Found " + std::to_string(matchings.size()) + " matchings from last frame");
 
     if (matchings.size() < 20) {
         logger.important("Not accepting the tracking with motion model because of the number of matchings");
@@ -170,7 +170,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
             {referenceKeyFrame, referenceKeyFrameData->featureId, referenceKeyFrameData->descriptors}
     );
 
-    logger.important("Found " + std::to_string(matchings.size()) + " matchings from reference");
+    logger.info("Found " + std::to_string(matchings.size()) + " matchings from reference");
     assertDeterministic("Number of matchings for indirect tracking with motion model", matchings.size());
 
 
@@ -454,9 +454,9 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
     //scalar_t threshold = exp(log(numTrackedRef) * 0.975);
 
     scalar_t threshold = numTrackedRef * mOrbKeyframeRatio.f();
-    logger.important("Num tracked ref : " + std::to_string(numTrackedRef));
-    logger.important("Indirect keyframe threshold : " + std::to_string(threshold));
-    logger.important("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
+    logger.info("Num tracked ref : " + std::to_string(numTrackedRef));
+    logger.info("Indirect keyframe threshold : " + std::to_string(threshold));
+    logger.info("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
 
     /*if (mLastNumTrackedPoints > 200) {
         return false;

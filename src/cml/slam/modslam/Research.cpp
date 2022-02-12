@@ -42,8 +42,8 @@ bool Hybrid::poseEstimationDecision() {
 
     if (mTrackcondUncertaintyWeight.f() > 0) {
 
-        logger.important("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
-        logger.important("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
+        logger.debug("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
+        logger.debug("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
 
         if (!std::isfinite(indirectUncertainty)) {
             return true;

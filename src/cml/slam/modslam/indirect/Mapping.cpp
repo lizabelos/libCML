@@ -67,15 +67,18 @@ void Hybrid::indirectMap(PFrame currentFrame) {
         return;
     }
 
-    indirectLocalOptimize(currentFrame);
-    if (mIndirectMappingQueue.getCurrentSize() > 1) {
-        logger.info("Stopping indirect map because one frame is in the queue");
-        timer.stop();
-        mIndirectMappingQueue.notifyPop();
-        return;
-    }
+    if (!mMixedBundleAdjustment.b()) {
 
-    keyframeCulling();
+        indirectLocalOptimize(currentFrame);
+        if (mIndirectMappingQueue.getCurrentSize() > 1) {
+            logger.info("Stopping indirect map because one frame is in the queue");
+            timer.stop();
+            mIndirectMappingQueue.notifyPop();
+            return;
+        }
+
+        keyframeCulling();
+    }
 
     timer.stop();
 }
@@ -242,11 +245,11 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
 
     }
 
-    logger.important("Mapped " + std::to_string(newImmatures.size()) + " 3D points");
-    logger.important("Scale consistency failures : " + std::to_string(scaleConsistencyFailures));
-    logger.important("Front failures : " + std::to_string(frontFailures));
-    logger.important("Parallax failures : " + std::to_string(parallaxFailures));
-    logger.important("Finite failures : " + std::to_string(finiteFailures));
+    logger.debug("Mapped " + std::to_string(newImmatures.size()) + " 3D points");
+    logger.debug("Scale consistency failures : " + std::to_string(scaleConsistencyFailures));
+    logger.debug("Front failures : " + std::to_string(frontFailures));
+    logger.debug("Parallax failures : " + std::to_string(parallaxFailures));
+    logger.debug("Finite failures : " + std::to_string(finiteFailures));
 
 
     return newImmatures;

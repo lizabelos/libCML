@@ -295,30 +295,32 @@ private:
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
     Parameter mEnableHybridPoint = createParameter("enableHybridPoint", false);
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", true);
-    Parameter mNumOrbCorner = createParameter("numOrbCorner", 0);
-    Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", -1.0);
-    Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", false);
+    Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
+    Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);
+    Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);
-    Parameter mScoreWeight = createParameter("bacondScoreWeight", -1.0);
+    Parameter mScoreWeight = createParameter("bacondScoreWeight", 0.0125);
     Parameter mScoreWindow = createParameter("bacondScoreWindow", 1);
-    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", -1.0);
-    Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 1);
+    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.75);
+    Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 7);
     Parameter mBacondUncertaintyWeight = createParameter("bacondUncertaintyWeight", -1.0);
     Parameter mBacondUncertaintyWindow = createParameter("bacondUncertaintyWindow", 1);
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
-    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", -1);
+    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 190);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
-    Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.5f);
+    Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.51f);
     Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 10);
 
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
 
     Parameter mOrbKeyframeReflimit = createParameter("orbKeyframeReflimit", 200);
-    Parameter mOrbKeyframeRatio = createParameter("orbKeyframeRatio", 0.9f);
+    Parameter mOrbKeyframeRatio = createParameter("orbKeyframeRatio", 0.83f);
 
     Parameter mDsoKeyframeWeight = createParameter("dsoKeyframeWeight", 1.0f);
     Parameter mDsoKeyframeResidualRatio = createParameter("dsoKeyframeResidualRatio", 2.0f);
+
+    Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", true);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

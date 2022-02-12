@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
-    logger.setLogLevel(CML::ERR);
+    logger.setLogLevel(CML::IMPORTANT);
 
     printTypeSize();
 

@@ -66,7 +66,7 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     if (!renderMode) {
         mFunctionListWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
     } else {
-        mModelWidget.setFixedSize(3840, 2160);
+        mModelWidget.setFixedSize(1280, 720);
     }
     mModelWidget.setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     mGroupsWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));

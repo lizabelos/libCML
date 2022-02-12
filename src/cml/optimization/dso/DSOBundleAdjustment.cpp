@@ -1,5 +1,6 @@
 #include "cml/optimization/dso/DSOBundleAdjustment.h"
 #include "cml/optimization/dso/DSOTracer.h"
+#include "cml/optimization/Residual.h"
 
 CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent) : AbstractFunction(parent), DSOContext(parent->getMap()) {
     mMarginalizedHessian = Matrix<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
@@ -12,6 +13,7 @@ CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction
     mAbsVarTH.subscribeObserver(this);
     mMinRelBS.subscribeObserver(this);
 
+    mTriangulator = new Hartley2003Triangulation(this);
 }
 
 void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint point) {
@@ -666,6 +668,23 @@ bool CML::Optimization::DSOBundleAdjustment::doStepFromBackup(bool fixCamera) {
 
     }
 
+    for (auto p : mIndirectPointToOptimizeSet) {
+        List<PFrame> frames;
+        for (auto frame : getFrames()) {
+            if (frame->getFeaturePoint(p).has_value()) {
+                ReprojectionError re(frame, p);
+                scalar_t res;
+                re.error(res);
+                if (res > 0.01) {
+                    frame->removeMapPoint(p);
+                } else {
+                    frames.emplace_back(frame);
+                }
+            }
+        }
+        mTriangulator->triangulateNCam(p, p->getIndirectApparitions());
+    }
+
     sumA /= getFrames().size();
     sumB /= getFrames().size();
     sumR /= getFrames().size();
@@ -955,6 +974,8 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     HFinal_top = HL_top + HM_top + HA_top;
     bFinal_top = bL_top + bM_top + bA_top - b_sc;
 
+    addIndirectToProblem(HFinal_top, bFinal_top);
+
     //lastHS = HFinal_top - H_sc;
     //lastbS = bFinal_top;
 
@@ -967,10 +988,19 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     Vector<Dynamic> SVecI = (HFinal_top.diagonal() + Vector<Dynamic>::Constant(HFinal_top.cols(), 10)).cwiseSqrt().cwiseInverse();
     Matrix<Dynamic, Dynamic> HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
     Vector<Dynamic> x = Vector<Dynamic>::Zero(HFinalScaled.rows());
-    if (mOptimizeCalibration.b()) {
-        x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
+
+    if (!mMixedBundleAdjustment.b()) {
+        if (mOptimizeCalibration.b()) {
+            x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
+        } else {
+            x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).ldlt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
+        }
     } else {
-        x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).ldlt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
+        if (mOptimizeCalibration.b()) {
+            x = SVecI.asDiagonal() * HFinalScaled.llt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
+        } else {
+            x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).llt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
+        }
     }
 
 
@@ -2392,5 +2422,90 @@ void CML::Optimization::DSOBundleAdjustment::onValueChange(const Parameter &para
                                                         mMinRelBS.f());
         }
     }
+}
+
+void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic, Dynamic> &Hfinal, Vector<Dynamic> &bfinal) {
+    if (!mMixedBundleAdjustment.b()) {
+        return;
+    }
+
+    List<PFrame> frames = getFrames();
+    mIndirectPointToOptimizeSet.clear();
+    for (int i = 0; i < frames.size(); i++) {
+        PFrame frame = frames[i];
+        frame->getGroupMapPointsNoClean(getMap().INDIRECTGROUP, mIndirectPointToOptimizeSet);
+    }
+    List<PPoint> pointsToOptimize(mIndirectPointToOptimizeSet.begin(), mIndirectPointToOptimizeSet.end());
+
+    if (pointsToOptimize.size() == 0) {
+        return;
+    }
+
+    Vector<Dynamic> b = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+    Matrix<Dynamic, Dynamic> H = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+    Matrix<Dynamic, Dynamic> J = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, pointsToOptimize.size());
+
+    List<Vector3> Jpoints;
+    Jpoints.resize(pointsToOptimize.size(), Vector3::Zero());
+
+    for (int i = 0; i < frames.size(); i++) {
+        PFrame frame = frames[i];
+        auto frameData = get(frame);
+
+        for (int j = 0; j < pointsToOptimize.size(); j++) {
+            PPoint point = pointsToOptimize[j];
+            auto fp = frame->getFeaturePoint(point);
+            if (!fp.has_value()) {
+                continue;
+            }
+            Vector3 currentCoordinate = point->getWorldCoordinate().absolute();
+
+            Vector6 currentCamera = frameData->get_state().head<6>(); // todo : warning. is this scaled ? put a scale of 1 for the moment
+
+            SE3 expValue = Sophus::SE3<scalar_t>::exp(currentCamera);
+            Matrix<7,6> expDerivative = Sophus::SE3<scalar_t>::Dx_exp_x(currentCamera);
+            Vector7 cameraDerivative;
+
+            scalar_t currentResidual = 0;
+            Vector3 pointJacobian;
+            bool res = ReprojectionError(frame, point).jacobian(currentResidual, Camera(expValue.params().head<3>(), Quaternion((Vector4)expValue.params().tail<4>())), currentCoordinate, cameraDerivative, pointJacobian);
+
+            if (!res) {
+                continue;
+            }
+
+            Jpoints[j] += pointJacobian;
+
+            currentResidual = currentResidual / fp.value().processScaleFactorFromLevel();
+
+            if (currentResidual > 3.0 / (640.0 + 480.0)) {
+                continue;
+            }
+
+            Matrix<Dynamic, Dynamic> finalDerivativeM = (cameraDerivative.transpose() * expDerivative) / 7;
+
+            Vector6 finalDerivative = finalDerivativeM.transpose();
+
+
+            b(frameData->id) += currentResidual;
+            finalDerivative.head<3>() *= mScaleTranslation.f();
+            finalDerivative.tail<3>() *= mScaleRotation.f();
+            J.block<6,1>(4 + frameData->id * 8,j) += finalDerivative;
+            //J.block<3,1>(4 + frameData->id * 8,j) += ctJ * mScaleTranslation.f();
+            //J.block<3,1>(4 + frameData->id * 8 + 3,j) += (crJ.tail<3>() / crJ(0)) * mScaleRotation.f();
+        }
+    }
+
+
+    H = J * J.transpose();
+
+    for (int j = 0; j < pointsToOptimize.size(); j++) {
+        pointsToOptimize[j]->setUncertainty((Jpoints[j] * Jpoints[j].transpose()).inverse().diagonal().norm());
+    }
+    // todo : use dso accumulator here
+
+    Hfinal += H * mMixedBundleAdjustmentWeight.f();
+    bfinal += b * mMixedBundleAdjustmentWeight.f();
+
 }
 

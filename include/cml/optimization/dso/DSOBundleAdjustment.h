@@ -5,6 +5,7 @@
 #include <cml/optimization/dso/DSOPoint.h>
 #include <cml/optimization/dso/DSOResidual.h>
 #include <cml/optimization/dso/MatrixAccumulators.h>
+#include <cml/optimization/Triangulation.h>
 
 namespace CML {
 
@@ -87,6 +88,14 @@ namespace CML {
                 maxFrames.set(n);
             }
 
+            void setMixedBundleAdjustment(bool b) {
+                mMixedBundleAdjustment.set(b);
+            }
+
+            const Set<PPoint> &indirectOptimizedPoints() {
+                return mIndirectPointToOptimizeSet;
+            }
+
         protected:
             void computeAdjoints();
 
@@ -146,6 +155,8 @@ namespace CML {
             void makeIDX();
 
             void setZero();
+
+            void addIndirectToProblem(Matrix<Dynamic, Dynamic> &Hfinal, Vector<Dynamic> &bfinal);
 
         private:
             void onValueChange(const Parameter &parameter) final;
@@ -223,7 +234,7 @@ namespace CML {
             Parameter mAbsVarTH = createParameter("Abs Var TH", 0.000001f);
             Parameter mMinRelBS = createParameter("Min Relative BS", 0.4f);
 
-            Parameter mNumIterations = createParameter("iterations", 6);
+            Parameter mNumIterations = createParameter("iterations", 4);
 
             Parameter mHuberThreshold = createParameter("Huber threshold", 9.0f);
             Parameter mSettingOutlierTHSumComponent = createParameter("outlierTHSumComponent", 50.0f * 50.0f);
@@ -231,7 +242,7 @@ namespace CML {
             Parameter mThOptIterations = createParameter("ThOptIterations", 1.2f);
 
             Parameter mScaleRotation = createParameter("Rotation scale", 1.0f);
-            Parameter mScaleTranslation = createParameter("Translation scale", 0.5f);
+            Parameter mScaleTranslation = createParameter("translationScale", 1.0f);
             Parameter mScaleLightA = createParameter("Light A scale", 10.0f);
             Parameter mScaleLightB = createParameter("Light B scale", 1000.0f);
             Parameter mScaleF = createParameter("Scale F", 50.0f);
@@ -255,11 +266,16 @@ namespace CML {
             Parameter mCutoffThreshold = createParameter("Cutoff threshold", 20.0f);
 
 
-            Parameter maxFrames = createParameter("maxFrames", 7);
+            Parameter maxFrames = createParameter("maxFrames", 6);
             Parameter minFrameAge = createParameter("frameMinAge", 1);
 
             Parameter mOptimizeA = createParameter("optimizeLightA", true);
             Parameter mOptimizeB = createParameter("optimizeLightB", true);
+
+
+            Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", false);
+            Parameter mMixedBundleAdjustmentWeight = createParameter("mixedBundleAdjustmentWeight", 1.0f);
+            Set<PPoint> mIndirectPointToOptimizeSet;
 
             bool mAbortBAOnFailture = false;
 
@@ -267,6 +283,8 @@ namespace CML {
 
             Mutex mLastOptimizedCameraMutex;
             HashMap<PFrame, Camera, Hasher> mLastOptimizedCamera;
+
+            Hartley2003Triangulation *mTriangulator;
 
         };
 

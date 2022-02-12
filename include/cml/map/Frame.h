@@ -392,6 +392,14 @@ namespace CML {
             return mGroupsMapPoint[groupId];
         }
 
+        void getGroupMapPointsNoClean(int groupId, Set<PPoint, Hasher> &output) {
+            assertThrow(groupId >= 0, "Invalid group id");
+            LockGuard lg(mGroupsMapPointMutexes[groupId]);
+            for (auto point : mGroupsMapPoint[groupId]) {
+                output.insert(point);
+            }
+        }
+
         Set<PPoint, Hasher> getReferenceGroupMapPoints(int groupId) {
             LockGuard lg(mGroupsMapPointReferenceMutexes[groupId]);
             return mGroupsMapPointReference[groupId];

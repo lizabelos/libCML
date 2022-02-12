@@ -34,6 +34,8 @@ void CML::StatisticWidget::onNewValue(Statistic *statistic, scalar_t x, scalar_t
 void CML::StatisticWidget::requestRefresh(scalar_t x, scalar_t y) {
 
     mLineSeries->append(x, y);
+    mChart->removeSeries(mLineSeries); // WHYYYYY I NEED THIS ?
+    mChart->addSeries(mLineSeries);
 
 }
 

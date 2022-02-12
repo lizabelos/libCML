@@ -179,8 +179,8 @@ namespace CML {
             Mutex mLastTracedMutex;
             List<Vector3f> mLastTraced, mLastLastTraced;
 
-            Parameter mDesiredImmatureDensity = createParameter("immatureDensity", 1500);
-            Parameter mSettingsDesiredPointDensity = createParameter("desiredPointDensity", 2000);
+            Parameter mDesiredImmatureDensity = createParameter("immatureDensity", 600);
+            Parameter mSettingsDesiredPointDensity = createParameter("desiredPointDensity", 800);
             Parameter mMinIDepthHAct = createParameter("Min iDepth H Act", 100.0f);
             Parameter mGNItsOnPointActation = createParameter("Iteration on point activation", 3);
             Parameter mSettingHuberTH = createParameter("Huber Threshold", 9.0f);

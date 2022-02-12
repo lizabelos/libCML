@@ -1,10 +1,10 @@
 #ifndef CML_RESIDUAL_H
 #define CML_RESIDUAL_H
 
-#include <cml/config.h>
-#include <cml/map/Frame.h>
-#include <cml/map/MapObject.h>
-#include <cml/image/Array2D.h>
+#include "cml/config.h"
+#include "cml/map/Frame.h"
+#include "cml/map/MapObject.h"
+#include "cml/image/Array2D.h"
 
 namespace CML {
 
@@ -33,8 +33,30 @@ namespace CML {
             return true;
         }
 
-        template <typename JT, typename JR, typename JP>
-        bool jacobian(scalar_t &residual, const Camera &trialCamera, const Vector3 &trialWorldCoordinate, JT &translationJacobian, JR &rotationJacobian, JP &pointJacobian) const {
+        bool jacobian(scalar_t &residual, const Camera &trialCamera, const Vector3 &trialWorldCoordinate, Vector7 &output, Vector3 &poutput) const {
+            output.setZero();
+                Vector3 curTranslationJacobian;
+                Vector4 curRotationJacobian;
+                Vector3 curPointJacobian;
+
+                bool res = jacobian(residual, trialCamera, trialWorldCoordinate, curTranslationJacobian, curRotationJacobian, curPointJacobian);
+
+                output.head<3>() = curTranslationJacobian;
+                output.tail<4>() = curRotationJacobian;
+
+                poutput = curPointJacobian;
+
+                return res;
+                //translationJacobian += curTranslationJacobian;
+                //rotationJacobian += curRotationJacobian;
+
+        }
+
+        bool jacobian(scalar_t &residual, const Vector6 &trialCamera, const Vector3 &trialWorldCoordinate, Vector3 &translationJacobian, Vector4 &rotationJacobian, Vector3 &pointJacobian) const {
+            return jacobian(residual, Camera(trialCamera.head<3>(), Quaternion((Vector4)trialCamera.tail<4>())), trialWorldCoordinate, translationJacobian, rotationJacobian, pointJacobian);
+        }
+
+        bool jacobian(scalar_t &residual, const Camera &trialCamera, const Vector3 &trialWorldCoordinate, Vector3 &translationJacobian, Vector4 &rotationJacobian, Vector3 &pointJacobian) const {
             Vector3 transformation = trialCamera.transform(trialWorldCoordinate);
             Vector2 projection = transformation.hnormalized();
             Vector2 difference = projection - mGt;
@@ -42,22 +64,22 @@ namespace CML {
 
             residual = squaredNorm;
 
-            if (translationJacobian != nullptr || pointJacobian != nullptr) for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
                 double v = Derivative::squaredNorm(difference, trialCamera.derivativeOfProjectWrtTranslation(transformation, i));
                 // assertThrow(std::isfinite(v), "Not finite residual");
-                // if (!std::isfinite(v)) {
-                //    return false;
-                // }
-                if (translationJacobian != nullptr) translationJacobian[i] = v;
-                if (pointJacobian != nullptr) pointJacobian[i] = -v;
+                if (!std::isfinite(v)) {
+                    return false;
+                }
+                translationJacobian[i] = v;
+                pointJacobian[i] = -v;
             }
 
-            if (rotationJacobian != nullptr) for (int i = 0; i < Quaternion::N; i++) {
+            for (int i = 0; i < Quaternion::N; i++) {
                 rotationJacobian[i] = Derivative::squaredNorm(difference, trialCamera.derivativeOfProjectWrtRotation(trialWorldCoordinate, transformation, i));
                 // assertThrow(std::isfinite(rotationJacobian[i]), "Not finite residual");
-                // if (!std::isfinite(rotationJacobian[i])) {
-                //     return false;
-                // }
+                if (!std::isfinite(rotationJacobian[i])) {
+                    return false;
+                }
             }
 
             return true;
@@ -111,7 +133,7 @@ namespace CML {
                 return false;
             }
 
-            scalar_t curColor = mCurFrame->getCaptureFrame().getGrayImage(level).interpolate(projectedcurp_Distorted);
+            scalar_t curColor = mCurFrame->getCaptureFrame().getGrayImage(level).interpolate(projectedcurp_Distorted.cast<float>());
             scalar_t refColor = mMapPoint->getGrayPatch(shift.x(), shift.y(), level);
 
             ExposureTransition exposureTransition = mRefFrame->getExposure().to(mCurFrame->getExposure());
@@ -151,7 +173,7 @@ namespace CML {
                 return false;
             }
 
-            scalar_t curColor = mCurFrame->getCaptureFrame().getGrayImage(level).interpolate(projectedcurp_Distorted);
+            scalar_t curColor = mCurFrame->getCaptureFrame().getGrayImage(level).interpolate(projectedcurp_Distorted.cast<float>());
             scalar_t refColor = mMapPoint->getGrayPatch(shift.x(), shift.y(), level);
 
             ExposureTransition exposureTransition = trialExposureRef.to(trialExposureCur);
@@ -217,10 +239,10 @@ namespace CML {
                 return false;
             }
 
-            auto curColorWithGradient = mCurFrame->getCaptureFrame().getDerivativeImage(level).interpolate(projectedcurp_Distorted);
+            auto curColorWithGradient = mCurFrame->getCaptureFrame().getDerivativeImage(level).interpolate(projectedcurp_Distorted.cast<float>());
 
-            scalar_t curColor = curColorWithGradient.c();
-            Vector2 curColorGradient = curColorWithGradient.gradient();
+            scalar_t curColor = curColorWithGradient(0);
+            Vector2 curColorGradient = curColorWithGradient.tail<2>();
             scalar_t refColor = mMapPoint->getGrayPatch(shift.x(), shift.y(), level); // TODO : Use this for a faster access
             // scalar_t refColor = mRefFrame->getCaptureFrame().getGrayImage(level).template interpolate<scalar_t>(refcorner_Distorted);
 

@@ -511,7 +511,7 @@ namespace CML {
             Parameter mOptimizeCalibration = createParameter("Optimize calibration", false);
 
             Parameter mFailureMode = createParameter("failureMode", 0);
-            Parameter mSaturatedRatioThreshold = createParameter("saturatedThreshold", 0.5);
+            Parameter mSaturatedRatioThreshold = createParameter("saturatedThreshold", 0.33);
 
         };
 

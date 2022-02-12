@@ -41,7 +41,6 @@ Hybrid::Hybrid() : AbstractSlam() {
         mIndirectPointOptimizer = new Optimization::IndirectPointOptimizer(this);
         mPnP = new Optimization::G2O::IndirectCameraOptimizer(this);
     }
-
 }
 
 Hybrid::~Hybrid() {
@@ -81,6 +80,8 @@ void Hybrid::onReset() {
 }
 
 void Hybrid::run() {
+
+    mPhotometricBA->setMixedBundleAdjustment(mMixedBundleAdjustment.b());
 
     if (mEnableIndirect.b()) {
         mCornerExtractor->setNumFeatures(mNumOrbCorner.i());
@@ -164,11 +165,11 @@ void Hybrid::processFrame(PFrame currentFrame) {
             mShouldPreferDso = poseEstimationDecision();
             // assertThrow(mShouldPreferDso, "Should prefer dso");
             if (mShouldPreferDso) {
-                logger.important("Should Prefer Dso");
+                logger.info("Should Prefer Dso");
                 mTrackingOk = false;
                 trackWithDso(currentFrame);
             } else {
-                logger.important("Using Orb with Dso Refinement");
+                logger.info("Using Orb with Dso Refinement");
                 mTrackingOk = false;
                 trackWithOrbAndDsoRefinement(currentFrame);
             }
@@ -191,21 +192,32 @@ void Hybrid::processFrame(PFrame currentFrame) {
 
         if (mTrackingOk) {
 
-            bool needIndirectKF = mEnableIndirect.b() && indirectNeedNewKeyFrame(currentFrame);
-            bool needDirectKF = mEnableDirect.b() && directNeedNewKeyFrame(currentFrame);
+            if (mMixedBundleAdjustment.b()) {
 
-            if (needIndirectKF || needDirectKF) {
+                bool needKF = indirectNeedNewKeyFrame(currentFrame) || directNeedNewKeyFrame(currentFrame);
+                mBaMode = BADIRECT;
+                indirectPostprocess(currentFrame, needKF);
+                directPostprocess(currentFrame, needKF);
 
-                mBaMode = bundleAdjustmentDecision(needIndirectKF, needDirectKF);
+            } else {
 
-                if (mBaMode == BADIRECT) {
-                    logger.important("Ba mode Direct");
-                    directPostprocess(currentFrame, needDirectKF);
-                    indirectPostprocess(currentFrame, needIndirectKF);
-                } else {
-                    logger.important("Ba mode Indirect");
-                    indirectPostprocess(currentFrame, needIndirectKF);
-                    directPostprocess(currentFrame, needDirectKF);
+                bool needIndirectKF = mEnableIndirect.b() && indirectNeedNewKeyFrame(currentFrame);
+                bool needDirectKF = mEnableDirect.b() && directNeedNewKeyFrame(currentFrame);
+
+                if (needIndirectKF || needDirectKF) {
+
+                    mBaMode = bundleAdjustmentDecision(needIndirectKF, needDirectKF);
+
+                    if (mBaMode == BADIRECT) {
+                        logger.important("Ba mode Direct");
+                        directPostprocess(currentFrame, needDirectKF);
+                        indirectPostprocess(currentFrame, needIndirectKF);
+                    } else {
+                        logger.important("Ba mode Indirect");
+                        indirectPostprocess(currentFrame, needIndirectKF);
+                        directPostprocess(currentFrame, needDirectKF);
+                    }
+
                 }
 
             }
@@ -233,7 +245,7 @@ void Hybrid::indirectPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableIndirect.b()) {
         return;
     }
-    logger.important("Indirect postprocess");
+    logger.debug("Indirect postprocess");
     if (needKF || (mBaMode != BAINDIRECT && mLastNumTrackedPoints < 15)) {
         //currentFrame->setGroup(getMap().KEYFRAME, true);
         if (mLinearizeIndirect.b()) {
@@ -253,7 +265,7 @@ void Hybrid::directPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableDirect.b()) {
         return;
     }
-    logger.important("Direct postprocess");
+    logger.debug("Direct postprocess");
     if (needKF) {
         if (mLinearizeDirect.b()) {
             directMap(currentFrame);
