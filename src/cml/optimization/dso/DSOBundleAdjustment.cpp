@@ -974,7 +974,10 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     HFinal_top = HL_top + HM_top + HA_top;
     bFinal_top = bL_top + bM_top + bA_top - b_sc;
 
+
     addIndirectToProblem(HFinal_top, bFinal_top);
+
+
 
     //lastHS = HFinal_top - H_sc;
     //lastbS = bFinal_top;
@@ -2478,7 +2481,7 @@ void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic
 
             currentResidual = currentResidual / fp.value().processScaleFactorFromLevel();
 
-            if (currentResidual > 3.0 / (640.0 + 480.0)) {
+           if (currentResidual > 9.0 / (640.0 + 480.0)) { // todo : this is actually really huge
                 continue;
             }
 
@@ -2487,9 +2490,9 @@ void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic
             Vector6 finalDerivative = finalDerivativeM.transpose();
 
 
-            b(frameData->id) += currentResidual;
             finalDerivative.head<3>() *= mScaleTranslation.f();
             finalDerivative.tail<3>() *= mScaleRotation.f();
+            b.segment<6>(4 + frameData->id * 8) += finalDerivative * currentResidual;
             J.block<6,1>(4 + frameData->id * 8,j) += finalDerivative;
             //J.block<3,1>(4 + frameData->id * 8,j) += ctJ * mScaleTranslation.f();
             //J.block<3,1>(4 + frameData->id * 8 + 3,j) += (crJ.tail<3>() / crJ(0)) * mScaleRotation.f();
