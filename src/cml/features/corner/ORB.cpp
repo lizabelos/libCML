@@ -112,8 +112,12 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
             fread(&count, sizeof(int), 1, f);
             mCorners.resize(count);
             mDescriptors.resize(count);
-            fread(mCorners.data(), sizeof(Corner), count, f);
-            fread(mDescriptors.data(), sizeof(Binary256Descriptor), count, f);
+            for (int i = 0; i < count; i++) {
+                fread(&mCorners[i], sizeof(Corner), 1, f);
+            }
+            for (int i = 0; i < count; i++) {
+                fread(mDescriptors[i].data(), mDescriptors[i].size(), 1, f);
+            }
             fclose(f);
         }
     }
@@ -169,10 +173,15 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         std::string orbCachePath = captureImage.getPath() + ".orb";
         FILE *f = fopen(orbCachePath.c_str(), "wb");
         if (f != nullptr) {
+            logger.important("Using cached ORB");
             int count = mCorners.size();
             fwrite(&count, sizeof(int), 1, f);
-            fwrite(mCorners.data(), sizeof(Corner), count, f);
-            fwrite(mDescriptors.data(), sizeof(Binary256Descriptor), count, f);
+            for (int i = 0; i < count; i++) {
+                fwrite(&mCorners[i], sizeof(Corner), 1, f);
+            }
+            for (int i = 0; i < count; i++) {
+                fwrite(mDescriptors[i].data(), mDescriptors[i].size(), 1, f);
+            }
             fclose(f);
         }
     }

@@ -124,6 +124,10 @@ namespace CML {
             return mBinary;
         }
 
+        EIGEN_STRONG_INLINE uint8_t *data() {
+            return mBinary;
+        }
+
         EIGEN_STRONG_INLINE static int distance(const BinaryDescriptor<N> &a, const BinaryDescriptor<N> &b) {
             return a.distance(b);
         }
@@ -182,6 +186,10 @@ namespace CML {
                 h += mBinary[i];
             }
             return h;
+        }
+
+        EIGEN_STRONG_INLINE size_t size() {
+            return sizeof(uint8_t) * N;
         }
 
     private:
