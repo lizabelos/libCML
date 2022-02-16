@@ -227,7 +227,7 @@ def fromslam(context):
     #return SysEvoEvaluator.fromslam(context)
 
 def evaluateOn(context, dataset):
-    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name())
+    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name(), statistics=context.getStats())
     if r is not None:
         return r
     context.run(dataset)
