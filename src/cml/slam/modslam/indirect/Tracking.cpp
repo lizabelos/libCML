@@ -22,7 +22,9 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     assertDeterministic("Hash of ORB extracted descriptors", computeHashOfDescriptors(currentFrameData->descriptors));
 */
 
+#if CML_USE_OPENMP
     #pragma omp parallel
+#endif
     mCornerExtractor->compute(currentFrame->getCaptureFrame());
 
     currentFrameData->descriptors = mCornerExtractor->getDescriptors();

@@ -1667,6 +1667,7 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
     #pragma omp single
     {
+        int ompNumThread = omp_get_num_threads();
         if (fH.rows() != getFrames().size() * 8 + 4) {
             fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
             fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
@@ -1674,9 +1675,9 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
             fH.setZero();
             fb.setZero();
         }
-        if (sdt_tH.size() != omp_get_num_threads()) {
-            sdt_tH.resize(omp_get_num_threads());
-            sdt_tb.resize(omp_get_num_threads());
+        if (sdt_tH.size() != ompNumThread) {
+            sdt_tH.resize(ompNumThread);
+            sdt_tb.resize(ompNumThread);
             for (int i = 0; i < sdt_tH.size(); i++) {
                 sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
                 sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
@@ -1696,7 +1697,11 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
+#if CML_USE_OPENMP
             int tid = omp_get_thread_num();
+#else
+            int tid = 0;
+#endif
 
             Matrix<Dynamic, Dynamic> &tH = sdt_tH[tid]; // Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
             Vector<Dynamic> &tb = sdt_tb[tid]; //Vector<Dynamic>::Zero(getFrames().size()*8+4);
