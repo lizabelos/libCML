@@ -1,50 +1,34 @@
-import json
+import math
 import os
-import matplotlib.pyplot as plt
-import yaml
-
-from database import loadJsonFile, hashOfDict
-import copy
+import shutil
+import sys
 from statistics import mean
-from scipy.stats import sem
-from math import sqrt
+import copy
+from tqdm.contrib.concurrent import process_map
 
-from utils import floatrange
+nodesToIgnore = {"ate","edges","datasetname","stats"}
 
-colorsByDataset = {"KITTI 00" : '#1f77b4',
-          "KITTI 01" : '#ff7f0e',
-          "KITTI 02" : '#2ca02c',
-          "KITTI 03" : '#d62728',
-          "KITTI 04" : '#9467bd',
-          "KITTI 05" : '#8c564b',
-          "KITTI 06" : '#e377c2',
-          "KITTI 07" : '#7f7f7f',
-          "KITTI 08" : '#bcbd22',
-          "KITTI 09" : '#17becf',
-          "KITTI 10" : '#1777c2',
-          "Group": "#000000"
-          }
-
-def distanceBetweenNode(p1, p2):
-    if p1["datasetname"] != p2["datasetname"]:
-        return 9999, []
-    dist = 0
+def distanceBetweenNode(p1, p2, ignore = "", maxlen = 1):
+    if len((p1.keys()|nodesToIgnore) ^ (p2.keys()|nodesToIgnore)) > 0:
+        return None
+    if any([not isinstance(p1[index], type(p2[index])) for index in p1 if not index == "ate" and not index == "edges" and not index == "datasetname" and not index == ignore]):
+        return None
     diff = []
     for index in p1:
-        if index == "ate":
+        if index in nodesToIgnore or index == ignore:
             continue
-        if index == "edges":
+        if isinstance(p1[index], float):
+            if not math.isclose(p1[index],p2[index]):
+                if len(diff) == maxlen:
+                    return None
+                diff.append(index)
             continue
-        # if index == "datasetname":
-        #     continue
-        if index not in p2:
-            dist = 9999
-            return dist, diff
         if p1[index] != p2[index]:
-            dist = dist + 1
+            if len(diff) == maxlen:
+                return None
             diff.append(index)
             continue
-    return dist, diff
+    return diff
 
 def lowerErrorMedian(l):
     s = len(l)
@@ -94,6 +78,12 @@ def numFramesOf(dataset):
 
     return numFrames[int(dataset.split(" ")[1])]
 
+def baselineOf(dataset):
+    orbResult = [67,20,43,1.0,0.9,43,49,17,58,60,9]
+    dsoResult = [114,20,120,2.1,1.5,52,59,17,111,63,16]
+
+    return orbResult[int(dataset.split(" ")[1])] * 0.5 + dsoResult[int(dataset.split(" ")[1])] * 1.5
+
 def thresholdOf(dataset):
 
     if dataset.startswith("TUM"):
@@ -139,6 +129,7 @@ class PlotSet:
             self.lower_y = []
             self.upper_y = []
         self.errors = {}
+        self.params = {}
 
     def addValue(self, x, y, param):
         self.all_x.append(x)
@@ -146,6 +137,15 @@ class PlotSet:
         self.x_set.add(x)
         self.lower_y.append(0)
         self.upper_y.append(0)
+        self.params[x] = param
+
+    def addValueOnlyOne(self, x, y, param):
+        for i in range(0, len(self.all_x)):
+            if math.isclose(x, self.all_x[i]):
+                if not math.isclose(y, self.all_y[i]):
+                    print("CRITICAL ERROR : Value already exist : " + str(x) + " vs " + str(self.all_x[i]))
+                return
+        self.addValue(x,y,param)
 
     def addError(self, x, y, param, n = 1):
         if x not in self.errors:
@@ -242,16 +242,32 @@ class PlotSet:
             for j in range(1, len(self.all_y) - 1):
                 self.all_y[j] = self.all_y[j] * delta + self.all_y[j - 1] * delta_inv + self.all_y[j + 1] * delta_inv
 
+    def plotBaseline(self, axis, ourResults):
+        orbResult = [67,None,43,1.0,0.9,43,49,17,58,60,9]
+        dsoResult = [114,None,120,2.1,1.5,52,59,17,111,63,16]
+        numDataset = int(self.dataset.split(" ")[1])
+        baseline = baselineOf(self.dataset)
+        minX = min(self.all_x)
+        if orbResult[numDataset] is not None:
+            axis.axhline(orbResult[numDataset] / baseline, label='ORB-SLAM2', color='green')
+            axis.text(minX, orbResult[numDataset] / baseline, "ORB-SLAM2")
+        if dsoResult[numDataset] is not None:
+            axis.axhline(dsoResult[numDataset] / baseline, label='DSO', color='blue')
+            axis.text(minX, dsoResult[numDataset] / baseline, "DSO")
+        if ourResults[numDataset] is not None:
+            axis.axhline(ourResults[numDataset] / baseline, label='ModSLAM', color='red')
+            axis.text(minX, ourResults[numDataset] / baseline, "ModSLAM")
+
     def plot(self, axis):
         self.sort()
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color=colorsByDataset[self.dataset], linestyle = 'None', label=self.dataset,  markersize=2)
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color="red", linestyle = 'None', label=self.dataset,  markersize=2)
 
     def plotImportant(self, axis):
         self.sort()
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=1.0, zorder=0, color=colorsByDataset[self.dataset], linestyle = 'None', label=self.dataset,  markersize=2)
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=1.0, zorder=0, color="red", linestyle = 'None', label=self.dataset,  markersize=2)
 
-    def plotPoint(self):
-        plt.plot(self.all_x, self.all_y, marker="o", zorder=500, alpha=0.25, color=colorsByDataset[self.dataset], linestyle = 'None', markersize=2)
+    def plotPoint(self, axis):
+        axis.plot(self.all_x, self.all_y, marker="o", zorder=500, alpha=0.25, color="red", linestyle = 'None', markersize=2)
 
     def plotError(self, axis):
         x = []
@@ -278,78 +294,93 @@ class PlotSet:
         # todo : show each bar with color ?
         axis.bar(x, y, width=minXdiff * 0.9, color="#cccccc", label="Error", zorder=0)
 
-def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, hashFilter = None):
+def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, paramFilter = None, ours = None):
     values = []
     alreadyTaken = set()
     for ref_id in d:
         if d[ref_id]["datasetname"] not in datasets:
             continue
 
-        if param not in d[ref_id]["edges"]:
+        if param not in d[ref_id]:
             continue
 
         if ref_id in alreadyTaken:
             continue
 
-        if hashFilter is not None:
-            elem = copy.deepcopy(d[ref_id])
-            del elem["datasetname"]
-            del elem["ate"]
-            del elem["edges"]
-            h = hashOfDict(elem)
-            if h != hashFilter:
+        if paramFilter is not None:
+            r = distanceBetweenNode(d[ref_id], paramFilter, ignore=param)
+            if r is None:
                 continue
+            if len(r) > 0:
+                continue
+
+
+        if param not in d[ref_id]["edges"]:
+            continue
 
         rangedBasedDict = PlotSet(d[ref_id]["datasetname"])
 
-        alreadyTaken.add(ref_id)
-
-        ate = None
         minAte = 9999999999
         maxAte = 0
-        try:
-            #print(d[id])
-            ate = float(d[ref_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
-            cur_x = d[ref_id][param]
-            cur_y = ate
-            minAte = min(minAte,ate)
-            maxAte = max(maxAte,ate)
-            rangedBasedDict.addValue(cur_x, cur_y, d[ref_id])
-        except:
-            cur_x = d[ref_id][param]
-            cur_y = 1
-            rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
 
+        for cur_id in [ref_id] + list(d[ref_id]["edges"][param]):
 
+            if cur_id != ref_id:
+                test = distanceBetweenNode(d[ref_id], d[cur_id])
+                if len(test) != 1 or test[0] != param:
+                    print("CRITICAL ERROR : The graph is not well constructed")
+                    print(test)
+                    continue
 
-        for cur_id in d[ref_id]["edges"][param]:
+            if d[cur_id]["datasetname"] != rangedBasedDict.dataset:
+                print("CRITICAL ERROR : This is not the same dataset !")
+                continue
+
             alreadyTaken.add(cur_id)
-            ate = None
             try:
-                #print(d[id])
-                ate = float(d[cur_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
+                ate = float(d[cur_id]["ate"]) / baselineOf(d[ref_id]["datasetname"])
                 cur_x = d[cur_id][param]
                 cur_y = ate
                 minAte = min(minAte,ate)
                 maxAte = max(maxAte,ate)
-                rangedBasedDict.addValue(cur_x, cur_y, d[cur_id])
+                rangedBasedDict.addValueOnlyOne(cur_x, cur_y, d[cur_id])
             except:
                 cur_x = d[cur_id][param]
                 cur_y = 1
                 rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
 
-        if (removeConstant == False or maxAte != minAte) and len(rangedBasedDict.x_set) > 3:
+        if (removeConstant == False or maxAte != minAte) and len(rangedBasedDict.x_set) > 1:
             #rangedBasedDict.movingAverage()
-            values.append(rangedBasedDict)
-        else:
-            print("Removing constant values. Diff : " + str(abs(maxAte - minAte)))
+            l = len(rangedBasedDict.x_set)
+            needToAppend = True
+            for m in range(0, len(values)):
+                if values[m].dataset == d[ref_id]["datasetname"]:
+                    if len(values[m].x_set) < l:
+                        values[m] = rangedBasedDict
+                    needToAppend = False
+                    break
+            if needToAppend:
+                values.append(rangedBasedDict)
 
-    cols = 4
-    rows = int((len(values) + 2) / cols) + 2
 
+    cols = 3
+    rows = 4
 
+    if len(values) == 0:
+        return
 
-    fig, axs = plt.subplots(rows, cols, figsize=(8.27,11.69))
+    minX = min([min(v.all_x) for v in values])
+    maxX = max([max(v.all_x) for v in values])
+    minY = 0
+    maxY = 1
+
+    import matplotlib
+    matplotlib.use('pdf')
+    import matplotlib.pyplot as plt
+
+    fig, axs = plt.subplots(rows, cols, figsize=(8.27,11.69), clear=True)
+
+    values.sort(key=lambda v:v.dataset)
 
     valuesInDataset = {}
     averageByDataset = []
@@ -357,9 +388,12 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
     for value in values:
 
         axis = axs[int(i/cols),int(i%cols)]
+        axis.set_xlim([minX, maxX])
+        axis.set_ylim([minY, maxY])
 
         value.plot(axis)
         value.plotError(axis)
+        value.plotBaseline(axis,ours)
         axis.set_title(value.dataset)
         axis.set(xlabel=param, ylabel='ATE')
         axis.label_outer()
@@ -371,10 +405,10 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
         i = i + 1
 
-    if i == 0:
-        return
-
     axis = axs[int(i/cols),int(i%cols)]
+    axis.set_xlim([minX, maxX])
+    axis.set_ylim([minY, maxY])
+    axis.label_outer()
 
     for value in values:
         if value.dataset not in valuesInDataset:
@@ -404,216 +438,147 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
     # function to show the plot
     #plt.show()
+    print("Saving plot to plot/" + folder + "/" + param + ".pdf")
     os.makedirs("plot/" + folder, exist_ok=True)
     fig.savefig("plot/" + folder + "/" + param + ".pdf", bbox_inches="tight")
+    return True
 
-    plt.clf()
+def makeGraphEdges_job(j):
+    return j[2], j[3], distanceBetweenNode(j[0], j[1])
 
-def makeGraphEdges(d):
-    print("Making the graph...", end="")
+def makeGraphEdges(d, params):
+    k = list(d.keys())
+
+    results = None
+
+    print("Creating jobs...")
+    jobs = []
+    for ref_id_i in range(0, len(k)):
+        ref_id = k[ref_id_i]
+        for target_id_i in range(ref_id_i + 1, len(k)):
+            target_id = k[target_id_i]
+            jobs.append([d[ref_id], d[target_id], ref_id, target_id])
+    print("Launching jobs...")
+    if len(d) < 2000:
+        results = list(map(makeGraphEdges_job, jobs))
+    else:
+        results = process_map(makeGraphEdges_job, jobs, max_workers=20, chunksize=int(len(jobs)/20))
+
+    print("Parsing jobs...")
     for ref_id in d:
-        #print(".", end="")
         d[ref_id]["edges"] = {}
-        for target_id in d:
-            if ref_id == target_id:
+        for param in params + ["same"]:
+            d[ref_id]["edges"][param] = []
+    for ref_id,target_id,diff in results:
+        if diff is None:
+            continue
+        dist = len(diff)
+        if dist == 0:
+            d[ref_id]["edges"]["same"].append(target_id)
+            d[target_id]["edges"]["same"].append(ref_id)
+        elif dist <= 1:
+            if d[ref_id]["datasetname"] != d[target_id]["datasetname"]:
                 continue
-            dist, diff = distanceBetweenNode(d[ref_id], d[target_id])
-            if dist == 0:
-                continue
-            if dist <= 1:
-                if diff[0] not in d[ref_id]["edges"]:
-                    d[ref_id]["edges"][diff[0]] = set()
-                d[ref_id]["edges"][diff[0]].add(target_id)
-    print("done!")
+            d[ref_id]["edges"][diff[0]].append(target_id)
+            d[target_id]["edges"][diff[0]].append(ref_id)
     return d
 
-def printBestResult(d, divideByNumFrames = False, multiplyByNumFrames = False, maximiseBest = False):
-    paramToDatasetToAte = {}
-    paramToDatasetToAteNonWeigted = {}
-    paramToParam = {}
-    lim=[77,20,41,1,1,40,49,16,51,58,15]
-    for id in d:
-        elem = copy.deepcopy(d[id])
-        datasetname = elem["datasetname"]
-        ate = None
-        try:
-            ate = float(elem["ate"])
-            ate2 = ate
-            if divideByNumFrames:
-                ate = ate / numFramesOf(datasetname)
-            if multiplyByNumFrames:
-                ate = ate * numFramesOf(datasetname)
-            if maximiseBest:
-                ate = ate / lim[int(datasetname.split(" ")[1])]
-                if ate < 1:
-                    ate = 0
-                ate = ate / numFramesOf(datasetname)
-        except:
-            continue
-        del elem["datasetname"]
-        #del elem["edges"]
-        del elem["ate"]
-        h = hashOfDict(elem)
-        paramToParam[h] = elem
-        if h not in paramToDatasetToAte:
-            paramToDatasetToAte[h] = {}
-            paramToDatasetToAteNonWeigted[h] = {}
-        if datasetname not in paramToDatasetToAte[h]:
-            paramToDatasetToAte[h][datasetname] = []
-            paramToDatasetToAteNonWeigted[h][datasetname] = []
-        paramToDatasetToAte[h][datasetname].append(ate)
-        paramToDatasetToAteNonWeigted[h][datasetname].append(ate2)
+def computeBestResults(d):
 
-    bestCount = 0
-    bestAvg = 99999
-    bestParam = None
-    for param in paramToDatasetToAte:
-        all_avg = []
-        for dataset in paramToDatasetToAte[param]:
-            avg = mean(paramToDatasetToAte[param][dataset])
-            all_avg.append(avg)
-        count = len(all_avg)
-        if count < bestCount:
-            continue
-        avg = sum(all_avg)
-        if avg < bestAvg or count > bestCount:
-            bestAvg = avg
-            bestParam = param
-            bestCount = count
+    lim = [67,50,43,1.0,0.9,43,49,17,58,60,9]
 
-    if bestParam is not None:
-        bestAvg = sum([mean(paramToDatasetToAteNonWeigted[bestParam][v]) for v in paramToDatasetToAteNonWeigted[bestParam]])
-        numBest = 0
-        for v in paramToDatasetToAteNonWeigted[bestParam]:
-            m = mean(paramToDatasetToAteNonWeigted[bestParam][v])
-            l=lim[int(v.split(" ")[1])]
-            if m < l:
-                numBest = numBest + 1
-        print("Best param : " + str(bestParam))
-        print("Best average : " + str(bestAvg))
-        print("Num best : " + str(numBest))
-        print("Comparaison : " + str(bestAvg * 100 / 350) + "%")
-        print(paramToDatasetToAteNonWeigted[bestParam])
-        with open("best.yaml", "w") as outfile:
-            yaml.dump(paramToParam[bestParam], outfile)
-
-    return bestParam
-
-
-def missingExperiencesForValue(value, range):
-    missing = set(range)
-    for x in value.all_x:
-        if x in missing:
-            missing.remove(x)
-    for x in value.errors:
-        if x in missing:
-            missing.remove(x)
-    print("Missing : " + str(missing))
-
-def missingExperiencesForParam(d, param, dataset, range):
-    print("Computing missing experiences")
-    values = []
     alreadyTaken = set()
+
+    allErrors = []
+
     for ref_id in d:
-        if d[ref_id]["datasetname"] != dataset:
-            continue
-
-        if param not in d[ref_id]["edges"]:
-            continue
-
         if ref_id in alreadyTaken:
             continue
-
-        rangedBasedDict = PlotSet(d[ref_id]["datasetname"])
-
-        alreadyTaken.add(ref_id)
-
-        ate = None
-        minAte = 9999999999
-        maxAte = 0
-        try:
-            #print(d[id])
-            ate = float(d[ref_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
-            cur_x = d[ref_id][param]
-            cur_y = ate
-            minAte = min(minAte,ate)
-            maxAte = max(maxAte,ate)
-            rangedBasedDict.addValue(cur_x, cur_y, d[ref_id])
-        except:
-            cur_x = d[ref_id][param]
-            cur_y = 1
-            rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
-
-
-
-        for cur_id in d[ref_id]["edges"][param]:
-            alreadyTaken.add(cur_id)
-            ate = None
+        res = [9999 for x in lim]
+        isbest = [0 for x in lim]
+        taken = [None for x in lim]
+        if not "same" in d[ref_id]["edges"]:
+            continue
+        for id in [ref_id] + list(d[ref_id]["edges"]["same"]):
+            alreadyTaken.add(id)
+            datasetname = d[id]["datasetname"]
+            if taken[int(datasetname.split(" ")[1])] is not None:
+                try:
+                    ate = float(d[id]["ate"])
+                    if not math.isclose(ate,res[int(datasetname.split(" ")[1])]):
+                        print("CRITICAL : Something is wrong : " + str(ate) + "/" + str(res[int(datasetname.split(" ")[1])]))
+                        print(taken[int(datasetname.split(" ")[1])])
+                        print(id)
+                except:
+                    print("CRITICAL : Something is wrong")
+                continue
             try:
-                #print(d[id])
-                ate = float(d[cur_id]["ate"]) / numFramesOf(d[ref_id]["datasetname"])
-                cur_x = d[cur_id][param]
-                cur_y = ate
-                minAte = min(minAte,ate)
-                maxAte = max(maxAte,ate)
-                rangedBasedDict.addValue(cur_x, cur_y, d[cur_id])
+                ate = float(d[id]["ate"])
+                res[int(datasetname.split(" ")[1])] = d[id]["ate"]
+                if ate < lim[int(datasetname.split(" ")[1])]:
+                    isbest[int(datasetname.split(" ")[1])] = 1
+                taken[int(datasetname.split(" ")[1])] = id
             except:
-                cur_x = d[cur_id][param]
-                cur_y = 1
-                rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
+                continue
+        ate = mean(res)
+        if ate > 1000:
+            continue
+        paramCopy = copy.deepcopy(d[ref_id])
+        del paramCopy["datasetname"]
+        del paramCopy["edges"]
+        del paramCopy["ate"]
+        allErrors.append([ate, sum(isbest), paramCopy, res, isbest])
 
-        if len(rangedBasedDict.x_set) > 3:
-            rangedBasedDict.movingAverage()
-            values.append(rangedBasedDict)
-        else:
-            print("Removing constant values. Diff : " + str(abs(maxAte - minAte)))
+    allErrors.sort(key=lambda k:k[1]+(1/k[0]), reverse=True)
 
-    for value in values:
-        missingExperiencesForValue(value, range)
+    if len(allErrors) > 0 and allErrors[0][1] >= 6:
+        print("Best average : " + str(allErrors[0][0]))
+        print("Num best : " + str(allErrors[0][1]))
+        print("Comparaison : " + str(allErrors[0][0] * len(lim) * 100 / 350) + "%")
+        print(allErrors[0][3])
+        print(allErrors[0][4])
+        #with open("best.yaml", "w") as outfile:
+        #    yaml.dump(paramToParam[bestParam], outfile)
 
-def missingExperiences(d, datasets):
-    params = [
-        ["bacondScoreWeight", floatrange(0.1,2,0.1)],
-        ["orbInlierRatioThreshold", floatrange(0.0,1.01,0.01)]
-    ]
-
-    for param in params:
-        for dataset in datasets:
-            missingExperiencesForParam(d, param[0], dataset, param[1])
+    return allErrors
 
 def merge_two_dicts(x, y):
     z = x.copy()   # start with keys and values of x
     z.update(y)    # modifies z with keys and values of y
     return z
 
+def processFile(filename):
+    from database import loadJsonFile
+
+    d = loadJsonFile(filename, cache=False)
+    if len(d) < 100:
+        return
+    print("Processing " + filename + " with " + str(len(d)) + " entries")
+    params = set()
+    for id in d:
+        for x in d[id]:
+            params.add(x)
+    params.remove("ate")
+    params.remove("datasetname")
+    params = list(params)
+    datasets = removeDuplicate([d[x]["datasetname"] for x in d])
+
+    d = makeGraphEdges(d, params)
+
+    bestResults = computeBestResults(d)
+
+    for i in range(0, len(bestResults)):
+        if bestResults[i][1] < 6:
+            continue
+
+        foldername = filename.split(".")[0]
+        numPlot = 0
+        for param in params:
+            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(bestResults[i][1]), onlyAverage=True, paramFilter=bestResults[i][2])
+            if res:
+                numPlot = numPlot + 1
+
 if __name__ == "__main__":
     filenames = [x for x in os.listdir(".") if x.endswith(".json")]
-    d = None
     for filename in filenames:
-        print("Loading " + filename)
-        if d is None:
-            d = loadJsonFile(filename, cache=False)
-        else:
-            d = merge_two_dicts(d, loadJsonFile(filename, cache=False))
-
-
-    params = [x for x in d[next(iter(d))] if x != "ate" and x != "datasetname"]
-    datasets = removeDuplicate([d[x]["datasetname"] for x in d])
-    print(datasets)
-    print("Best result by sum of ate : ")
-    bestHash = printBestResult(d)
-
-
-    #print("Best result by sum of ate divided by num frames : ")
-    #printBestResult(d, divideByNumFrames=True)
-    #print("Best result by sum of ate multiplied by num frames : ")
-    #printBestResult(d, multiplyByNumFrames=True)
-    #print("Best result : ")
-    #printBestResult(d, maximiseBest=True)
-    d = makeGraphEdges(d)
-    # missingExperiences(d, datasets)
-    #for dataset in datasets:
-    #    for param in params:
-    #        plot(d, param, [dataset], folder=dataset)
-    for param in params:
-        plot(d, param, datasets, folder="All", onlyAverage=True, hashFilter = bestHash)
+        processFile(filename)
