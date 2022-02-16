@@ -102,6 +102,26 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         mDescriptors.clear();
     }
 
+    #pragma omp single
+    {
+        std::string orbCachePath = captureImage.getPath() + ".orb";
+        FILE *f = fopen(orbCachePath.c_str(), "rb");
+        if (f != nullptr) {
+            logger.important("Using cached ORB");
+            int count = 0;
+            fread(&count, sizeof(int), 1, f);
+            mCorners.resize(count);
+            mDescriptors.resize(count);
+            fread(mCorners.data(), sizeof(Corner), count, f);
+            fread(mDescriptors.data(), sizeof(Binary256Descriptor), count, f);
+            fclose(f);
+        }
+    }
+
+    if (!mCorners.empty()) {
+        return;
+    }
+
     captureImage.getGrayImage(0).castToUChar(mImages[0]);
     for (int i = 1; i < nlevels; i++) {
         mImages[i - 1].resize(fastRound((float)captureImage.getWidth(0) * mvInvScaleFactor[i]), fastRound((float)captureImage.getHeight(0) * mvInvScaleFactor[i]), mImages[i]);
@@ -141,6 +161,20 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
             }
         }
 
+    }
+
+
+    #pragma omp single
+    {
+        std::string orbCachePath = captureImage.getPath() + ".orb";
+        FILE *f = fopen(orbCachePath.c_str(), "wb");
+        if (f != nullptr) {
+            int count = mCorners.size();
+            fwrite(&count, sizeof(int), 1, f);
+            fwrite(mCorners.data(), sizeof(Corner), count, f);
+            fwrite(mDescriptors.data(), sizeof(Binary256Descriptor), count, f);
+            fclose(f);
+        }
     }
 
     //logger.important("Extracted " + std::to_string(mCorners.size()) + " orb coners");
