@@ -1667,7 +1667,11 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
     #pragma omp single
     {
+#if CML_USE_OPENMP
         int ompNumThread = omp_get_num_threads();
+#else
+        int ompNumThread = 1;
+#endif
         if (fH.rows() != getFrames().size() * 8 + 4) {
             fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
             fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
