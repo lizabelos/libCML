@@ -74,44 +74,19 @@ def bruteforceFindBest(currentParam):
 
     print(pow10)
 
+    weightAndInv = floatrange(0,1.25,0.25) + [1/x for x in floatrange(0.25,1,0.25)]
     params = [
-        ["dsoBa.mixedBundleAdjustmentWeight",pow10],
-        #["dsoTracer.desiredPointDensity", intrange(250,2200,250)],
-        #["dsoTracer.immatureDensity", intrange(250,2200,250)],
-       # ["dsoInitializer.densityFactor", floatrange(0.1,1.05,0.05)],
-        #
-  #      ["bacondMinimumOrbPoint",  intrange(0,500,10)],
-        #["bacondSaturatedRatio", floatrange(0,0.25,0.01)],
-        ["trackcondUncertaintyWeight", floatrange(0.1,2,0.1)],
-        #["trackcondUncertaintyWindow", intrange(1,30)],
-        #["bacondUncertaintyWeight", floatrange(0.1,2,0.1)],
-        #["bacondUncertaintyWindow", intrange(1,30)],
-  #      ["bacondScoreWeight", [-1] + floatrange(0.1,2,0.1)],
-        #["bacondScoreWindow", intrange(1,23)],
-        #["dsoInitializer.regularizationWeight", floatrange(0.0, 1.05, 0.05)],
-        #["dsoInitializer.pointDensity", intrange(600,2200,200)],
+        ["bacondMinimumOrbPoint",  intrange(0,500,10)],
+        ["bacondSaturatedRatio", floatrange(0.0,1.2,0.2)],
+        ["trackcondUncertaintyWeight", weightAndInv],
+        ["trackcondUncertaintyWindow", intrange(1,30,5)],
+        ["bacondScoreWeight", weightAndInv],
+        ["bacondScoreWindow", intrange(1,30,5)],
         ["orbInlierRatioThreshold", floatrange(0.0,1.01,0.01)],
-        #["orbUncertaintyThreshold", [-1] + pow10],
-        ["dsoTracker.saturatedThreshold", floatrange(0.30,0.45,0.01)],
+        ["orbUncertaintyThreshold", [-1,0.1,1,10,100,1000,10000]],
+        ["dsoTracker.saturatedThreshold", floatrange(0.0,1.2,0.2)],
         ["orbKeyframeRatio", floatrange(0.70,0.95,0.01)],
-        #["orbKeyframeReflimit",  intrange(0,300,10)],
-        #["dsoKeyframeResidualRatio", floatrange(1.0,4.0,0.5)],
-        #["dsoKeyframeWeight", floatrange(0.6,3.0,0.2)],
-        #["orbInlierNumThreshold", intrange(0,35,5)],
-        ["numOrbCorner", intrange(500,2000,100)],
-        #["dsoBa.iterations", intrange(1,8)],
-        #["dsoBa.maxFrames", intrange(4,8)],
-        #["dsoBa.optimizeLightA", ["true", "false"]],
-        #["dsoBa.optimizeLightB", ["true", "false"]],
-        #["dsoTracker.optimizeLightA", ["true", "false"]],
-        #["dsoTracker.optimizeLightB", ["true", "false"]],
-        ["dsoBa.fixedLambda", [0.050, 0.0050, 0.00050, 0.000050]],
-        #["bacondUncertaintyWeight", floatrange(0,2,0.2)],
-        #["bacondUncertaintyWindow", intrange(1,8)],
-        #["orbBa.numIteration", intrange(0,10)],
-        #["orbBa.refineIteration", intrange(0,10)],
-        #["orbBa.removeEdge", ["true", "false"]],
-
+        ["orbInlierNumThreshold", intrange(0,100,5)],
     ]
 
     dprint("Hello :)\n\n")
