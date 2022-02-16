@@ -28,14 +28,15 @@ def system(command, comment="", disable_openmp=True):
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
         p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
 
-
+        lines = []
         while p.poll() is None:
             line = p.stdout.readline().decode("utf-8")
+            lines.append(line)
             if "(" in line and ")" in line:
                 line = comment + "," + line[line.find("(")+1:line.find(")")]
                 currentStatus[threading.get_ident()] = line
 
-        return "", 0
+        return lines, 0
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')

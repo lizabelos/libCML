@@ -7,8 +7,15 @@ mutex = threading.Lock()
 cachedDatabase = None
 
 def loadJsonFile(path, cache = True):
+    if cache == False:
+        try:
+            with open(path, "r") as infile:
+                return json.load(infile)
+        except:
+            return {}
+
     global cachedDatabase
-    if cachedDatabase is None or cache == False:
+    if cachedDatabase is None:
         try:
             with open(path, "r") as infile:
                 cachedDatabase = json.load(infile)
@@ -35,7 +42,7 @@ def hashOfDict(d):
     hash_object = hashlib.md5(json.dumps(d, sort_keys=True).encode('utf-8'))
     return hash_object.hexdigest()
 
-def addResultToJson(hash, parameters, ateOrError, datasetname):
+def addResultToJson(hash, parameters, ateOrError, datasetname, statistics = {}):
     global mutex
     mutex.acquire()
     d = loadJsonFile(hash + ".json")
@@ -44,6 +51,7 @@ def addResultToJson(hash, parameters, ateOrError, datasetname):
     key = hashOfDict(res)
     # res = parameters.copy()
     res["ate"] = ateOrError
+    res["stats"] = statistics
     d[key] = res
     saveJsonFile(hash + ".json", d)
     mutex.release()

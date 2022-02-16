@@ -69,8 +69,6 @@ class SLAM(ABC):
         return self.error
 
     def processLogForStats(self, log):
-        log = log.split("\n")
-
         allDeadly = [x for x in log if "[DEADLY]" in x]
         allError = [x for x in log if "[ERROR]" in x]
 
