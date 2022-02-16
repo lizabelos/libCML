@@ -60,12 +60,21 @@ namespace CML {
             Vector3 transformation = trialCamera.transform(trialWorldCoordinate);
             Vector2 projection = transformation.hnormalized();
             Vector2 difference = projection - mGt;
-            scalar_t squaredNorm = difference.squaredNorm();
+            Matrix33 K = mFrame->getCalibration().getK(0);
+            Vector2 distortedDifference = difference; // todo if we want to optimize K
+            //Vector2 distortedDifference = Vector2(difference(0) * K(0,0), difference(1) * K(1,1));
+            scalar_t squaredNorm = distortedDifference.squaredNorm();
+            scalar_t norm = sqrt(squaredNorm);
 
-            residual = squaredNorm;
+            scalar_t th = 3.0 / Vector2(K(0,0), K(1,1)).norm();
+            residual = LossFunction::tukey(norm, th);
 
             for (int i = 0; i < 3; i++) {
-                double v = Derivative::squaredNorm(difference, trialCamera.derivativeOfProjectWrtTranslation(transformation, i));
+                double v = Derivative::sqrt(
+                        norm,
+                        Derivative::squaredNorm(distortedDifference, trialCamera.derivativeOfProjectWrtTranslation(transformation, i))
+                );
+                v = Derivative::tukey(residual, v, th);
                 // assertThrow(std::isfinite(v), "Not finite residual");
                 if (!std::isfinite(v)) {
                     return false;
@@ -75,7 +84,12 @@ namespace CML {
             }
 
             for (int i = 0; i < Quaternion::N; i++) {
-                rotationJacobian[i] = Derivative::squaredNorm(difference, trialCamera.derivativeOfProjectWrtRotation(trialWorldCoordinate, transformation, i));
+                double v = Derivative::sqrt(
+                        norm,
+                        Derivative::squaredNorm(distortedDifference, trialCamera.derivativeOfProjectWrtRotation(trialWorldCoordinate, transformation, i))
+                );
+                v = Derivative::tukey(residual, v, th);
+                rotationJacobian[i] = v;
                 // assertThrow(std::isfinite(rotationJacobian[i]), "Not finite residual");
                 if (!std::isfinite(rotationJacobian[i])) {
                     return false;

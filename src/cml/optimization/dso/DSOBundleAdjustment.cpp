@@ -975,10 +975,6 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     bFinal_top = bL_top + bM_top + bA_top - b_sc;
 
 
-    addIndirectToProblem(HFinal_top, bFinal_top);
-
-
-
     //lastHS = HFinal_top - H_sc;
     //lastbS = bFinal_top;
 
@@ -992,20 +988,16 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     Matrix<Dynamic, Dynamic> HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
     Vector<Dynamic> x = Vector<Dynamic>::Zero(HFinalScaled.rows());
 
-    if (!mMixedBundleAdjustment.b()) {
-        if (mOptimizeCalibration.b()) {
-            x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
-        } else {
-            x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).ldlt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
-        }
+    if (mOptimizeCalibration.b()) {
+        x = SVecI.asDiagonal() * HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
     } else {
-        if (mOptimizeCalibration.b()) {
-            x = SVecI.asDiagonal() * HFinalScaled.llt().solve(SVecI.asDiagonal() * bFinal_top);//  SVec.asDiagonal() * svd.matrixV() * Ub;
-        } else {
-            x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).llt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
-        }
+        x.tail(HFinalScaled.rows() - 4) = SVecI.tail(SVecI.rows()-4).asDiagonal() * HFinalScaled.block(4,4,HFinalScaled.rows()-4,HFinalScaled.cols()-4).ldlt().solve(SVecI.tail(SVecI.rows()-4).asDiagonal() * bFinal_top.tail(bFinal_top.rows() - 4));
     }
 
+
+        if (getFrames().size() > 4) {
+            addIndirectToProblem(x);
+        }
 
     // Orthogonalize x later
     if (mustOrthogonalize) {
@@ -2427,7 +2419,7 @@ void CML::Optimization::DSOBundleAdjustment::onValueChange(const Parameter &para
     }
 }
 
-void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic, Dynamic> &Hfinal, Vector<Dynamic> &bfinal) {
+void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Vector<Dynamic> &X) {
     if (!mMixedBundleAdjustment.b()) {
         return;
     }
@@ -2444,12 +2436,21 @@ void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic
         return;
     }
 
-    Vector<Dynamic> b = Vector<Dynamic>::Zero(getFrames().size()*8+4);
-    Matrix<Dynamic, Dynamic> H = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-    Matrix<Dynamic, Dynamic> J = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, pointsToOptimize.size());
+    int Hsize = getFrames().size()*6 + pointsToOptimize.size() * 3;
+    int pstart = getFrames().size()*6;
+
+    List<int> numPointsPerFrame;
+    numPointsPerFrame.resize(getFrames().size(), 0);
+    Vector<Dynamic> b = Vector<Dynamic>::Zero(Hsize);
+    Matrix<Dynamic, Dynamic> H = Matrix<Dynamic, Dynamic>::Zero(Hsize, Hsize);
+    Eigen::SparseMatrix<scalar_t> J(Hsize, getFrames().size() * pointsToOptimize.size());
+
+    // todo : for the moment we are not using the schur complement, so include pointsToOptimize in H
 
     List<Vector3> Jpoints;
     Jpoints.resize(pointsToOptimize.size(), Vector3::Zero());
+
+    // todo : use ceres autograd here
 
     for (int i = 0; i < frames.size(); i++) {
         PFrame frame = frames[i];
@@ -2463,52 +2464,115 @@ void CML::Optimization::DSOBundleAdjustment::addIndirectToProblem(Matrix<Dynamic
             }
             Vector3 currentCoordinate = point->getWorldCoordinate().absolute();
 
-            Vector6 currentCamera = frameData->get_state().head<6>(); // todo : warning. is this scaled ? put a scale of 1 for the moment
 
-            SE3 expValue = Sophus::SE3<scalar_t>::exp(currentCamera);
+            // todo : warning, + operator are not the same for se(3) space and SE(3) space
+            SE3 expValue = Sophus::SE3<scalar_t>(frame->getCamera().getRotationMatrix(), frame->getCamera().getTranslation()); //  todo : get state scaler ??? waiiit
+            Vector6 currentCamera = expValue.log();
             Matrix<7,6> expDerivative = Sophus::SE3<scalar_t>::Dx_exp_x(currentCamera);
             Vector7 cameraDerivative;
 
             scalar_t currentResidual = 0;
             Vector3 pointJacobian;
-            bool res = ReprojectionError(frame, point).jacobian(currentResidual, Camera(expValue.params().head<3>(), Quaternion((Vector4)expValue.params().tail<4>())), currentCoordinate, cameraDerivative, pointJacobian);
+            bool res = ReprojectionError(frame, point).jacobian(currentResidual, frame->getCamera(), currentCoordinate, cameraDerivative, pointJacobian);
 
-            if (!res) {
+            if (!res || currentResidual > 4 * 4) {
+                //std::cout << "error" << std::endl;
                 continue;
             }
+
 
             Jpoints[j] += pointJacobian;
 
-            currentResidual = currentResidual / fp.value().processScaleFactorFromLevel();
+            //currentResidual = currentResidual / fp.value().processScaleFactorFromLevel();
 
-           if (currentResidual > 9.0 / (640.0 + 480.0)) { // todo : this is actually really huge
-                continue;
-            }
 
-            Matrix<Dynamic, Dynamic> finalDerivativeM = (cameraDerivative.transpose() * expDerivative) / 7;
+            Matrix<Dynamic, Dynamic> finalDerivativeM = (cameraDerivative.transpose() * expDerivative);
 
             Vector6 finalDerivative = finalDerivativeM.transpose();
 
-
-            finalDerivative.head<3>() *= mScaleTranslation.f();
-            finalDerivative.tail<3>() *= mScaleRotation.f();
-            b.segment<6>(4 + frameData->id * 8) += finalDerivative * currentResidual;
-            J.block<6,1>(4 + frameData->id * 8,j) += finalDerivative;
-            //J.block<3,1>(4 + frameData->id * 8,j) += ctJ * mScaleTranslation.f();
-            //J.block<3,1>(4 + frameData->id * 8 + 3,j) += (crJ.tail<3>() / crJ(0)) * mScaleRotation.f();
+            //finalDerivative.head<3>() *= mScaleTranslation.f();
+            //finalDerivative.tail<3>() *= mScaleRotation.f();
+            for (int k = 0; k < 6; k++) {
+                J.insert(frameData->id * 6 + k, frameData->id * pointsToOptimize.size() + j) = finalDerivative(k);
+            }
+            for (int k = 0; k < 3; k++) {
+                J.insert(pstart + j * 3 + k,frameData->id * pointsToOptimize.size() + j) = pointJacobian(k);
+            }
+            //J.block(frameData->id * 6,frameData->id * pointsToOptimize.size() + j,6,1) = finalDerivative;
+            //J.block(pstart + j * 3,frameData->id * pointsToOptimize.size() + j,3,1) = pointJacobian;
+            b.segment<6>(frameData->id * 6) += finalDerivative * currentResidual;
+            b.segment<3>(pstart + j * 3) += pointJacobian * currentResidual;
+            numPointsPerFrame[frameData->id]++;
         }
     }
 
 
+    // todo : how to do this fast
+    J.makeCompressed();
     H = J * J.transpose();
+
+#define INDIRECT_MARGINALIZATION 0
+
+#if INDIRECT_MARGINALIZATION
+    Matrix<Dynamic, Dynamic> H11 = H.block(0,0,getFrames().size()*6,getFrames().size()*6);
+    Matrix<Dynamic, Dynamic> H21 = H.block(pstart,0,pointsToOptimize.size()*3,getFrames().size()*6);
+    Matrix<Dynamic, Dynamic> H12 = H.block(0,pstart,getFrames().size()*6,pointsToOptimize.size()*3);
+    Matrix<Dynamic, Dynamic> H22 = H.block(pstart,pstart,pointsToOptimize.size()*3,pointsToOptimize.size()*3);
+
+    Matrix<Dynamic, Dynamic> H22inv = H22.inverse(); // todo : inverse by block of 3x3 instead
+    // Matrix<Dynamic, Dynamic> H22inv = H22.llt().solve(Matrix<Dynamic, Dynamic>::Identity(pointsToOptimize.size()*3,pointsToOptimize.size()*3));
+
+    Vector<Dynamic> b1 = b.segment(0,getFrames().size()*6);
+    Vector<Dynamic> b2 = b.segment(pstart,pointsToOptimize.size()*3);
+
+    // todo : i think they might be a problem with the matrix size. run this in debug pleasssse
+    Matrix<Dynamic, Dynamic> M = H11 - H12 * H22inv * H21;
+    Vector<Dynamic> bM = b1 - H12 * H22inv * b2;
+#else
+
+    Matrix<Dynamic, Dynamic> M = H.block(0,0,getFrames().size()*6,getFrames().size()*6);
+    Vector<Dynamic> bM = b.segment(0,getFrames().size()*6);
+#endif
+    //H = H.block(0,0,getFrames().size()*6,getFrames().size()*6);
 
     for (int j = 0; j < pointsToOptimize.size(); j++) {
         pointsToOptimize[j]->setUncertainty((Jpoints[j] * Jpoints[j].transpose()).inverse().diagonal().norm());
     }
     // todo : use dso accumulator here
 
-    Hfinal += H * mMixedBundleAdjustmentWeight.f();
-    bfinal += b * mMixedBundleAdjustmentWeight.f();
+    for(size_t i = 0; i < M.rows(); i++) {
+        M(i,i) *= (1+mFixedLambda.f());
+    }
 
+    // todo : i think there is a minus here
+    Vector<Dynamic> indirectX = M.ldlt().solve(-bM);
+
+    if (!indirectX.allFinite()) {
+        return;
+    }
+
+    List<int> numDirectPointsPerFrame;
+    numDirectPointsPerFrame.resize(getFrames().size(), 0);
+
+    for (auto frame : getFrames()) {
+        auto frameData = get(frame);
+        numDirectPointsPerFrame[frameData->id] += frameData->getPoints().size(); // todo : take in account outliers
+    }
+
+    // todo : how to weight this
+    // todo : by the number of points (for dso multiply by 8)
+    // todo : but ! we have different number of points for each frames
+    for(size_t i = 0; i < getFrames().size(); i++) {
+        std::cout << "FRAME " << i << std::endl;
+        std::cout << indirectX.segment<6>(i * 6).transpose() << std::endl;
+        std::cout << X.segment<6>(4 + i * 8).transpose() << std::endl;
+        int numIndirectPoint = 1;
+        int numDirectPoint = 0;
+        std::cout << numIndirectPoint << " " << numDirectPoint << std::endl;
+        scalar_t indirectRatio = (scalar_t)numIndirectPoint / (scalar_t)(numIndirectPoint + numDirectPoint);
+        scalar_t directRatio = (scalar_t)1.0 - indirectRatio;
+        X.segment<6>(4 + i * 8) = X.segment<6>(4 + i * 8) * directRatio + indirectX.segment<6>(i * 6) * indirectRatio;
+
+    }
 }
 

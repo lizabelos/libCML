@@ -156,7 +156,7 @@ namespace CML {
 
             void setZero();
 
-            void addIndirectToProblem(Matrix<Dynamic, Dynamic> &Hfinal, Vector<Dynamic> &bfinal);
+            void addIndirectToProblem(Vector<Dynamic> &X);
 
         private:
             void onValueChange(const Parameter &parameter) final;
@@ -242,7 +242,7 @@ namespace CML {
             Parameter mThOptIterations = createParameter("ThOptIterations", 1.2f);
 
             Parameter mScaleRotation = createParameter("Rotation scale", 1.0f);
-            Parameter mScaleTranslation = createParameter("translationScale", 1.0f);
+            Parameter mScaleTranslation = createParameter("translationScale", 0.5f);
             Parameter mScaleLightA = createParameter("Light A scale", 10.0f);
             Parameter mScaleLightB = createParameter("Light B scale", 1000.0f);
             Parameter mScaleF = createParameter("Scale F", 50.0f);
