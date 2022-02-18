@@ -40,7 +40,7 @@ bool Hybrid::poseEstimationDecision() {
         return !mShouldPreferDso;
     }
 
-    if (mTrackingMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
+    if (mTrackingMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mTrackingMinimumOrbPoint.i()) {
         return true;
     }
 
