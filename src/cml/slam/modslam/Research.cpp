@@ -40,6 +40,10 @@ bool Hybrid::poseEstimationDecision() {
         return !mShouldPreferDso;
     }
 
+    if (mTrackingMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
+        return true;
+    }
+
     if (mTrackcondUncertaintyWeight.f() > 0) {
 
         logger.debug("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
@@ -106,7 +110,7 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         else return BAINDIRECT;
     }
 
-    if (mBaMinimumOrbPoint.i() > 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
+    if (mBaMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
         return BADIRECT;
     }
 

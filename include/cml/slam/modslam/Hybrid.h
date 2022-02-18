@@ -308,6 +308,7 @@ private:
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 190);
+    Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 0);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
     Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.51f);
     Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 10);
