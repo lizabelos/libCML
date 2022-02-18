@@ -39,3 +39,4 @@ orbUncertaintyThreshold: -1
 trackcondForce: 0
 trackcondUncertaintyWeight: 1
 trackcondUncertaintyWindow: 1
+trackingMinimumOrbPoint: 30

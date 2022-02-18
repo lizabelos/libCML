@@ -220,14 +220,14 @@ def fromslam(context):
     res = None
     try:
         res = EvoEvaluator.fromslam(context)
-        addResultToJson(h, p, res.ape_rmse(), context.d.name())
+        addResultToJson(h, p, res.ape_rmse(), context.d.name(), statistics=context.getStats())
     except:
         addResultToJson(h, p, context.getError(), context.d.name())
     return res
     #return SysEvoEvaluator.fromslam(context)
 
 def evaluateOn(context, dataset):
-    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name(), statistics=context.getStats())
+    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name())
     if r is not None:
         return r
     context.run(dataset)

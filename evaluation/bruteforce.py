@@ -90,6 +90,7 @@ def bruteforceFindBest(currentParam):
 
     weightAndInv = floatrange(0,1.25,0.25) + [1/x for x in floatrange(0.25,1,0.25)]
     params = [
+        ["trackingMinimumOrbPoint", intrange(0,525,25)],
         ["bacondMinimumOrbPoint",  intrange(0,525,25)],
         ["bacondSaturatedRatio", floatrange(0.0,1.2,0.2)],
         ["trackcondUncertaintyWeight", weightAndInv],
@@ -167,7 +168,6 @@ def bruteforceFindBest(currentParam):
             for i in range(0, len(allSums)):
                 if allSums[i] < currentMin:
                     currentMin = allSums[i]
-                    currentMaxSuccess = allSuccess[i]
                     currentMinI = i
 
             if currentMinI is not None:
