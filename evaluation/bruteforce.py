@@ -59,6 +59,20 @@ def movingAverage(t, iter = 5, delta = 0.75):
             t[j] = t[j] * delta + t[j - 1] * delta_inv + t[j + 1] * delta_inv
     return t
 
+def numFramesOf(dataset):
+
+    if dataset.startswith("TUM"):
+        return 6
+
+    numFrames=[4541,1101,4661,801,271,2761,1101,1101,4071,1591,1201]
+
+    return numFrames[int(dataset.split(" ")[1])]
+
+def criteria(dataset, ate):
+    if ate is None:
+        return 9999999
+
+    return ate / numFramesOf(dataset)
 
 def bruteforceFindBest(currentParam):
     datasets, datasets_names, slams, slams_names = parse_config()
@@ -76,17 +90,17 @@ def bruteforceFindBest(currentParam):
 
     weightAndInv = floatrange(0,1.25,0.25) + [1/x for x in floatrange(0.25,1,0.25)]
     params = [
-        ["bacondMinimumOrbPoint",  intrange(0,500,10)],
+        ["bacondMinimumOrbPoint",  intrange(0,525,25)],
         ["bacondSaturatedRatio", floatrange(0.0,1.2,0.2)],
         ["trackcondUncertaintyWeight", weightAndInv],
         ["trackcondUncertaintyWindow", intrange(1,30,5)],
         ["bacondScoreWeight", weightAndInv],
         ["bacondScoreWindow", intrange(1,30,5)],
-        ["orbInlierRatioThreshold", floatrange(0.0,1.01,0.01)],
+        ["orbInlierRatioThreshold", floatrange(0.0,1.1,0.1)],
         ["orbUncertaintyThreshold", [-1,0.1,1,10,100,1000,10000]],
         ["dsoTracker.saturatedThreshold", floatrange(0.0,1.2,0.2)],
         ["orbKeyframeRatio", floatrange(0.70,0.95,0.01)],
-        ["orbInlierNumThreshold", intrange(0,100,5)],
+        ["orbInlierNumThreshold", intrange(0,100,10)],
     ]
 
     dprint("Hello :)\n\n")
@@ -95,7 +109,6 @@ def bruteforceFindBest(currentParam):
     # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
     currentMin = 99999999
-    currentMaxSuccess = 0
     while True:
         bestParamModif = None
         for param in params:
@@ -114,7 +127,6 @@ def bruteforceFindBest(currentParam):
                 toprint = str(v) + "\t"
                 # dprint(str(param[0]) + "=" + str(v) + "; ", end='')
                 currentSum = 0
-                currentSuccess = 0
 
                 for i in range(0, len(datasets)):
 
@@ -129,19 +141,13 @@ def bruteforceFindBest(currentParam):
                     try:
                         ate = evaluateOn(context, datasets[i])
                         toprint = toprint + str(ate) + "\t"
-                        currentSum = currentSum + ate
-                        if ate > datasets[i].lim():
-                            break
-                        else:
-                            currentSuccess = currentSuccess + 1
+                        currentSum = currentSum + criteria(datasets[i].name(), ate)
                     except KeyboardInterrupt:
                         return 0,0,""
                     except Exception as e:
                         toprint = toprint + context.getError() + "\t"
-                        break
-                # todo : do a moving average, or something like that. but take care about -1
-                # todo : en vrai, fait un bruteforce2.py
-                return currentSum, currentSuccess, toprint
+                        currentSum = currentSum + criteria(datasets[i].name(), None)
+                return currentSum, toprint
 
             for v in param[1]:
                 futures = futures + [executor.submit(process, param, v)]
@@ -149,21 +155,17 @@ def bruteforceFindBest(currentParam):
             # concurrent.futures.wait(futures)
             cprint(str(param[0]) + " : " + str(int(progress_i * 100 / progress_tot)) + "%")
             for f in futures:
-                currentSum, currentSuccess, toprint = f.result()
+                currentSum, toprint = f.result()
                 allSums.append(currentSum)
-                allSuccess.append(currentSuccess)
                 dprint(toprint)
                 progress_i = progress_i + 1
                 cprint(str(param[0]) + " : " + str(int(progress_i * 100 / progress_tot)) + "%")
 
             allSums = movingAverage(allSums)
-            allSuccess = movingAverage(allSuccess)
 
             currentMinI = None
             for i in range(0, len(allSums)):
-                if allSuccess[i] < currentMaxSuccess:
-                    continue
-                if allSuccess[i]>currentMaxSuccess or allSums[i] < currentMin:
+                if allSums[i] < currentMin:
                     currentMin = allSums[i]
                     currentMaxSuccess = allSuccess[i]
                     currentMinI = i
@@ -181,6 +183,7 @@ def bruteforceFindBest(currentParam):
             currentParam[bestParamModif[0]] = bestParamModif[1]
         else:
             break
+
         dprint("END OF ITERATION")
         dprint("\n\n\n\n\n")
 
