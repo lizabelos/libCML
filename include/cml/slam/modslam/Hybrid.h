@@ -323,6 +323,9 @@ private:
 
     Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", false);
 
+    Parameter mDsoKeyframeSkipOnFailure = createParameter("dsoKeyframeSkipOnFailure", true);
+    Parameter mDsoKeyframeSkipOnNoTrack = createParameter("dsoKeyframeSkipOnNoTrack", true);
+
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
     Ptr<Statistic, NonNullable> mStatBAORBNum = createStatistic("BA ORB Num");
