@@ -23,7 +23,7 @@ Hybrid::Hybrid() : AbstractSlam() {
 
     if (mEnableIndirect.b()) {
         mCornerExtractor = new CornerAndDescriptor(this, 2000);
-        mCornerExtractor->loadVocabulary("resources/ORBvoc.txt");
+        mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
 
         mInitTracker = new Features::BoWTracker(this, 0.9, true);
         mMotionModelTracker = new Features::BoWTracker(this, 0.9, true);

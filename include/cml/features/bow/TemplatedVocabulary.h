@@ -237,7 +237,7 @@ public:
    * Loads the vocabulary from a text file
    * @param filename
    */
-  bool loadFromTextFile(const std::string &filename);
+  bool loadFromTextFile(std::stringstream &f);
 
   /**
    * Saves the vocabulary into a text file
@@ -1310,10 +1310,8 @@ int TemplatedVocabulary<TDescriptor>::stopWords(double minWeight)
 // --------------------------------------------------------------------------
 
     template<class TDescriptor>
-    bool TemplatedVocabulary<TDescriptor>::loadFromTextFile(const std::string &filename)
+    bool TemplatedVocabulary<TDescriptor>::loadFromTextFile(std::stringstream &f)
     {
-        std::ifstream f;
-        f.open(filename.c_str());
 
         if(f.eof())
             return false;

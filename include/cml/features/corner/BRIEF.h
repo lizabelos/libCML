@@ -24,15 +24,6 @@ namespace CML::Features {
             return "BRIEF";
         }
 
-        void loadVocabulary(const std::string &filename) {
-            mVocabulary = new BRIEFVocabulary();
-            mVocabulary->loadFromTextFile(filename);
-            if (mVocabulary->empty()) {
-                throw std::runtime_error("Can't load vocabulary");
-            }
-        }
-
-
         void compute(const CaptureImage &frame, List<Corner> &corners, List <Binary256Descriptor> &descriptors);
 
         void compute(const CaptureImage &frame, List<Corner> &corners, List<Binary256Descriptor> &descriptors, Ptr<BoW, Nullable> &bow);

@@ -6,6 +6,7 @@
 #include <cml/features/Features.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/capture/CaptureImage.h>
+#include <zip.h>
 
 namespace CML::Features {
 
@@ -26,11 +27,30 @@ namespace CML::Features {
         }
 
         void loadVocabulary(const std::string &filename) {
+            int ziperror;
+            logger.important("Opening " + filename);
+            zip_t *zipArchive = zip_open(filename.c_str(),  ZIP_RDONLY, &ziperror);
+            zip_file_t *zipFile = zip_fopen(zipArchive, "ORBvoc.txt", 0);
+            std::stringstream stream;
+            char data[4096];
+            logger.important("Uncompressing " + filename);
+            while (true) {
+                size_t n = zip_fread(zipFile, data, 4096);
+                if (n == 0) break;
+                logger.raw(std::to_string(n));
+                stream << std::string(data,n);
+            }
+            zip_fclose(zipFile);
+            logger.important("Decoding " + filename);
+
             mVocabulary = new ORBVocabulary();
-            mVocabulary->loadFromTextFile(filename);
+            mVocabulary->loadFromTextFile(stream);
             if (mVocabulary->empty()) {
                 throw std::runtime_error("Can't load vocabulary");
             }
+
+            zip_close(zipArchive);
+            logger.important("Done");
         }
 
         const ORBVocabulary& getVocabulary() {
