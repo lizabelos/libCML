@@ -288,7 +288,7 @@ private:
     /// PARAMETERS
     bool mOnlyInitialize = false;
     int mFrameLimit = -1;
-    Parameter mEnableNeuralNetwork = createParameter("enableNN", false);
+    Parameter mEnableNeuralNetwork = createParameter("enableNN", true);
     Parameter mEnableIndirect = createParameter("enableIndirect", true);
     Parameter mEnableDirect = createParameter("enableDirect", true);
     Parameter mLinearizeDirect = createParameter("linearizeDirect", true);
@@ -323,8 +323,8 @@ private:
 
     Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", false);
 
-    Parameter mDsoKeyframeSkipOnFailure = createParameter("dsoKeyframeSkipOnFailure", true);
-    Parameter mDsoKeyframeSkipOnNoTrack = createParameter("dsoKeyframeSkipOnNoTrack", true);
+    Parameter mDsoKeyframeSkipOnFailure = createParameter("dsoKeyframeSkipOnFailure", false);
+    Parameter mDsoKeyframeSkipOnNoTrack = createParameter("dsoKeyframeSkipOnNoTrack", false);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

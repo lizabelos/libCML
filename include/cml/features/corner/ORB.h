@@ -37,7 +37,6 @@ namespace CML::Features {
             while (true) {
                 size_t n = zip_fread(zipFile, data, 4096);
                 if (n == 0) break;
-                logger.raw(std::to_string(n));
                 stream << std::string(data,n);
             }
             zip_fclose(zipFile);
