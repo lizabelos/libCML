@@ -1,0 +1,67 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{cmbright}
+
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage[export]{adjustbox}
+\usepackage{subcaption}
+
+% Math packages
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{yfonts}
+
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{float}
+\usepackage{esdiff}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{chronology}
+
+
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+\algdef{SE}[DOWHILE]{Do}{doWhile}{\algorithmicdo}[1]{\algorithmicwhile\ #1}%
+
+
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset { %
+    language=C++,
+    backgroundcolor=\color{black!5}, % set backgroundcolor
+    basicstyle=\footnotesize,% basic font setting
+}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+
+\usepackage[backend=biber]{biblatex}
+\usepackage{hyperref}
+%\addbibresource{bibliography.bib}
+
+%\newcommand{\progressWriting}[0]{\color{red}}
+%\newcommand{\progressWritingToCheck}[0]{\color{violet}}
+%\newcommand{\progressDraft}[0]{\color{blue}}
+%\newcommand{\progressProofreaded}[0]{\color{brown}}
+%\newcommand{\progressValid}[0]{\color{black}}
+\newcommand{\progressWriting}[0]{\color{black}}
+\newcommand{\progressWritingToCheck}[0]{\color{black}}
+\newcommand{\progressDraft}[0]{\color{black}}
+\newcommand{\progressProofreaded}[0]{\color{black}}
+\newcommand{\progressValid}[0]{\color{black}}
+
+\title{Simultaneous Localization and Mapping}
+\author{Belos Thomas}
+\date{January 2022}
+

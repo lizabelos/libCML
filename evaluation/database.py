@@ -2,6 +2,7 @@ import json
 import hashlib
 import os
 import threading
+from utils import autoRound
 
 mutex = threading.Lock()
 cachedDatabase = None
@@ -56,7 +57,7 @@ def addResultToJson(hash, parameters, ateOrError, datasetname, statistics = {}):
     saveJsonFile(hash + ".json", d)
     mutex.release()
 
-def getResultFromJson(hash, parameters, datasetname):
+def getResultFromJson(hash, parameters, datasetname, exceptionOnError=False):
     global mutex
     mutex.acquire()
     d = loadJsonFile(hash + ".json")
@@ -73,6 +74,18 @@ def getResultFromJson(hash, parameters, datasetname):
         except:
             pass
         mutex.release()
+        if exceptionOnError:
+            float(d[key]["ate"])
         return d[key]["ate"]
     mutex.release()
     return None
+
+def fixRounding(d):
+    fixed = 0
+    for h in d:
+        for k in d[h]:
+            if isinstance(d[h][k], float):
+                d[h][k] = autoRound(d[h][k])
+                fixed = fixed + 1
+    print("Fixed " + str(fixed) + " floating points")
+    return d

@@ -68,14 +68,18 @@ class SLAM(ABC):
     def getError(self):
         return self.error
 
-    def processLogForStats(self, log):
-        allDeadly = [x for x in log if "[DEADLY]" in x]
-        allError = [x for x in log if "[ERROR]" in x]
+    def processLogForStats(self, log, fullError = True):
 
-        if len(allDeadly) > 0:
-            self.error = ";".join([x for x in allDeadly])
-        elif len(allError) > 0:
-            self.error = allError[-1]
+        if fullError:
+            self.error = log
+        else:
+            allDeadly = [x for x in log if "[DEADLY]" in x]
+            allError = [x for x in log if "[ERROR]" in x]
+
+            if len(allDeadly) > 0:
+                self.error = ";".join([x for x in allDeadly])
+            elif len(allError) > 0:
+                self.error = allError[-1]
         stats_table = [x.split(" ")[1:] for x in log if x.startswith("STAT")]
         stats = {}
         for name, x, y in stats_table:

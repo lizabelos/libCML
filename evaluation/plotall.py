@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import shutil
@@ -7,6 +8,36 @@ import copy
 from tqdm.contrib.concurrent import process_map
 
 nodesToIgnore = {"ate","edges","datasetname","stats"}
+
+OUTPUT_DIR = "3_mixed_slam/2_ablation_study/plot/"
+
+def appendBigTitleToLatex(v):
+    with open('output.tex', 'a') as f:
+        f.write("\\section{%s}\n" % v)
+
+def appendTitleToLatex(v):
+    with open('output.tex', 'a') as f:
+        f.write("\\subsection{%s}\n" % v)
+
+def appendSubtitleToLatex(v):
+    with open('output.tex', 'a') as f:
+        f.write("\\subsubsection{%s}\n" % v)
+
+def appendInputToLatex(v):
+    with open('output.tex', 'a') as f:
+        f.write("\\input{%s}\n" % v)
+
+def addNewLineToLatex():
+    with open('output.tex', 'a') as f:
+        f.write("\n\n")
+
+def beginLatexDocument():
+    with open('output.tex', 'a') as f:
+        f.write("\\begin{document}\n")
+
+def endLatexDocument():
+    with open('output.tex', 'a') as f:
+        f.write("\\end{document}\n")
 
 def distanceBetweenNode(p1, p2, ignore = "", maxlen = 1):
     if len((p1.keys()|nodesToIgnore) ^ (p2.keys()|nodesToIgnore)) > 0:
@@ -29,6 +60,23 @@ def distanceBetweenNode(p1, p2, ignore = "", maxlen = 1):
             diff.append(index)
             continue
     return diff
+
+def paramToLegend(n):
+    if n == "bacondMinimumOrbPoint":
+        return "Minimum number of indirect points"
+    if n == "bacondSaturatedRatio":
+        return "Minimum direct inliers ratio"
+    if n == "bacondScoreWeight":
+        return "Weight between the number of direct and indirect points"
+    if n == "trackcondUncertaintyWeight":
+        return "Weight between the direct and indirect uncertainties"
+    if n == "orbInlierRatioThreshold":
+        return "Inliers ratio to accept an indirect pose estimation"
+    if n == "numOrbCorner":
+        return "Number of ORB corners"
+    if n == "trackingMinimumOrbPoint":
+        return "Minimum number of indirect points"
+    return n
 
 def lowerErrorMedian(l):
     s = len(l)
@@ -82,7 +130,8 @@ def baselineOf(dataset):
     orbResult = [67,20,43,1.0,0.9,43,49,17,58,60,9]
     dsoResult = [114,20,120,2.1,1.5,52,59,17,111,63,16]
 
-    return orbResult[int(dataset.split(" ")[1])] * 0.5 + dsoResult[int(dataset.split(" ")[1])] * 1.5
+    return numFramesOf(dataset)
+    # return orbResult[int(dataset.split(" ")[1])] * 0.5 + dsoResult[int(dataset.split(" ")[1])] * 1.5
 
 def thresholdOf(dataset):
 
@@ -112,9 +161,49 @@ def safeMean(l):
     else:
         return mean(l)
 
+def plotAutoLabel(labels, importantLabel):
+    maxDistance = (max(labels) - min(labels)) / 10
+
+    newLabels = set(labels)
+    for label in labels:
+        if label == importantLabel:
+            continue
+        if abs(label - importantLabel) < maxDistance:
+            newLabels.remove(label)
+    labels = list(newLabels)
+    labels.sort()
+
+    i = 0
+    while True:
+        newLabels = set(labels)
+
+        for label in labels:
+            if label == labels[i]:
+                continue
+            if abs(label - labels[i]) < maxDistance:
+                newLabels.remove(label)
+
+        labels = list(newLabels)
+        labels.sort()
+
+        i = i + 1
+        if i >= len(labels):
+            break
+
+    labelsstr = [str(x) for x in labels]
+    #for i in range(0, len(labelsstr)):
+    #    if labelsstr[i] == str(importantLabel):
+    #        labelsstr[i] = "\\textbf{" + labelsstr[i] + "}"
+
+    return labels, labelsstr
+
 class PlotSet:
 
-    def __init__(self, dataset, all_x = None, all_y = None, lower_y = None, upper_y = None):
+    def __init__(self, paramname, dataset, all_x = None, all_y = None, lower_y = None, upper_y = None):
+        if paramname in nodesToIgnore:
+            print("ERROR : " + paramname)
+            sys.exit(0)
+        self.paramName = paramname
         self.dataset = dataset
         if all_x is not None and all_y is not None:
             self.all_x = all_x
@@ -164,7 +253,7 @@ class PlotSet:
 
     def tryMergeSameDataset(l, mergingMode = "all"):
         if len(l) == 0:
-            return PlotSet("None")
+            return PlotSet("None", "None")
         dataset = l[0].dataset
         all_x_in_common = None
         if mergingMode == "all":
@@ -189,7 +278,7 @@ class PlotSet:
         lower_y = [lowerErrorMedian(elem) for elem in new_y]
         upper_y = [upperErrorMedian(elem) for elem in new_y]
         new_y = [mean(elem) for elem in new_y]
-        plotSet = PlotSet(dataset, all_x_in_common, new_y, lower_y, upper_y)
+        plotSet = PlotSet(l[0].paramName, dataset, all_x_in_common, new_y, lower_y, upper_y)
         for elem in l:
             for error in elem.errors:
                 plotSet.addError(error, None, None, elem.errors[error])
@@ -197,7 +286,7 @@ class PlotSet:
 
     def tryMergeDifferentDataset(l, weighted = False):
         if len(l) == 0:
-            return PlotSet("None")
+            return PlotSet("None", "None")
         dataset = "Group"
         all_x_in_common = l[0].all_x
         for i in range(1, len(l)):
@@ -229,7 +318,7 @@ class PlotSet:
         lower_y = [mean(elem) for elem in new_lower_y]
         upper_y = [mean(elem) for elem in new_upper_y]
         new_y = [sum(elem) / weight_sum for elem in new_y]
-        plotSet = PlotSet(dataset, all_x_in_common, new_y, lower_y, upper_y)
+        plotSet = PlotSet(l[0].paramName, dataset, all_x_in_common, new_y, lower_y, upper_y)
         for elem in l:
             for error in elem.errors:
                 plotSet.addError(error, None, None, elem.errors[error])
@@ -248,53 +337,57 @@ class PlotSet:
         numDataset = int(self.dataset.split(" ")[1])
         baseline = baselineOf(self.dataset)
         minX = min(self.all_x)
+        maxX = max(self.all_x)
         if orbResult[numDataset] is not None:
-            axis.axhline(orbResult[numDataset] / baseline, label='ORB-SLAM2', color='green')
-            axis.text(minX, orbResult[numDataset] / baseline, "ORB-SLAM2")
+            axis.axhline(orbResult[numDataset] / baseline, color='blue', zorder=10)
+            axis.text(minX, orbResult[numDataset] / baseline, "ORB-SLAM2", zorder=10, color="blue")
         if dsoResult[numDataset] is not None:
-            axis.axhline(dsoResult[numDataset] / baseline, label='DSO', color='blue')
-            axis.text(minX, dsoResult[numDataset] / baseline, "DSO")
-        if ourResults[numDataset] is not None:
-            axis.axhline(ourResults[numDataset] / baseline, label='ModSLAM', color='red')
-            axis.text(minX, ourResults[numDataset] / baseline, "ModSLAM")
+            axis.axhline(dsoResult[numDataset] / baseline, color='red', zorder=10)
+            axis.text(maxX, dsoResult[numDataset] / baseline, "DSO", zorder=10, ha='right', color="red")
+        #if ourResults[numDataset] is not None:
+        #    axis.axhline(ourResults[numDataset] / baseline, label='ModSLAM', color='red')
+        #    axis.text(minX, ourResults[numDataset] / baseline, "ModSLAM")
 
-    def plot(self, axis):
+    def plot(self, axis, paramFilter = None, xticks = None):
         self.sort()
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color="red", linestyle = 'None', label=self.dataset,  markersize=2)
+        if paramFilter is not None:
+            axis.set_xticks(xticks[0], xticks[1])
+            [t.set_fontweight('bold') for t in axis.xaxis.get_ticklabels() if t.get_text() == str(paramFilter[self.paramName])]
+
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color='green', linestyle = 'None', label=self.dataset,  markersize=2)
 
     def plotImportant(self, axis):
         self.sort()
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=1.0, zorder=0, color="red", linestyle = 'None', label=self.dataset,  markersize=2)
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=1.0, zorder=10, color='black', linestyle = 'None', label=self.dataset,  markersize=2)
 
     def plotPoint(self, axis):
         axis.plot(self.all_x, self.all_y, marker="o", zorder=500, alpha=0.25, color="red", linestyle = 'None', markersize=2)
 
     def plotError(self, axis):
-        x = []
-        y = []
-        for error in self.errors:
-            x.append(error)
-            y.append(self.errors[error])
-        if len(y) == 0:
-            return
-        m = min(y)
-        y = [elem - m for elem in y]
-        m = max(y)
-        if m == 0:
-            return
-        diffs = []
-        for a in x:
-            for b in x:
-                if a == b:
-                    continue
-                diffs.append(abs(a - b))
-        diffs = sorted(diffs)
-        minXdiff = diffs[int(len(diffs) / 20)]
-        y = [(elem / 50) / m for elem in y]
-        # todo : show each bar with color ?
-        axis.bar(x, y, width=minXdiff * 0.9, color="#cccccc", label="Error", zorder=0)
+        errors = copy.deepcopy(self.errors)
+        for x in self.x_set:
+            if x not in errors:
+                errors[x] = 0
 
-def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, paramFilter = None, ours = None):
+        errors = list(errors.items())
+        errors.sort(key=lambda k:k[0])
+
+        errors_x = [elem[0] for elem in errors]
+        errors_y = [elem[1] for elem in errors]
+        errors_width = [min(abs(errors_x[i] - errors_x[(i - 1) % len(errors_x)]), abs(errors_x[i] - errors_x[(i + 1) % len(errors_x)])) for i in range(0, len(errors_x))]
+        errors_width = [x * 0.95 for x in errors_width]
+
+        axis2 = axis.twinx()
+        axis.patch.set_visible(False)
+        axis2.patch.set_visible(False)
+        axis.set_zorder(axis2.get_zorder()+1)
+        if self.dataset == "Group":
+            axis2.set_ylim([0, 11])
+        else:
+            axis2.set_ylim([0, 1])
+        axis2.bar(errors_x, errors_y, errors_width, color="gray", label="Errors", zorder=0)
+
+def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, paramFilter = None, ours = None, doNothing = False, separate = False):
     values = []
     alreadyTaken = set()
     for ref_id in d:
@@ -318,7 +411,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         if param not in d[ref_id]["edges"]:
             continue
 
-        rangedBasedDict = PlotSet(d[ref_id]["datasetname"])
+        rangedBasedDict = PlotSet(param, d[ref_id]["datasetname"])
 
         minAte = 9999999999
         maxAte = 0
@@ -366,19 +459,46 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
     cols = 3
     rows = 4
 
-    if len(values) == 0:
-        return
+    if len(values) < 5:
+        return False
+
+    if doNothing:
+        return True
 
     minX = min([min(v.all_x) for v in values])
     maxX = max([max(v.all_x) for v in values])
     minY = 0
-    maxY = 1
+    maxY = 0.06
+    #minY = 0
+    #maxY = 1
+    allX = set()
+    for value in values:
+        for x in value.all_x:
+            allX.add(x)
+    allX = list(allX)
+    allX.sort()
+    xticks = plotAutoLabel(allX, paramFilter[param])
 
     import matplotlib
     matplotlib.use('pdf')
     import matplotlib.pyplot as plt
+    import tikzplotlib as totex
+    # import matplotlib2tikz as totex
 
-    fig, axs = plt.subplots(rows, cols, figsize=(8.27,11.69), clear=True)
+    #Direct input
+    # plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+    #Options
+    # params = {'text.usetex' : True,
+    #           'font.size' : 11,
+    #           'font.family' : 'lmodern',
+    #           'text.latex.unicode': True,
+    #           }
+    # plt.rcParams.update(params)
+
+    fig, axs = None, None
+
+    if not separate:
+        fig, axs = plt.subplots(rows, cols, figsize=(8.27 * 2,11.69 * 2), clear=True)
 
     values.sort(key=lambda v:v.dataset)
 
@@ -387,35 +507,57 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
     i = 0
     for value in values:
 
-        axis = axs[int(i/cols),int(i%cols)]
+        axis = None
+
+        if separate:
+            fig, axis = plt.subplots(figsize=(8.27 / 2,11.69 / 3), clear=True)
+        else:
+            axis = axs[int(i/cols),int(i%cols)]
+
         axis.set_xlim([minX, maxX])
         axis.set_ylim([minY, maxY])
 
-        value.plot(axis)
+        value.plot(axis, paramFilter=paramFilter, xticks=xticks)
         value.plotError(axis)
         value.plotBaseline(axis,ours)
-        axis.set_title(value.dataset)
-        axis.set(xlabel=param, ylabel='ATE')
-        axis.label_outer()
-        # axis.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+        # axis.set_title(value.dataset)
+        axis.set(xlabel=paramToLegend(param), ylabel='Trajectory Error Per Frame')
+        # axis.label_outer()
+        axis.legend()
         # naming the x axis
         # plt.xlabel(param)
         # naming the y axis
         # plt.ylabel('Absolute Trajectory Error')
 
+        if separate:
+            print("Saving plot to plot/" + folder + "/" + param + "/" + value.dataset + ".pdf")
+            os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
+            fig.savefig(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".pdf", bbox_inches="tight", dpi=1000)
+            #appendSubtitleToLatex(param + " " + value.dataset)
+            if i % 2 == 0:
+                addNewLineToLatex()
+            appendInputToLatex(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".tex")
+            totex.save(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".tex")
+
         i = i + 1
 
-    axis = axs[int(i/cols),int(i%cols)]
+    axis = None
+
+    if separate:
+        fig, axis = plt.subplots(figsize=(8.27 / 2,11.69 / 3), clear=True)
+    else:
+        axis = axs[int(i/cols),int(i%cols)]
+
     axis.set_xlim([minX, maxX])
     axis.set_ylim([minY, maxY])
-    axis.label_outer()
+    # axis.label_outer()
 
     for value in values:
         if value.dataset not in valuesInDataset:
             valuesInDataset[value.dataset] = []
         valuesInDataset[value.dataset].append(value)
         if not onlyAverage:
-            value.plotPoint()
+            value.plotPoint(axis)
 
     for dataset in valuesInDataset:
         avg = PlotSet.tryMergeSameDataset(valuesInDataset[dataset])
@@ -429,18 +571,23 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         avg.plotImportant(axis)
         avg.plotError(axis)
 
-    #axis.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+    axis.legend()
 
-    axis.set(xlabel=param, ylabel='ATE')
+    axis.set(xlabel=paramToLegend(param), ylabel='ATE')
 
     # giving a title to my graph
     # plt.title("ATE according to " + param)
 
     # function to show the plot
     #plt.show()
-    print("Saving plot to plot/" + folder + "/" + param + ".pdf")
-    os.makedirs("plot/" + folder, exist_ok=True)
-    fig.savefig("plot/" + folder + "/" + param + ".pdf", bbox_inches="tight")
+    if separate:
+        print("Saving plot to plot/" + folder + "/" + param + "/" + "avg" + ".pdf")
+        os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
+        fig.savefig(OUTPUT_DIR + folder + "/" + param + "/" + "avg" + ".pdf", bbox_inches="tight", dpi=1000)
+    else:
+        print("Saving plot to plot/" + folder + "/" + param + ".pdf")
+        os.makedirs(OUTPUT_DIR + folder, exist_ok=True)
+        fig.savefig(OUTPUT_DIR + folder + "/" + param + ".pdf", bbox_inches="tight", dpi=1000)
     return True
 
 def makeGraphEdges_job(j):
@@ -504,7 +651,7 @@ def computeBestResults(d):
             datasetname = d[id]["datasetname"]
             if taken[int(datasetname.split(" ")[1])] is not None:
                 try:
-                    ate = float(d[id]["ate"])
+                    ate = float(d[id]["ate"]) / numFramesOf(datasetname)
                     if not math.isclose(ate,res[int(datasetname.split(" ")[1])]):
                         print("CRITICAL : Something is wrong : " + str(ate) + "/" + str(res[int(datasetname.split(" ")[1])]))
                         print(taken[int(datasetname.split(" ")[1])])
@@ -513,13 +660,15 @@ def computeBestResults(d):
                     print("CRITICAL : Something is wrong")
                 continue
             try:
-                ate = float(d[id]["ate"])
-                res[int(datasetname.split(" ")[1])] = d[id]["ate"]
-                if ate < lim[int(datasetname.split(" ")[1])]:
+                ate = float(d[id]["ate"]) / numFramesOf(datasetname)
+                res[int(datasetname.split(" ")[1])] = ate
+                if ate < lim[int(datasetname.split(" ")[1])] / numFramesOf(datasetname):
                     isbest[int(datasetname.split(" ")[1])] = 1
                 taken[int(datasetname.split(" ")[1])] = id
             except:
                 continue
+        if any([x == 9999 for x in res]):
+            continue
         ate = mean(res)
         if ate > 1000:
             continue
@@ -529,9 +678,9 @@ def computeBestResults(d):
         del paramCopy["ate"]
         allErrors.append([ate, sum(isbest), paramCopy, res, isbest])
 
-    allErrors.sort(key=lambda k:k[1]+(1/k[0]), reverse=True)
+    allErrors.sort(key=lambda k:k[0])
 
-    if len(allErrors) > 0 and allErrors[0][1] >= 6:
+    if len(allErrors) > 0:
         print("Best average : " + str(allErrors[0][0]))
         print("Num best : " + str(allErrors[0][1]))
         print("Comparaison : " + str(allErrors[0][0] * len(lim) * 100 / 350) + "%")
@@ -547,20 +696,32 @@ def merge_two_dicts(x, y):
     z.update(y)    # modifies z with keys and values of y
     return z
 
-def processFile(filename):
-    from database import loadJsonFile
+def processFile(filename,foldername):
+    from database import loadJsonFile, fixRounding
 
     d = loadJsonFile(filename, cache=False)
+    d = fixRounding(d)
+
     if len(d) < 100:
         return
     print("Processing " + filename + " with " + str(len(d)) + " entries")
     params = set()
     for id in d:
         for x in d[id]:
-            params.add(x)
-    params.remove("ate")
-    params.remove("datasetname")
+            if x not in nodesToIgnore:
+                params.add(x)
     params = list(params)
+
+
+    stats = set()
+    for id in d:
+        if not "stats" in d[id]:
+            continue
+        for s in d[id]["stats"]:
+            stats.add(s)
+
+    print(stats)
+
     datasets = removeDuplicate([d[x]["datasetname"] for x in d])
 
     d = makeGraphEdges(d, params)
@@ -568,17 +729,42 @@ def processFile(filename):
     bestResults = computeBestResults(d)
 
     for i in range(0, len(bestResults)):
-        if bestResults[i][1] < 6:
-            continue
+        numOrbConer = bestResults[i][2]["numOrbCorner"]
 
-        foldername = filename.split(".")[0]
-        numPlot = 0
+        #os.makedirs(OUTPUT_DIR + foldername, exist_ok=True)
+        #with open(OUTPUT_DIR + foldername + "/" + str(i) + "_" + str(numOrbConer) + ".json", "w") as outfile:
+        #    toDump = copy.deepcopy(bestResults[i][2])
+        #    for toIgnore in nodesToIgnore:
+        #        if toIgnore in toDump:
+        #            del toDump[toIgnore]
+        #    toDump["results"] = [bestResults[i][0], bestResults[i][1], bestResults[i][3], bestResults[i][4]]
+        #    json.dump(toDump, outfile, indent=4)
+
+        toPlot = []
         for param in params:
-            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(bestResults[i][1]), onlyAverage=True, paramFilter=bestResults[i][2])
+            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2], doNothing=True)
             if res:
-                numPlot = numPlot + 1
+                toPlot.append(param)
+        if len(toPlot) > 4:
+            appendBigTitleToLatex(foldername[0:4] + " " + str(i) + " " + str(numOrbConer))
+            for param in toPlot:
+                appendTitleToLatex(param)
+                plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2])
+                plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2], separate=True)
+            break
 
 if __name__ == "__main__":
-    filenames = [x for x in os.listdir(".") if x.endswith(".json")]
+    appendInputToLatex("header.tex")
+    beginLatexDocument()
+    dirname = "."
+    filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
     for filename in filenames:
-        processFile(filename)
+        processFile(dirname+"/"+filename,filename.split(".")[0])
+
+    dirname = "oldjson"
+    filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
+    for filename in filenames:
+        processFile(dirname+"/"+filename,filename.split(".")[0])
+    endLatexDocument()
+
+    os.system("pdflatex -interaction nonstopmode -file-line-error .\output.tex")

@@ -1,3 +1,4 @@
+import math
 import subprocess
 import time
 from subprocess import Popen
@@ -7,6 +8,19 @@ import numpy as np
 import threading
 
 currentStatus = {}
+
+def autoRound(v):
+    n = 100
+    p = v
+    plast = v
+    while n > 1:
+        plast = p
+        p = round(v, n)
+        if not math.isclose(p, v, rel_tol=0.1):
+            return plast
+        n = n - 1
+    return p
+
 
 def intrange(a, b, c = 1):
     return [int(x) for x in np.arange(a,b,c)]
@@ -75,3 +89,10 @@ def dprint(s, end="\n"):
 
 def cprint(s, end="\n"):
     currentStatus[threading.get_ident()] = s
+
+if __name__ == "__main__":
+    print(autoRound(0.00000000001599999)) # 0.000000000016
+    print(autoRound(0.000001599995)) # 0.0000016
+    print(autoRound(0.1599999)) # 0.16
+    print(autoRound(0.9999999)) # 1.0
+    print(autoRound(math.pi)) # 3.14
