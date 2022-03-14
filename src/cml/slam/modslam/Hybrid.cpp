@@ -6,7 +6,6 @@ Hybrid::Hybrid() : AbstractSlam() {
     mFramePrivateDataInstance = getMap().getFramePrivataDataContext().createInstance();
 
     mPhotometricInitializer = new Optimization::DSOInitializer(this);
-    mPhotometricInitializer->setRegulizationWeight(0.2);
     mPhotometricInitializer->setAlias("dsoInitializer");
     mPhotometricTracker = new Optimization::DSOTracker(this);
     mPhotometricTracker->setViewableOnModel(true);
