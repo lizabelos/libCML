@@ -103,7 +103,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
     }
 
     #pragma omp single
-    {
+    if (mUseCache.b()) {
         std::string orbCachePath = captureImage.getPath() + ".orb";
         FILE *f = fopen(orbCachePath.c_str(), "rb");
         if (f != nullptr) {
@@ -169,7 +169,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
 
     #pragma omp single
-    {
+    if (mUseCache.b()) {
         std::string orbCachePath = captureImage.getPath() + ".orb";
         FILE *f = fopen(orbCachePath.c_str(), "wb");
         if (f != nullptr) {

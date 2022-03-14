@@ -325,6 +325,8 @@ private:
 
     Parameter mDsoKeyframeSkipOnFailure = createParameter("dsoKeyframeSkipOnFailure", false);
     Parameter mDsoKeyframeSkipOnNoTrack = createParameter("dsoKeyframeSkipOnNoTrack", false);
+    Parameter mOrbKeyframeSkipOnFailure = createParameter("orbKeyframeSkipOnFailure", false);
+    Parameter mOrbKeyframeMinimumPoints = createParameter("orbKeyframeMinimumPoints", -1);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

@@ -27,29 +27,37 @@ namespace CML::Features {
         }
 
         void loadVocabulary(const std::string &filename) {
-            int ziperror;
-            logger.important("Opening " + filename);
-            zip_t *zipArchive = zip_open(filename.c_str(),  ZIP_RDONLY, &ziperror);
-            zip_file_t *zipFile = zip_fopen(zipArchive, "ORBvoc.txt", 0);
-            std::stringstream stream;
-            char data[4096];
-            logger.important("Uncompressing " + filename);
-            while (true) {
-                size_t n = zip_fread(zipFile, data, 4096);
-                if (n == 0) break;
-                stream << std::string(data,n);
-            }
-            zip_fclose(zipFile);
-            logger.important("Decoding " + filename);
+            if (hasEnding(filename, ".txt")) {
+                mVocabulary = new ORBVocabulary();
+                mVocabulary->loadFromTextFile(filename);
+                if (mVocabulary->empty()) {
+                    throw std::runtime_error("Can't load vocabulary");
+                }
+            } else {
+                int ziperror;
+                logger.important("Opening " + filename);
+                zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
+                zip_file_t *zipFile = zip_fopen(zipArchive, "ORBvoc.txt", 0);
+                std::stringstream stream;
+                char data[4096];
+                logger.important("Uncompressing " + filename);
+                while (true) {
+                    size_t n = zip_fread(zipFile, data, 4096);
+                    if (n == 0) break;
+                    stream << std::string(data, n);
+                }
+                zip_fclose(zipFile);
+                logger.important("Decoding " + filename);
 
-            mVocabulary = new ORBVocabulary();
-            mVocabulary->loadFromTextFile(stream);
-            if (mVocabulary->empty()) {
-                throw std::runtime_error("Can't load vocabulary");
-            }
+                mVocabulary = new ORBVocabulary();
+                mVocabulary->loadFromTextFile(stream);
+                if (mVocabulary->empty()) {
+                    throw std::runtime_error("Can't load vocabulary");
+                }
 
-            zip_close(zipArchive);
-            logger.important("Done");
+                zip_close(zipArchive);
+                logger.important("Done");
+            }
         }
 
         const ORBVocabulary& getVocabulary() {
@@ -112,6 +120,7 @@ namespace CML::Features {
 
     private:
         Parameter mNumCorner = createParameter("Number of corner", 1024);
+        Parameter mUseCache = createParameter("Use cache", false);
 
         int nlevels;
         int iniThFAST;

@@ -430,7 +430,7 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
         return false;
     }
 
-    if (!mTrackingOk) {
+    if (!mTrackingOk && mOrbKeyframeSkipOnFailure.b()) {
         return false;
     }
 
@@ -439,7 +439,7 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
     }
 
     if (mReferenceKeyFrame == currentFrame) {
-        return true; // todo : check this
+        return true;
     }
 
     int numTrackedRef = indirectNumTrackedRef();
@@ -464,10 +464,10 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
         return false;
     }*/
 
-    const bool c2a = mLastNumTrackedPoints < threshold && mLastNumTrackedPoints > 15;
+    if (mOrbKeyframeMinimumPoints.i() >= 0 && mLastNumTrackedPoints < mOrbKeyframeMinimumPoints.i()) {
+        return false;
+    }
 
-    //const bool c2b = mLastNumTrackedPoints < 15 && mTrackedWithDirect;
-
-    return c2a;
+    return mLastNumTrackedPoints < threshold;
 
 }

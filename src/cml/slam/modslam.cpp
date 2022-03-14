@@ -277,7 +277,13 @@ int main(int argc, char *argv[])
     program.add_argument("-s", "--save").nargs(1).help("Save the images").action([&saveImagePath](const std::string &value) {
         saveImagePath = value;
     });
+    program.add_argument("-v", "--verbose").nargs(0).help("Verbose").default_value(false).implicit_value(true);
+
     program.parse_args(argc, argv);
+
+    if (program["--verbose"] == true) {
+        logger.setLogLevel(CML::MORE);
+    }
 
 #if CML_ENABLE_GUI
     if (program["--gui"] == true) {
