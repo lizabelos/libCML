@@ -13,7 +13,11 @@ namespace CML {
     class ZipCaptureHelper {
 
     protected:
-        inline void loadZip(const std::string &filename, const std::string &suffix) {
+        inline void loadZip(const std::string &filename, const std::string &suffix, std::string extractPath = "") {
+
+            mZipPath = filename;
+            mExtractPath = extractPath;
+
             int ziperror = 0;
             mZipArchive = zip_open(filename.c_str(),  ZIP_RDONLY, &ziperror);
 
@@ -43,9 +47,43 @@ namespace CML {
             return loadJpegImage(data, size);
         }
 
-        inline void decompressFile(const std::string &filename, uint8_t **data, size_t *size) {
+        inline std::string decompressFile(const std::string &filename, uint8_t **data, size_t *size) {
             if (mZipBuffer.size() == 0) {
                 mZipBuffer.resize(1e+8);
+            }
+
+            FILE *f = nullptr;
+            std::string extractedFilePath = "";
+            if (mExtractPath != "") {
+
+                std::string codedFilename = filename;
+                std::replace( codedFilename.begin(), codedFilename.end(), '/', '_');
+                std::replace( codedFilename.begin(), codedFilename.end(), '\\', '_');
+
+
+                extractedFilePath = mExtractPath + "/" + codedFilename;
+
+                f = fopen(extractedFilePath.c_str(), "rb");
+                if (f != nullptr) {
+
+                    logger.debug("Using extracted image");
+
+                    *size = 0;
+                    while (true) {
+                        size_t n = fread(mZipBuffer.data() + *size, 1, mZipBuffer.size(), f);
+                        if (n == 0) break;
+                        *size += n;
+                    }
+
+                    fclose(f);
+                    *data = (uint8_t *) mZipBuffer.data();
+                    return extractedFilePath;
+                }
+                f = fopen((mExtractPath + "/" + codedFilename).c_str(), "wb");
+                if (f == nullptr) {
+                    logger.error("Can't create file " + (mExtractPath + "/" + filename));
+                    extractedFilePath = "";
+                }
             }
 
             *size = 0;
@@ -54,13 +92,20 @@ namespace CML {
             while (true) {
                 size_t n = zip_fread(zipFile, mZipBuffer.data() + *size, mZipBuffer.size());
                 if (n == 0) break;
+                if (f != nullptr) {
+                    fwrite(mZipBuffer.data() + *size, 1, n, f);
+                }
                 *size += n;
             }
             zip_fclose(zipFile);
+            if (f != nullptr) {
+                fclose(f);
+            }
             *data = (uint8_t*)mZipBuffer.data();
+            return extractedFilePath;
         }
 
-        inline void decompressFile(int id, uint8_t **data, size_t *size) {
+        inline std::string decompressFile(int id, uint8_t **data, size_t *size) {
             return decompressFile(mZipFilePath[id], data, size);
         }
 
@@ -74,6 +119,7 @@ namespace CML {
 
     private:
         zip_t *mZipArchive;
+        std::string mZipPath, mExtractPath;
         List<std::string> mZipFilePath;
         std::vector<char> mZipBuffer;
 

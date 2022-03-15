@@ -403,10 +403,13 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
         mLastDirectKeyFrame->setGroup(DIRECTKEYFRAME, true); // Need to do this to save the capture frame
         if (mEnableNeuralNetwork.b()) {
             try {
-                mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>() / 256.0f + 1.0f; // Put the points between 0 and 2
+                mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>(); // Put the points between 0 and 2
                 mHaveValidDepthMap = true;
+                logger.important("Successfully loaded neural network depth map for first frame");
             } catch (...) {
                 mHaveValidDepthMap = false;
+                logger.error("Can't load neural network depth map for first frame");
+                abort();
             }
         }
         return;

@@ -513,6 +513,8 @@ namespace CML {
             Parameter mFailureMode = createParameter("failureMode", 0);
             Parameter mSaturatedRatioThreshold = createParameter("saturatedThreshold", 0.33);
 
+            Parameter mBackupSolver = createParameter("backupSolver", false);
+
         };
 
     }

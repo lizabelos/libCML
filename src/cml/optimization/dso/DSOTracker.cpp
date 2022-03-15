@@ -68,6 +68,12 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
         }
 
+        if (oldResidual.numTermsInE[level] < 10) {
+            logger.error("Not enough terms in E");
+            oldResidual.isCorrect = false;
+            return oldResidual;
+        }
+
         logger.debug("Using cutoff : " + std::to_string(levelCutoffRepeat[level]) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) + " )");
 
         computeHessian(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, level, trackerContext);
@@ -105,6 +111,21 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
                 trackerContext->increment.tail<2>().setZero();
             }
 
+            if (!trackerContext->increment.allFinite()) {
+
+                if (mBackupSolver.b()) {
+                    logger.important("Non finite DSO Tracker increment. Trying to backup");
+                    trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().householderQr().solve(-trackerContext->jacobian.head<6>());
+                    trackerContext->increment.tail<2>().setZero();
+                }
+
+                logger.error("Non finite DSO Tracker increment");
+
+                    // break;
+                oldResidual.isCorrect = false;
+                return oldResidual;
+            }
+
             scalar_t extrapFac = 1;
             if(lambda < lambdaExtrapolationLimit) extrapFac = sqrt(sqrt(lambdaExtrapolationLimit / lambda));
             trackerContext->increment *= extrapFac;
@@ -115,15 +136,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             trackerContext->incrementScaled.segment<1>(6) *= mScaleLightA.f();
             trackerContext->incrementScaled.segment<1>(7) *= mScaleLightB.f();
 
-            for (int i = 0; i < 8; i++) {
-                if (!std::isfinite(trackerContext->incrementScaled[i])) {
-                    // trackerContext->incrementScaled.setZero();
-                    logger.error("Non finite DSO Tracker increment");
-                    // break;
-                    oldResidual.isCorrect = false;
-                    return oldResidual;
-                }
-            }
           /*  if(!trackerContext->incrementScaled.allFinite() || trackerContext->incrementScaled.hasNaN()) {
                 trackerContext->incrementScaled.setZero();
                 logger.error("Non finite DSO Tracker increment");

@@ -2,6 +2,8 @@
 #include "cml/optimization/dso/DSOTracer.h"
 #include "cml/optimization/Residual.h"
 
+#define OPENMP_UNSTABLE 0
+
 CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent) : AbstractFunction(parent), DSOContext(parent->getMap()) {
     mMarginalizedHessian = Matrix<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
     mMarginalizedB = Vector<Dynamic>(CPARS + 8);
@@ -1166,84 +1168,93 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
     HashMap<PFrame, int, Hasher> frameToId;
     DSOFramePrecomputed precomputedArray[getFrames().size()][getFrames().size()];
+    scalar_t stats = 0;
+    Set<DSOResidual *> toRemove;
+    Mutex toRemoveMutex;
 
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
-    for (size_t i = 0; i < getFrames().size(); i++) {
+//#if CML_USE_OPENMP
+//#pragma omp parallel shared(frameToId) shared(precomputedArray) shared(stats) shared(toRemove) shared(toRemoveMutex)
+//#endif
+    {
 
-        frameToId[getFrames()[i]] = i;
+#if CML_USE_OPENMP
+#pragma omp single
+#endif
+        for (size_t i = 0; i < getFrames().size(); i++) {
 
-        for (size_t j = 0; j < getFrames().size(); j++) {
+            frameToId[getFrames()[i]] = i;
 
-            auto hostData = get(getFrames()[i]);
-            auto targetData =  get(getFrames()[j]);
-            precomputedArray[i][j] = DSOFramePrecomputed(hostData.p(), targetData.p());
+            for (size_t j = 0; j < getFrames().size(); j++) {
+
+                auto hostData = get(getFrames()[i]);
+                auto targetData = get(getFrames()[j]);
+                precomputedArray[i][j] = DSOFramePrecomputed(hostData.p(), targetData.p());
+
+            }
 
         }
 
+#if CML_USE_OPENMP
+#pragma omp single
+#endif
+{
+        logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
     }
 
+#if CML_USE_OPENMP
+#pragma omp for
+#endif
+        for (size_t i = 0; i < mActiveResiduals.size(); i++) {
+            auto &r = mActiveResiduals[i];
+
+            auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
+
+            Eigen::internal::set_is_malloc_allowed(false);
+
+            stats += linearize(r, precomputed);
+
+            Eigen::internal::set_is_malloc_allowed(true);
+
+
+            if (fixLinearization) {
+                applyRes(r, true);
+
+                if (r->isActiveAndIsGoodNEW) {
+                    auto p = get(r->elements.mapPoint);
+
+                    Matrix33 K = r->elements.frame->getK(0);
+
+                    Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
+                    Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
+
+                    Vector3 ptp_inf = PRE_KRKiTll *
+                                      r->elements.mapPoint->getReferenceCorner().point0().homogeneous();    // projected point assuming infinite depth.
+                    Vector3 ptp = ptp_inf + PRE_KtTll *
+                                            r->elements.mapPoint->getReferenceInverseDepth();    // projected point with real depth.
+                    float relBS = 0.01 * ((ptp_inf.head<2>() / ptp_inf[2]) -
+                                          (ptp.head<2>() / ptp[2])).norm();    // 0.01 = one pixel.
+
+                    if (relBS > p->getMaxRelBaseline()) {
+                        p->setMaxRelBaseline(relBS);
+                        p->updatePointUncertainty(r->elements.mapPoint, mScaledVarTH.f(), mAbsVarTH.f(),
+                                                  mMinRelBS.f());
+                    }
+
+                    p->numGoodResiduals++;
+
+
+                } else {
+                    LockGuard lg(toRemoveMutex);
+                    toRemove.insert(r);
+                }
+            }
+        }
+
+    }
 
     double lastEnergyP = 0;
     double lastEnergyR = 0;
     double num = 0;
-
-
-    Set<DSOResidual*> toRemove;
-    Mutex toRemoveMutex;
-
-    scalar_t stats = 0;
-
-    logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
-
-    Timer timer;
-    timer.start();
-
-    for (size_t i = 0; i < mActiveResiduals.size(); i++)
-    {
-        auto &r = mActiveResiduals[i];
-
-        auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
-
-        stats += linearize(r, precomputed);
-
-        if(fixLinearization)
-        {
-            applyRes(r, true);
-
-            if(r->isActiveAndIsGoodNEW)
-            {
-                auto p = get(r->elements.mapPoint);
-
-                Matrix33 K = r->elements.frame->getK(0);
-
-                Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
-                Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
-
-                Vector3 ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().homogeneous();	// projected point assuming infinite depth.
-                Vector3 ptp = ptp_inf + PRE_KtTll * r->elements.mapPoint->getReferenceInverseDepth();	// projected point with real depth.
-                float relBS = 0.01*((ptp_inf.head<2>() / ptp_inf[2])-(ptp.head<2>() / ptp[2])).norm();	// 0.01 = one pixel.
-
-                if(relBS > p->getMaxRelBaseline()) {
-                    p->setMaxRelBaseline(relBS);
-                    p->updatePointUncertainty(r->elements.mapPoint, mScaledVarTH.f(), mAbsVarTH.f(),
-                                              mMinRelBS.f());
-                }
-
-                p->numGoodResiduals++;
-
-
-            }
-            else
-            {
-                LockGuard lg(toRemoveMutex);
-                toRemove.insert(r);
-            }
-        }
-    }
-
-    timer.stopAndPrint("Linearization time");
 
     lastEnergyP = stats;
 
@@ -1322,8 +1333,8 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidu
 
     Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0();
 
-    Matrix33 R = precomputed.trialRefToTarget.getRotationMatrix();
-    Vector3 t = precomputed.trialRefToTarget.getTranslation();
+    const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
+    const Vector3 &t = precomputed.trialRefToTarget.getTranslation();
 
 
     {
@@ -1339,7 +1350,7 @@ inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidu
             return pair->state_energy;
         }
 
-        Vector<6> d_xi_x, d_xi_y;
+        Vector<6> d_xi_x, d_xi_y; // todo : remove malloc here
         Vector<4> d_C_x, d_C_y;
         float d_d_x, d_d_y;
 
@@ -1667,7 +1678,7 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
     #pragma omp single
     {
-#if CML_USE_OPENMP
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
         int ompNumThread = omp_get_num_threads();
 #else
         int ompNumThread = 1;
@@ -1695,13 +1706,13 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
         }
     }
 
-    #if CML_USE_OPENMP
+    #if CML_USE_OPENMP && OPENMP_UNSTABLE
     #pragma omp for
     #endif
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
-#if CML_USE_OPENMP
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
             int tid = omp_get_thread_num();
 #else
             int tid = 0;
@@ -1840,7 +1851,7 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
 
     Mutex mutex;
 
-    #if CML_USE_OPENMP
+    #if CML_USE_OPENMP && OPENMP_UNSTABLE
     #pragma omp for collapse(2) schedule(static) ordered
     #endif
     for(size_t i=0;i<getFrames().size();i++) {

@@ -10,6 +10,7 @@
 #include <dirent.h>
 #endif
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseLU>

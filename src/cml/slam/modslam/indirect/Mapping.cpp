@@ -143,7 +143,7 @@ void Hybrid::keyframeCulling() {
             continue;
         }
 
-        int shared = keyframes[centerframe - 1]->sharedIndirect(keyframes[centerframe + 1]);
+        int shared = keyframes[centerframe - 1]->shared(getMap().INDIRECTGROUP, keyframes[centerframe + 1]);
         if (shared > 100) { // todo : check the repartitions of the points
             keyframes[centerframe]->setGroup(INDIRECTKEYFRAME, false);
           //  keyframes[centerframe]->addDeform(keyframes[centerframe - 1], keyframes[centerframe + 1]);

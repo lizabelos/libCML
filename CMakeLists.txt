@@ -248,18 +248,19 @@ target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 
 # target_link_options(CML PUBLIC -mllvm)
 
+if (WIN32)
 target_compile_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
 target_link_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
-
+endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(CML PUBLIC -DDEBUG=1)
+    target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(CML PUBLIC -O2 -fno-math-errno)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -fno-math-errno -g)
-    target_compile_definitions(CML PUBLIC -DNDEBUG=1)
+    target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)
 endif()
 
 if (USE_OPENMP)

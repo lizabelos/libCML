@@ -358,73 +358,15 @@ CML::Camera CML::Frame::computeNewCameraFromDeforms() {
 
 }
 
-float CML::Frame::sharedIndirectRatio(PFrame other) {
-    Set<PPoint, Hasher> common, notCommon;
-    for (auto [index, point] : getMapPoints()) {
-        if (point->getIndirectApparitionNumber() <= 1) {
-            continue;
-        }
-        if (other->getIndex(point).hasValidValue()) {
-            common.insert(point);
-        } else {
-            notCommon.insert(point);
-        }
-    }
-    for (auto [index, point] : other->getMapPoints()) {
-        if (point->getIndirectApparitionNumber() <= 1) {
-            continue;
-        }
-        if (getIndex(point).hasValidValue()) {
-            common.insert(point);
-        } else {
-            notCommon.insert(point);
-        }
-    }
+int CML::Frame::shared(int groupId, PFrame other) {
+    int numCommon;
 
-    return (float)common.size() / (float)(common.size() + notCommon.size());
-}
-
-template<class InputIt1, class InputIt2, class OutputFn>
-void set_union_lambda(InputIt1 first1, InputIt1 last1,
-                   InputIt2 first2, InputIt2 last2,
-                   OutputFn fn)
-{
-    for (; first1 != last1;) {
-        if (first2 == last2) {
-            for(; first1 != last1; ++first1) {
-                fn(*first1);
-            }
-            return;
-        }
-        if (*first2 < *first1) {
-            fn(*first2++);
-        } else {
-            fn(*first1);
-            if (!(*first1 < *first2))
-                ++first2;
-            ++first1;
-        }
-    }
-    for(; first2 != last2; ++first2) {
-        fn(*first2);
-    }
-}
-
-int CML::Frame::sharedIndirect(PFrame other) {
-    LockGuard lg1(mMapPointsMutex);
-    LockGuard lg2(other->mMapPointsMutex);
-
-    OptPPoint last;
-    int numCommon = 0;
-
-    set_union_lambda(mOrderedMapPoints.begin(), mOrderedMapPoints.end(),
-                   other->mOrderedMapPoints.begin(), other->mOrderedMapPoints.end(),
-                   [&numCommon, &last](const PPoint &p) {
-        if (p == last) {
+    auto points = getGroupMapPoints(groupId);
+    for (PPoint point : points) {
+        if (point->haveIndirectApparition(other)) {
             numCommon++;
         }
-        last = p;
-    });
+    }
 
     return numCommon;
 }

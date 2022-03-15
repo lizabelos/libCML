@@ -20,7 +20,7 @@
 
 #if CML_HAVE_LIBZIP
 #include <cml/capture/TUMCapture.h>
-#include <cml/capture/StereopolisCapture.h>
+#include <cml/capture/ZipStereopolisCapture.h>
 #endif
 
 #include <cml/capture/KittyCapture.h>
@@ -74,7 +74,7 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
     }
 
     try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::StereopolisCapture(path);
+        Ptr<AbstractCapture, Nullable> capture = new CML::ZipStereopolisCapture(path);
         return capture;
     } catch (const std::exception &e) {
         logger.error(e.what());

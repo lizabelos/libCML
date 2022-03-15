@@ -442,9 +442,7 @@ namespace CML {
             addDeformSingleDirection(frame1, frame0);
         }
 
-        float sharedIndirectRatio(PFrame other);
-
-        int sharedIndirect(PFrame other);
+        int shared(int groupId, PFrame other);
 
         void setParent(PFrame parent) {
             if (mParent.isNotNull()) {

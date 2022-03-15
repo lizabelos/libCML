@@ -112,6 +112,72 @@ void CML::Array2D<unsigned char>::resize(int newWidth, int newHeight, Array2D<un
     }
 }
 
+namespace CML {
+    template<typename T, int bitspersample>
+    CML::Pair<CML::FloatImage, CML::Image> loadTiffImage(TIFF *tif) {
+        uint32 width, height, depth;
+
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+        //TIFFGetField(tif, TIFFTAG_IMAGEDEPTH, &depth);
+        depth = 3;
+
+        FloatImage image(width, height);
+        Image colorImage(width, height);
+
+        tdata_t buf = _TIFFmalloc(TIFFScanlineSize(tif));
+        if (!buf) {
+            throw std::runtime_error("tiff can't malloc ?");
+        }
+        T *bufT = (T *) bufT;
+
+        float factor = 255.0f / (float) pow(2, bitspersample);
+
+        for (uint32_t y = 0; y < height; y++) {
+            TIFFReadScanline(tif, buf, y);
+            uint32_t currentBitPosition = 0;
+
+            for (uint32_t x = 0; x < width; x++) {
+
+                float avg = 0;
+
+                for (uint32_t c = 0; c < depth; c++) {
+
+                    T intensity = bufT[x * depth + c];
+
+                    float value = (float) intensity * factor;
+
+                    if (c == 0) {
+                        colorImage(x, y).g() = value;
+
+                    } else if (c == 1) {
+                        colorImage(x, y).b() = value;
+
+                    } else if (c == 2) {
+                        colorImage(x, y).r() = value;
+                    }
+
+                    avg += value;
+
+                    currentBitPosition += bitspersample;
+
+                }
+
+                avg /= (float) depth;
+
+                image(x, y) = avg;
+
+            }
+        }
+
+
+        _TIFFfree(buf);
+        TIFFClose(tif);
+
+        return {image, colorImage};
+    }
+}
+
 CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, size_t lenght) {
     std::istringstream input_TIFF_stream(std::string((char *)str, lenght));
 
@@ -125,6 +191,19 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
     }
 
     uint32 width, height, bitspersample, depth;
+
+    if (bitspersample == 8) {
+        return loadTiffImage<uint8_t, 8>(tif);
+    }
+    if (bitspersample == 16) {
+        return loadTiffImage<uint16_t, 16>(tif);
+    }
+    if (bitspersample == 32) {
+        return loadTiffImage<uint32_t, 32>(tif);
+    }
+    if (bitspersample == 64) {
+        return loadTiffImage<uint64_t, 64>(tif);
+    }
 
     TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
