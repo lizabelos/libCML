@@ -16,6 +16,7 @@ add_library(CML STATIC
         cml/capture/TartanairCapture.cpp
         cml/capture/Eth3DCapture.cpp
         cml/capture/RobotCarCapture.cpp
+        cml/capture/StereopolisCapture.cpp
 
         cml/features/corner/PixelSelector.cpp
 
@@ -79,7 +80,7 @@ add_library(CML STATIC
         lodepng/lodepng.cpp
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx gdcmjpeg8)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF TIFF::CXX gdcmjpeg8)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} /usr/include/suitesparse)
 
 if (USE_OPENMP)
@@ -155,6 +156,10 @@ if (GLOG_FOUND)
     target_link_libraries(CML ${GLOG_LIBRARIES})
 endif()
 
+if (TURBOJPEG_FOUND)
+    target_link_libraries(CML ${TURBOJPEG_LIBRARIES})
+endif()
+
 if (ENABLE_GUI)
     qt6_wrap_cpp(ModelViewerWidgetSRC ../include/cml/gui/widgets/ModelWidget.h)
     qt6_wrap_cpp(FunctionWidgetSRC ../include/cml/gui/widgets/FunctionWidget.h)
@@ -188,9 +193,6 @@ if (ENABLE_GUI)
             )
     target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
 
-    if (MINGW)
-        target_link_libraries(CML opengl32 glu32 mingw32)
-    endif()
 
 endif()
 

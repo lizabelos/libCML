@@ -351,7 +351,9 @@ namespace CML {
         }
 
         template <typename U> void convolution(const Array2D<float> &kernel, Array2D<U> &newImage) const {
-#pragma omp single
+          #if CML_USE_OPENMP
+          #pragma omp single
+          #endif
             {
                 if (newImage.getWidth() != getWidth() || newImage.getHeight() != getHeight()) {
                     newImage = Array2D<U>(getWidth(), getHeight());
@@ -375,7 +377,9 @@ namespace CML {
                 }
             }
 
+#if CML_USE_OPENMP
 #pragma omp for schedule(static)
+#endif
             for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
                 int img_x;
                 for (img_x = 0; img_x < (getWidth() - kernel.getWidth()) - 4; img_x = img_x + 4) {
@@ -430,7 +434,9 @@ namespace CML {
 
             }
 
+#if CML_USE_OPENMP
 #pragma omp for schedule(static)
+#endif
             for (int img_y = -res_shifty; img_y < res_shifty; img_y++) {
                 int img_x;
                 for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
@@ -446,7 +452,9 @@ namespace CML {
                 }
             }
 
+#if CML_USE_OPENMP
 #pragma omp for schedule(static)
+#endif
             for (int img_y = getHeight() - kernel.getHeight(); img_y < (getHeight() - res_shifty); img_y++) {
                 int img_x;
                 for (img_x = -res_shiftx; img_x + res_shiftx < getWidth(); img_x++) {
@@ -499,7 +507,9 @@ namespace CML {
         template<typename U>
         Array2D<U> castToUChar() const {
             Array2D<U> result(getWidth(), getHeight());
+            #if CML_USE_OPENMP
             #pragma omp for schedule(static)
+            #endif
             for (int y = 0; y < result.getHeight(); y++) {
                 for (int x = 0; x < result.getWidth(); x++) {
                     result(x, y) = fastRound(get(x,y));
@@ -510,13 +520,17 @@ namespace CML {
 
         template<typename U>
         void castToUChar(Array2D<U> &result) const {
+            #if CML_USE_OPENMP
             #pragma omp single
+            #endif
             {
                 if (result.getWidth() != getWidth() || result.getHeight() != getHeight()) {
                     result = Array2D<U>(getWidth(), getHeight());
                 }
             }
+            #if CML_USE_OPENMP
             #pragma omp for schedule(static)
+            #endif
             for (int y = 0; y < result.getHeight(); y++) {
                 for (int x = 0; x < result.getWidth(); x++) {
                     result(x, y) = fastRound(get(x,y));
@@ -530,7 +544,9 @@ namespace CML {
                 return castToUChar<U>();
             } else {
                 Array2D<U> result(getWidth(), getHeight());
+                #if CML_USE_OPENMP
                 #pragma omp for
+                #endif
                 for (int y = 0; y < result.getHeight(); y++) {
                     for (int x = 0; x < result.getWidth(); x++) {
                         result(x, y) = get(x,y);
@@ -707,13 +723,14 @@ namespace CML {
 
     };
 
-    Pair<FloatImage, Image> loadTiffImage(const uint8_t *data, size_t lenght);
+    Pair<FloatImage, Image> loadTiffImage(const std::string& path);
+    Pair<FloatImage, Image> loadTiffImage(const uint8_t *str, size_t lenght);
 
     Pair<FloatImage, Image> loadJpegImage(const uint8_t *str, size_t lenght);
 
     Pair<FloatImage, Image> loadPngImage(const std::string &path);
 
-
+    GrayImage loadGrayImage(std::string fileName);
 
 }
 

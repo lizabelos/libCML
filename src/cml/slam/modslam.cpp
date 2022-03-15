@@ -20,7 +20,7 @@
 
 #if CML_HAVE_LIBZIP
 #include <cml/capture/TUMCapture.h>
-#include <cml/capture/StereopolisCapture.h>
+#include <cml/capture/ZipTiffCapture.h>
 #endif
 
 #include <cml/capture/KittyCapture.h>
@@ -28,6 +28,7 @@
 #include <cml/capture/TartanairCapture.h>
 #include <cml/capture/Eth3DCapture.h>
 #include <cml/capture/RobotCarCapture.h>
+#include <cml/capture/StereopolisCapture.h>
 
 #include <cml/image/Filter.h>
 
@@ -48,45 +49,51 @@ Q_DECLARE_METATYPE(scalar_t)
 #endif
 
 #if !CML_IS_ANDROID
-Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
+Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path, const bool& reverse,const int& start, const double& expFactor, const int& topFactor ) {
 
-#if CML_HAVE_AVFORMAT
-#if CML_ENABLE_GUI
-    if (path == "cam" || path == "webcam" || path == "camera") {
-        return new QtWebcamCapture();
-    }
-#endif
+// #if CML_HAVE_AVFORMAT
+// #if CML_ENABLE_GUI
+//     if (path == "cam" || path == "webcam" || path == "camera") {
+//         return new QtWebcamCapture();
+//     }
+// #endif
+//
+//     try {
+//         Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
+//         return capture;
+//     } catch (const std::exception &e) {
+//         logger.error(e.what());
+//     }
+// #endif
+
+// #if CML_HAVE_LIBZIP
+//     try {
+//         Ptr<AbstractCapture, Nullable> capture = new CML::TUMCapture(path);
+//         return capture;
+//     } catch (const std::exception &e) {
+//         logger.error(e.what());
+//     }
 
     try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
+        Ptr<AbstractCapture, Nullable> capture = new CML::StereopolisCapture(path, reverse, start, expFactor, topFactor);
         return capture;
     } catch (const std::exception &e) {
         logger.error(e.what());
     }
-#endif
 
-#if CML_HAVE_LIBZIP
     try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::TUMCapture(path);
+        Ptr<AbstractCapture, Nullable> capture = new CML::ZipTiffCapture(path);
         return capture;
     } catch (const std::exception &e) {
         logger.error(e.what());
     }
 
-    try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::StereopolisCapture(path);
-        return capture;
-    } catch (const std::exception &e) {
-        logger.error(e.what());
-    }
-#endif
-
-    try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::KittyCapture(path);
-        return capture;
-    } catch (const std::exception &e) {
-        logger.error(e.what());
-    }
+    // try {
+    //     Ptr<AbstractCapture, Nullable> capture = new CML::KittyCapture(path);
+    //     return capture;
+    // } catch (const std::exception &e) {
+    //     logger.error(e.what());
+    // }
 /*
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::EurocCapture(path);
@@ -228,7 +235,7 @@ int main(int argc, char *argv[])
 
     printTypeSize();
 
-    // srand(29071996);
+    // srand(29031806);
     srand(time(nullptr));
 
 #if CML_ENABLE_GUI
@@ -247,12 +254,43 @@ int main(int argc, char *argv[])
     std::string resultFormat = "all";
     std::string saveImagePath = "";
 
-    program.add_argument("-d", "--dataset").nargs(1).help("Path to the dataset").action([&capture](const std::string &value){
-        capture = loadDataset(value);
+    int start = 0;
+    bool reverse = false;
+    double expF = 1.005;
+    int topF = 1000;
+
+    program.add_argument("-i", "--reverse").nargs(0).help("active reverse mode").default_value(false).implicit_value(true);
+
+    program.add_argument("-j", "--start").nargs(1).help("jump at frame n").action([&start](const std::string &value) {
+        if(!(1 == sscanf(value.c_str(), "%d", &start)) || start < 0 ){
+            logger.error("start frame is wrong");
+        }
+        logger.important("start is now : " + std::to_string(start));
+
+    });
+    program.add_argument("-e", "--exp").nargs(1).help("get exp factor").action([&expF](const std::string &value) {
+        if(!(1 == sscanf(value.c_str(), "%lf", &expF)) || expF <= 1  ){
+            logger.error("exp Factor is wrong");
+        }
+        logger.important("exp factor is now : " + std::to_string(expF));
+
+    });
+
+    program.add_argument("-k", "--top").nargs(1).help("cut the images").action([&topF](const std::string &value) {
+        if(!(1 == sscanf(value.c_str(), "%d", &topF)) || topF < 0  ){
+            logger.error("top is wrong");
+        }
+        logger.important("top is now : " + std::to_string(topF));
+
+    });
+
+    program.add_argument("-d", "--dataset").nargs(1).help("Path to the dataset").action([&capture, &start, &topF, &expF, &program](const std::string &value){
+        capture = loadDataset(value, program.get<bool>("--reverse"), start, expF, topF);
         if (capture.isNull()) {
             logger.error("Can't load dataset '" + value + "'");
         }
     });
+
 //#if CML_ENABLE_GUI
     program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(true);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
@@ -277,13 +315,7 @@ int main(int argc, char *argv[])
     program.add_argument("-s", "--save").nargs(1).help("Save the images").action([&saveImagePath](const std::string &value) {
         saveImagePath = value;
     });
-    program.add_argument("-v", "--verbose").nargs(0).help("Verbose").default_value(false).implicit_value(true);
-
     program.parse_args(argc, argv);
-
-    if (program["--verbose"] == true) {
-        logger.setLogLevel(CML::MORE);
-    }
 
 #if CML_ENABLE_GUI
     if (program["--gui"] == true) {
