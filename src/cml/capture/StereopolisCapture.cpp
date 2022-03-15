@@ -96,7 +96,6 @@ CML::StereopolisCapture::StereopolisCapture(const std::string& path, const bool&
     mLookupTable = GrayLookupTable::exp(255, expFactor); // add at execution with -e (default= 1.005)
 
     int top = topFactor, bottom = images.first.getHeight() - 1; // add at execution with -k (default = 1000)
-    // int top = 436, bottom = 1275;
 
     for (int y = 0; y < images.first.getHeight(); y++) {
         for (int x = 0; x < images.first.getWidth(); x++) {

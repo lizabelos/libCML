@@ -351,19 +351,24 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
 
     if (modunif["TypeModele"][0]=="eModele_FishEye_10_5_5") {
         PinholeUndistorter pinhole{Vector2(f, f), Vector2(params[0], params[1])};
-        FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5]}, {params[6], params[7]}, {params[8], params[9]});
+        FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5], params[6]}, {params[7], params[8]}, {params[9], params[10]});
 
 
         auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), outputSize);
         Vector4 params = res.first.getParameters();
         float nonCroppedHeight = size.y() * outputSize.x() / size.x();
+        // logger.important(" NON CROPPED : " + std::to_string(nonCroppedHeight));
+
         params(1) *= nonCroppedHeight / outputSize.y();
-        top = top * outputSize.y() / size.y();
-        bottom = bottom * outputSize.y() / size.y();
-        params(3) = ((top + bottom) / 2) + top;
+
+        params(3) = -nonCroppedHeight/2 + std::min((bottom - top), 480)
+        + 1.4f * (nonCroppedHeight - (bottom * nonCroppedHeight /size.y()));
+
+        // logger.important("PARAMS = " + std::to_string(params(0)) + " " + std::to_string(params(1)) + " " + std::to_string(params(2)) + " " + std::to_string(params(3)));
+
         PinholeUndistorter newpinhole(params);
 
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, params, outputSize.cast<scalar_t>());
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, newpinhole, outputSize.cast<scalar_t>());
 
     }
     else {
