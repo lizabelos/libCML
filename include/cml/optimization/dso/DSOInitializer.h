@@ -142,7 +142,7 @@ namespace CML {
             float mAlphaW;
             float mRegWeight;
             float mCouplingWeight;
-            float mNNWeight = 0.9;
+            float mNNWeight = 0.25;
 
             bool mSnapped = false;
 

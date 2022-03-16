@@ -15,6 +15,7 @@
 
 // From OSBRLAM
 namespace CML {
+
     Pair<PinholeUndistorter, Array2D<Vector2f>> makeOptimalK_crop(PinholeUndistorter originalPinhole, Undistorter *preundistorter, Vector2i originalSize, Vector2i newSize) {
         Array2D<Vector2f> undistortMap(newSize.x(), newSize.y());
         float *remapX = new float[newSize.x() * newSize.y()];
@@ -324,7 +325,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
 }
 
 
-CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize, int top, int bottom) {
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize) {
     rapidxml::xml_document doc;
 
     std::ifstream file(path);
@@ -351,16 +352,11 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
 
     if (modunif["TypeModele"][0]=="eModele_FishEye_10_5_5") {
         PinholeUndistorter pinhole{Vector2(f, f), Vector2(params[0], params[1])};
-        FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5]}, {params[6], params[7]}, {params[8], params[9]});
+        FishEye10_5_5 *fishEye1055 = new FishEye10_5_5({params[2], params[3], params[4], params[5], params[6]}, {params[7], params[8]}, {params[9], params[10]});
 
 
         auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), outputSize);
         Vector4 params = res.first.getParameters();
-        float nonCroppedHeight = size.y() * outputSize.x() / size.x();
-        params(1) *= nonCroppedHeight / outputSize.y();
-        top = top * outputSize.y() / size.y();
-        bottom = bottom * outputSize.y() / size.y();
-        params(3) = ((top + bottom) / 2) + top;
         PinholeUndistorter newpinhole(params);
 
         return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, params, outputSize.cast<scalar_t>());

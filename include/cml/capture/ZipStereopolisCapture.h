@@ -6,6 +6,7 @@
 #if CML_HAVE_LIBZIP
 
 #include "ZipCaptureHelper.h"
+#include "cml/image/Filter.h"
 
 namespace CML {
 
@@ -26,26 +27,11 @@ namespace CML {
             auto images = loadTiffImage(data, size);
             mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
 
-            mLookupTable = GrayLookupTable::exp(255, 1.005f);
+            mLookupTable = GrayLookupTable::gammaDecode();
 
-            int top = 0, bottom = images.first.getHeight() - 1;
+            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
 
-            for (int y = 0; y < images.first.getHeight(); y++) {
-                for (int x = 0; x < images.first.getWidth(); x++) {
-                    if (mMask(x,y) < 128 || images.first(x,y) > 254) {
-                        if (y < images.first.getHeight() / 2) {
-                            top = std::max(top, y);
-                        } else {
-                            bottom = std::min(bottom, y);
-                        }
-                    }
-                }
-            }
-
-
-            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), (bottom - top));
-
-            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize(), top, bottom);
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
 
 
 
@@ -65,28 +51,20 @@ namespace CML {
             size_t size;
             std::string decompressedFilePath = decompressFile(mCurrentImage, &data, &size);
             auto images = loadTiffImage(data, size);
-            /*if (mCurrentImage < 10) {
-                images.second.horizontalFlip().saveBmp(decompressedFilePath + ".bmp");
-            }*/
-            // images.first = images.second.toGrayImage();
-            //images.first = images.first * (255.0f / mImageMax);
 
-            for (int y = 0; y < images.first.getHeight(); y++) {
+           /* for (int y = 0; y < images.first.getHeight(); y++) {
                 for (int x = 0; x < images.first.getWidth(); x++) {
                     if (mMask(x,y) < 128) {
                         images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
-                        images.second(x,y) = ColorRGBA(0,255,0,255);
-                    }
-            /*        else if (images.first(x,y) > 255.9) {
-                        images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
                         images.second(x,y) = ColorRGBA(0,0,0,0);
-                    } */
+                    }
                 }
-            }
+            }*/
+
 
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
             imageMaker.setImage(images.first)
-                    .setImage(images.second)
+              //      .setImage(images.second)
                     .setPath(decompressedFilePath)
                     .setTime((scalar_t)mCurrentImage / 10.0)
                     .setCalibration(mCameraParameters)
