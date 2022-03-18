@@ -125,11 +125,13 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
                     trackerContext->increment.tail<2>().setZero();
                 }
 
-                logger.error("Non finite DSO Tracker increment");
+                if (!trackerContext->increment.allFinite()) {
+                    logger.error("Non finite DSO Tracker increment");
 
                     // break;
-                oldResidual.isCorrect = false;
-                return oldResidual;
+                    oldResidual.isCorrect = false;
+                    return oldResidual;
+                }
             }
 
             scalar_t extrapFac = 1;
