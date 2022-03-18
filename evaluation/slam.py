@@ -127,6 +127,9 @@ class ModSLAM(SLAM):
         self.tim = tim
         self.processLogForStats(out)
 
+    def getTime(self):
+        return self.tim
+
     def executionTime(self):
         return self.tim
 
