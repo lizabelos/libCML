@@ -15,8 +15,9 @@
 #include "cml/base/AbstractSlam.h"
 // #include "cml/gui/capture/QtWebcamCapture.h"
 
+#include <QSettings>
 #include <QScreen>
-
+#include <QStyleFactory>
 
 CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool renderMode):
     mSLAM(slam),
@@ -28,7 +29,7 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
     setObjectName("MainSlamWidget");
 
-    setWindowTitle("CML by Thomas Belos");
+    setWindowTitle("libCML GUI");
 
     logger.important("Available geometry width : " + std::to_string(screen()->availableGeometry().width()));
     logger.important("DPI X : " + std::to_string(logicalDpiX()));

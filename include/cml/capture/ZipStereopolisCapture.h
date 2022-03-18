@@ -10,6 +10,14 @@
 
 namespace CML {
 
+    class StereopolisPose {
+
+    public:
+        float time;
+        Matrix44 transformMatrix;
+    };
+
+
     class ZipStereopolisCapture : public AbstractMultithreadFiniteCapture, public ZipCaptureHelper {
 
     public:
@@ -27,12 +35,54 @@ namespace CML {
             auto images = loadTiffImage(data, size);
             mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
 
-            mLookupTable = GrayLookupTable::gammaDecode();
+            //mLookupTable = GrayLookupTable::gammaDecode();
 
             mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
 
             mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
 
+
+            std::ifstream timesFile(zipPath + ".times.txt");
+            if (timesFile.is_open()) {
+                std::string line;
+                while (getline (timesFile,line))
+                {
+                    std::vector<std::string> values;
+                    split(line, values, ' ');
+
+                    mTimes.emplace_back(my_stod(values[1]));
+
+                }
+
+                timesFile.close();
+            } else {
+                throw std::runtime_error("Missing times");
+            }
+
+            std::ifstream posesFile(zipPath + ".gt.txt");
+            if (posesFile.is_open()) {
+
+                std::string line;
+                while (getline (posesFile,line))
+                {
+                    std::vector<std::string> values;
+                    split(line, values, ' ');
+
+                    StereopolisPose pose;
+                    pose.time = my_stod(values[0]);
+                    pose.transformMatrix = Matrix44::Identity();
+                    for (size_t i = 1; i< values.size(); i++) {
+                        pose.transformMatrix((i - 1) / 4, (i - 1) % 4) = my_stod(values[i]);
+                    }
+
+                    mPoses.emplace_back(pose);
+
+                }
+
+                posesFile.close();
+            } else {
+                throw std::runtime_error("Missing groundtruth");
+            }
 
 
         }
@@ -70,6 +120,22 @@ namespace CML {
                     .setCalibration(mCameraParameters)
                     .setLut(&mLookupTable);
 
+            if (mPoses.size() > 0) {
+
+                float currentTime = mTimes[mCurrentImage];
+
+                int poseId = 0;
+                float bestDistance = std::numeric_limits<float>::max();
+                for (int i = 0; i < mPoses.size(); i++) {
+                    if (abs(currentTime - mPoses[i].time) < bestDistance) {
+                        bestDistance = abs(currentTime - mPoses[poseId].time);
+                        poseId = i;
+                    }
+                }
+
+                imageMaker.setGroundtruth(Camera::fromNullspaceMatrix(mPoses[poseId].transformMatrix));
+            }
+
             mCurrentImage++;
 
             return imageMaker.generate();
@@ -78,9 +144,11 @@ namespace CML {
     private:
         CaptureImageGenerator *mCaptureImageGenerator;
         InternalCalibration *mCameraParameters;
-        int mCurrentImage = 1;
+        int mCurrentImage = 0;
         GrayImage mMask;
         GrayLookupTable mLookupTable;
+        List<StereopolisPose> mPoses;
+        List<float> mTimes;
 
 
     };

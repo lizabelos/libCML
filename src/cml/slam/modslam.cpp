@@ -323,6 +323,7 @@ int main(int argc, char *argv[])
 
     if (executionMode == CONSOLE) {
         slam->startSingleThread(capture);
+        slam->getMap().getATE();
     }
 
 #if CML_ENABLE_GUI
@@ -362,6 +363,8 @@ int main(int argc, char *argv[])
         if (resultFormat == "all") {
             slam->getMap().exportResults(resultPath + ".tum.txt", MAP_RESULT_FORMAT_TUM, false);
             slam->getMap().exportResults(resultPath + ".kitti.txt", MAP_RESULT_FORMAT_KITTI, false);
+            slam->getMap().exportResults(resultPath + ".gt.tum.txt", MAP_RESULT_FORMAT_TUM, true);
+            slam->getMap().exportResults(resultPath + ".gt.kitti.txt", MAP_RESULT_FORMAT_KITTI, true);
         }
 
     }

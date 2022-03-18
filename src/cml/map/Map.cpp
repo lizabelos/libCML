@@ -197,7 +197,7 @@ void CML::Map::addFrame(PFrame frame) {
         }
     }
     {
-        LockGuard lg(mObserversMutex);
+        //LockGuard lg(mObserversMutex);
         for (Observer *observer : mObservers) {
             observer->onAddFrame(*this, frame);
         }
@@ -368,7 +368,6 @@ void CML::Map::onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {
         }
     }
     {
-        LockGuard lg(mObserversMutex);
         for (Observer *observer : mObservers) {
             observer->onMapPointChangeGroup(*this, mapPoint, groupId, state);
         }
@@ -531,27 +530,21 @@ void CML::Map::refreshErrorFromGroundtruth() {
 
 }
 
-void CML::Map::exportResults(std::string path, MapResultFormat format, bool align) {
+void CML::Map::exportResults(std::string path, MapResultFormat format, bool exportGroundtruth) {
 
     logger.important("Writing the results to " + path);
 
     List<Camera> cameras;
-    List<Optional<Camera>> groundtruth;
-    List<bool> iskeyframe;
 
     for (auto frame : getFrames()) {
-        cameras.emplace_back(frame->getCamera());
-        groundtruth.emplace_back(frame->getCaptureFrame().getGroundtruth());
-        iskeyframe.emplace_back(frame->isGroup(KEYFRAME));
+        if (exportGroundtruth) {
+            cameras.emplace_back(frame->getCaptureFrame().getGroundtruth().value());
+        } else {
+            cameras.emplace_back(frame->getCamera());
+        }
     }
 
     std::reverse(cameras.begin(), cameras.end());
-    std::reverse(groundtruth.begin(), groundtruth.end());
-    std::reverse(iskeyframe.begin(), iskeyframe.end());
-
-    if (align) {
-        Evaluation::align(cameras, groundtruth, cameras);
-    }
 
     logger.important("Writing " + std::to_string(cameras.size()) + " poses");
 
@@ -595,15 +588,6 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool alig
 
         for (int i = 0; i < cameras.size(); i++)
         {
-            if (align && groundtruth[i].has_value()) {
-                ateAllframesRMSE += (cameras[i].eye() - groundtruth[i].value().eye()).squaredNorm();
-                if (iskeyframe[i]) {
-                    ateKeyframesRMSE += (cameras[i].eye() - groundtruth[i].value().eye()).squaredNorm();
-                    ateKeyframesN++;
-                }
-                ateAllframesN++;
-            }
-
             Matrix34 pose = cameras[i].nullspaceCameraMatrix34();
 
             bool isFirst = true;

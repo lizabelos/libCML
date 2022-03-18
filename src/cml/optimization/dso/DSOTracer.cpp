@@ -24,6 +24,8 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
             continue;
         }
 
+        assertThrow(point->isGroup(IMMATUREPOINT), "WTF");
+
         auto ph = getPrivateData(point);
 
         if (point->getReferenceFrame()->getMapPoint(ph->referenceIndex).isNotNull()) {
@@ -260,6 +262,10 @@ CML::Set<CML::PPoint, CML::Hasher> CML::Optimization::DSOTracer::activatePoints(
         getMap().removeMapPoint(point, true);
     }
 
+    for (auto point : mappedPoints) {
+        point->setGroup(IMMATUREPOINT, false);
+    }
+
     LockGuard lg(mLastTracedMutex);
     mLastLastTraced = mLastTraced;
     mLastTraced = lastTraced;
@@ -391,7 +397,6 @@ int CML::Optimization::DSOTracer::optimizeImmaturePoint(PPoint point, int minObs
     }
 
     point->setReferenceInverseDepth(currentIdepth);
-    point->setGroup(IMMATUREPOINT, false);
 
     for(int i=0;i<nres;i++) {
         if (residuals[i].state_state == DSOResidualState::DSORES_IN) {
@@ -613,7 +618,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTraceUV = Vector2(-1, -1);
         self->lastTracePixelInterval = 0;
         self->lastTraceStatus = IPS_OOB;
-        assertDeterministic("OOB because not inside frame");
+        logger.debug("OOB because not inside frame");
         return IPS_OOB;
     }
 
@@ -631,7 +636,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
             self->lastTraceUV = Vector2(-1, -1);
             self->lastTracePixelInterval = 0;
             self->lastTraceStatus = IPS_OOB;
-            assertDeterministic("OOB because max not in frame (finite)");
+            logger.debug("OOB because max not in frame (finite)");
             return IPS_OOB;
         }
 
@@ -665,7 +670,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
             self->lastTraceUV = Vector2(-1, -1);
             self->lastTracePixelInterval = 0;
             self->lastTraceStatus = IPS_OOB;
-            assertDeterministic("OOB because max not in frame (not finite)");
+            logger.debug("OOB because max not in frame (not finite)");
             return IPS_OOB;
         }
 
@@ -676,7 +681,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTraceUV = Vector2(-1, -1);
         self->lastTracePixelInterval = 0;
         self->lastTraceStatus = IPS_OOB;
-        assertDeterministic("OOB because scale change too big");
+        logger.debug("OOB because scale change too big");
         return IPS_OOB;
     }
 
@@ -727,7 +732,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTracePixelInterval = 0;
         self->lastTraceUV = Vector2(-1,-1);
         self->lastTraceStatus = IPS_OOB;
-        assertDeterministic("OOB because dx or dy not finite");
+        logger.debug("OOB because dx or dy not finite");
         return IPS_OOB;
     }
 
@@ -811,7 +816,6 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
 
     scalar_t depth = 1.0 / ((self->iDepthMin + self->iDepthMax) / 2.0);
 
-
     if (depth > 0 && std::isfinite(depth)) {
         mStatisticQuality->addValue(self->quality);
         mStatisticPixelInterval->addValue(self->lastTracePixelInterval);
@@ -829,6 +833,6 @@ CML::Ptr<CML::Optimization::DSOTracerPointPrivate, CML::NonNullable> CML::Optimi
 }
 
 void CML::Optimization::DSOTracer::freePrivateData(PPoint point, std::string reason) {
-    assertThrow(!point->isGroup(IMMATUREPOINT), "The point is still immature but you tried to free it");
+    //assertThrow(!point->isGroup(IMMATUREPOINT), "The point is still immature but you tried to free it");
     point->getPrivate().free(mPrivateDataInstance, reason);
 }

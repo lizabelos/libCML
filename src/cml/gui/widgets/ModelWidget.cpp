@@ -65,7 +65,7 @@ void CML::ModelWidget::initializeGL() {
     QOpenGLWidget::initializeGL();
 
     mUpdateTimer.start(1000 / 15, this);
-    mGroundtruthTimer.start(5000, this);
+    mGroundtruthTimer.start(1000, this);
 
     mGCInstance = mSLAM->getMap().getGarbageCollector().newInstance();
 
@@ -226,7 +226,7 @@ void CML::ModelWidget::paintCameras() {
             continue;
         }
         //mDrawBoard->paintCamera(camera);
-        //mDrawBoard->segment((Eigen::Vector3f)lastCamera.value().eye().cast<float>(), (Eigen::Vector3f)camera.eye().cast<float>());
+        mDrawBoard->segment((Eigen::Vector3f)lastCamera.value().eye().cast<float>(), (Eigen::Vector3f)camera.eye().cast<float>());
         lastCamera = camera;
     }
 

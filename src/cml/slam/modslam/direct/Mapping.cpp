@@ -63,25 +63,6 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
     logger.info("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
     mPhotometricBA->addPoints(photometricPoints);
 
-    if (mEnableHybridPoint.b()) {
-        mHybridTracer->traceNewCoarse(currentFrame, INDIRECTKEYFRAME);
-        Set<PPoint, Hasher> hybridPoints = mHybridTracer->activatePoints(INDIRECTKEYFRAME, ACTIVEINDIRECTPOINT);
-        for (auto point : hybridPoints) {
-            updatePointDescriptor(point);
-            point->setGroup(ACTIVEINDIRECTPOINT, true);
-            //point->setGroup(IMMATUREINDIRECTPOINT, true);
-            point->setGroup(getMap().INDIRECTGROUP, true);
-            point->setGroup(getMap().DIRECTGROUP, false);
-        }
-        mHybridTracer->makeNewTracesFrom(currentFrame, currentFrameData->featureId);
-
-        if (mIndirectMappingQueue.getCurrentSize() > 1) {
-            timer.stop();
-            mIndirectMappingQueue.notifyPop();
-            return;
-        }
-    }
-
     timer.start();
     bool ok = mPhotometricBA->run(mBaMode != BADIRECT);
     timer.stopAndPrint("Photometric BA run");

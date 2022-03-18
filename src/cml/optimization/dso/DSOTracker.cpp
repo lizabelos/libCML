@@ -62,14 +62,20 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
         computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
 
+        if (oldResidual.numTermsInE[level] < 200) {
+            logger.debug("Not enough terms in E");
+            oldResidual.isCorrect = false;
+            return oldResidual;
+        }
+
         while((oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) > 0.6 && levelCutoffRepeat[level] < 50)
         {
             levelCutoffRepeat[level] *= 2;
             computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
         }
 
-        if (oldResidual.numTermsInE[level] < 10) {
-            logger.error("Not enough terms in E");
+        if (oldResidual.numTermsInE[level] - oldResidual.numSaturated[level] < 100) {
+            logger.error("Not enough terms in E (minus saturated)");
             oldResidual.isCorrect = false;
             return oldResidual;
         }

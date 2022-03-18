@@ -68,7 +68,9 @@ void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint, Hasher>
 
     for (auto point : points) {
 
-        assertThrow(!have(point), "The point is already added !");
+        if (have(point)) {
+            continue;
+        }
 
         addPoint(point);
 

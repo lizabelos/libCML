@@ -87,6 +87,11 @@ namespace CML {
 
         OrderedSet<PFrame, Comparator> getFrames();
 
+        inline List<PFrame> getFrameAsList() {
+            auto frames = getFrames();
+            return List<PFrame>(frames.begin(), frames.end());
+        }
+
         PFrame getLastFrame();
 
         PFrame getLastFrame(int n);
@@ -182,11 +187,53 @@ namespace CML {
             return mMapPointsPrivateDataContext;
         }
 
-        void exportResults(std::string path, MapResultFormat format, bool align = false);
+        void exportResults(std::string path, MapResultFormat format, bool exportGroundtruth = false);
 
         bool canMargePoints(PPoint mapPointA, PPoint mapPointB);
 
         bool mergeMapPoints(PPoint mapPointA, PPoint mapPointB);
+
+        List<Camera> multiConstantVelocityMotionModel(PFrame frame, int nFrames = 10) {
+
+            List<Camera> results;
+
+            List<PFrame> frames = getFrameAsList();
+
+            int i = 0;
+            for (; i < frames.size(); i++) {
+                if (frames[i] == frame) {
+                    break;
+                }
+            }
+
+            i = i + 2;
+
+            int n = 0;
+            for (; i < frames.size() && n < nFrames; i++, n++) {
+
+                List<Camera> motionToTries = constantVelocityMotionModel(frames[i - 1]->getCamera(), frames[i]->getCamera());
+
+                for (auto motionToTry : motionToTries) {
+
+                    Camera camera = frames[i - 1]->getCamera();
+
+                    for (int j = 0; j < n + 1; j++) {
+
+                        camera = camera * motionToTry;
+
+                    }
+
+                    results.emplace_back(camera);
+
+                }
+
+
+            }
+
+
+            return results;
+
+        }
 
     private:
         void onFrameGroupChange(PFrame frame, int groupId, bool state) final;

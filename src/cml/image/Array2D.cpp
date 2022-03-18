@@ -125,7 +125,7 @@ namespace CML {
         T *bufT = (T *) buf;
 
         float factor = 255.0f / (float) pow(2, bitspersample);
-        float factor1 = 1.0f / (float) pow(2, bitspersample);
+        float factor85 = 85.0f / (float) pow(2, bitspersample);
 
 
         for (uint32_t y = 0; y < height; y++) {
@@ -137,13 +137,13 @@ namespace CML {
                 colorImage(x, y).b() = (float)bufT[x * 3 + 1] * factor;
                 colorImage(x, y).r() = (float)bufT[x * 3 + 2] * factor;
 
-                image(x, y) =
-                        GrayLookupTable::gammaEncode(
+                image(x, y) = (float)(bufT[x * 3 + 0] + bufT[x * 3 + 1] + bufT[x * 3 + 2]) * factor85;
+                     /*   GrayLookupTable::gammaEncode(
                                 (GrayLookupTable::gammaDecode((float)bufT[x * 3 + 0] * factor) +
                             GrayLookupTable::gammaDecode((float)bufT[x * 3 + 1] * factor) +
                             GrayLookupTable::gammaDecode((float)bufT[x * 3 + 2] * factor))
                             / 3.0f
-                        );
+                        );*/
 
 
             }

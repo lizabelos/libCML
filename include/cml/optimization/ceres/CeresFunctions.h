@@ -112,9 +112,9 @@ namespace CML::Optimization::Ceres {
             q2.normalize();
 
             Eigen::Matrix<S, 3, 1> t = t1;
+            t = t + t2;
             t = q2 * t;
             t = t * _s2[0];
-            t = t + t2;
 
             _tfinal[0] = t[0];
             _tfinal[1] = t[1];
@@ -135,12 +135,12 @@ namespace CML::Optimization::Ceres {
             q2.normalize();
 
             Eigen::Matrix<S, 3, 1> t = t1;
+            t = t + t2;
             t = q2 * t;
             t = t * _s2[0];
-            t = t + t2;
 
             _residual[0] = (t - tgt).squaredNorm();
-            if (_residual[0] == S(0)) {
+            if (_residual[0] > S(1)) {
                 _residual[0] = sqrt(_residual[0]);
             }
 

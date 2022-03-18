@@ -101,6 +101,35 @@ namespace CML {
         }
     }
 
+    inline double my_stod (std::string const& s) {
+        std::istringstream iss (s);
+        iss.imbue (std::locale("C"));
+        double d;
+        iss >> d;
+        // insert error checking.
+        return d;
+    }
+
+    inline size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+    {
+        size_t pos = txt.find( ch );
+        size_t initialPos = 0;
+        strs.clear();
+
+        // Decompose statement
+        while( pos != std::string::npos ) {
+            strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+            initialPos = pos + 1;
+
+            pos = txt.find( ch, initialPos );
+        }
+
+        // Add the last one
+        strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+        return strs.size();
+    }
+
     inline std::vector<std::string> listDirectory(std::string path, std::string ext = "") {
 
         std::vector<std::string> result;
