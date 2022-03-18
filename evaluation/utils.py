@@ -6,6 +6,7 @@ import csv
 import os
 import numpy as np
 import threading
+import time
 
 currentStatus = {}
 
@@ -39,6 +40,8 @@ def system(command, comment="", disable_openmp=True):
     for l in csv.reader([command], delimiter=' ', quotechar='"'):
         executable = l[0]
         wd = os.path.dirname(os.path.realpath(executable))
+
+        start_time = time.time()
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
         p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
 
@@ -50,7 +53,9 @@ def system(command, comment="", disable_openmp=True):
                 line = comment + "," + line[line.find("(")+1:line.find(")")]
                 currentStatus[threading.get_ident()] = line
 
-        return lines, 0
+        end_time = time.time()
+
+        return lines, 0, end_time - start_time
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')

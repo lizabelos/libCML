@@ -4,7 +4,7 @@ from parseconfig import parse_config
 def statsOn(configName, tableName):
     datasets, datasets_names, slams, slams_names = parse_config()
 
-    for i in [1, 1, 1]:
+    for i in range(0, len(datasets)):
         s = slams[0]
         name = slams_names[0]
         context = s[0](s[1], configName)

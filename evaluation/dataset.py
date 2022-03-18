@@ -103,3 +103,8 @@ def TUM(folder, r=range(1, 51)):
         dataset_folder = os.path.join(folder,"sequence_" + str(i).zfill(2))
         result = result + [Dataset("TUM " + str(i).zfill(2), "tum", dataset_folder, tumGroundtruthPath(folder, i), lim=10)]
     return result
+
+def Stereopolis(folder):
+    result = []
+    result = result + [Dataset("Stereopolis", "stereopolis", folder, None, lim=100)]
+    return result

@@ -43,7 +43,7 @@ def hashOfDict(d):
     hash_object = hashlib.md5(json.dumps(d, sort_keys=True).encode('utf-8'))
     return hash_object.hexdigest()
 
-def addResultToJson(hash, parameters, ateOrError, datasetname, statistics = {}):
+def addResultToJson(hash, parameters, ateOrError, datasetname, tim, statistics = {}):
     global mutex
     mutex.acquire()
     d = loadJsonFile(hash + ".json")
@@ -53,11 +53,12 @@ def addResultToJson(hash, parameters, ateOrError, datasetname, statistics = {}):
     # res = parameters.copy()
     res["ate"] = ateOrError
     res["stats"] = statistics
+    res["time"] = tim
     d[key] = res
     saveJsonFile(hash + ".json", d)
     mutex.release()
 
-def getResultFromJson(hash, parameters, datasetname, exceptionOnError=False):
+def getResultFromJson(hash, parameters, datasetname, exceptionOnError=False, contextToUpdate = None):
     global mutex
     mutex.acquire()
     d = loadJsonFile(hash + ".json")
@@ -65,8 +66,6 @@ def getResultFromJson(hash, parameters, datasetname, exceptionOnError=False):
     res["datasetname"] = datasetname
     key = hashOfDict(res)
     if key in d:
-        if "datasetname" not in d[key]:
-            addResultToJson(hash, parameters, d[key]["ate"], datasetname)
         try:
             if d[key]["ate"].startswith("Unknown"):
                 mutex.release()
@@ -74,6 +73,9 @@ def getResultFromJson(hash, parameters, datasetname, exceptionOnError=False):
         except:
             pass
         mutex.release()
+        if contextToUpdate is not None:
+            contextToUpdate.error = str(d[key]["ate"])
+            contextToUpdate.tim = d[key]["time"]
         if exceptionOnError:
             float(d[key]["ate"])
         return d[key]["ate"]
