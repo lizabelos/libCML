@@ -32,7 +32,12 @@ MODSLAM is a mixed ORB-SLAM2 and DSO SLAM system. If you are using this work, pl
 
 Required packages : 
 ```bash
-apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libtiff-dev libsuitesparse-dev libsparsehash-dev libzip-dev
+apt install libsuitesparse-dev
+```
+
+Optional packages :
+```bash
+apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
 ```
 
 We recommend you to use CLion from Jetbrains to build and test.
@@ -120,6 +125,23 @@ Download here : https://www.cvlibs.net/datasets/kitti/eval_odometry.php
 ```bash
 cd build
 ./modslam -d /KITTI/dataset/sequences/02
+```
+
+
+## Stereopolis
+
+```
+/Stereopolis
+├── Camera_0.zip
+├── Camera_0.gt.txt
+├── Camera_0.mask.png
+├── Camera_0.times.txt
+├── Camera_0.xml
+```
+
+```bash
+cd build
+./modslam -d /Stereopolis/Camera_0.zip
 ```
 
 # 5. Evaluation
