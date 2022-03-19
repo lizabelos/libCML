@@ -2,7 +2,6 @@
 #if CML_HAVE_OPENCV
 #include "cml/features/corner/OpenCV.h"
 #endif
-#include "cml/features/corner/FAST.h"
 
 #include "cml/image/Filter.h"
 #include "ORBPattern.cpp"
@@ -142,7 +141,8 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
         // preprocess the resized image
-        mImages[level].convolution(mFilter, mBluredImages[level]);
+        // mImages[level].convolution(mFilter, mBluredImages[level]);
+        mBluredImages[level].copyToThis(mImages[level]);
 
 
         // Compute the descriptors
@@ -194,6 +194,14 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 
     #pragma omp single
     {
+
+#if CML_USE_OPENMP
+        int ompNumThread = omp_get_num_threads();
+#else
+        int ompNumThread = 1;
+#endif
+        mFast = new FAST[ompNumThread];
+
         for (int i = 0; i < nlevels; i++) {
             mAllKeypoints[i].clear();
         }
@@ -246,12 +254,18 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
+#if CML_USE_OPENMP
+                int tid = omp_get_thread_num();
+#else
+                int tid = 0;
+#endif
+
                 List<Corner> vKeysCell;
-                FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST, FAST_9, true);
+                mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST);
 
                 if(vKeysCell.empty())
                 {
-                    FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST, FAST_9, true);
+                    mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST);
                 }
 
                 #pragma omp ordered

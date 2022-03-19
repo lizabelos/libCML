@@ -4,6 +4,307 @@
 
 #define OPENMP_UNSTABLE 0
 
+
+
+namespace CML::Optimization {
+
+    class DSOBundleAdjustmentLinearizationContext {
+
+        friend class DSOBundleAdjustment;
+
+        PPoint point;
+        PFrame frameToTrack;
+        DSOFrame *hostData, *targetData;
+        Ptr<DSOPoint, NonNullable> pointData;
+
+        float JIdxJIdx_00 = 0, JIdxJIdx_11 = 0, JIdxJIdx_10 = 0;
+        float JabJIdx_00 = 0, JabJIdx_01 = 0, JabJIdx_10 = 0, JabJIdx_11 = 0;
+        float JabJab_00 = 0, JabJab_01 = 0, JabJab_11 = 0;
+        float wJI2_sum = 0;
+        float energyLeft = 0;
+        float drescale;
+        float d_d_x, d_d_y;
+        float new_idepth;
+        float u;
+        float v;
+        float Ku;
+        float Kv;
+        float refColor;
+        float curColor;
+        float curRealColor;
+        float refRealColor;
+        float residual;
+        float hw;
+        float w;
+        float b0;
+        float drdA;
+
+        Vector2 shift;
+        Vector2 refcorner_Distorted_center;
+        Vector2 refcorner_Distorted;
+        Vector2 refcorner;
+        Vector3 projectedcurp;
+        Vector2 projectedcurp_Distorted;
+        Vector3f curColorWithGradient;
+        Vector2f curColorGradient;
+        Vector3 hitColor;
+
+        Vector<6> d_xi_x, d_xi_y;
+        Vector<4> d_C_x, d_C_y;
+
+
+        Vector3 KliP;
+
+        Matrix33 K;
+        float fx, fy;
+
+    private:
+
+        scalar_t linearize(DSOBundleAdjustment &self, DSOResidual* pair, const DSOFramePrecomputed &precomputed, int level) {
+
+            assertThrow(level == 0, "Incompatible level");
+
+            pair->state_NewEnergyWithOutlier = -1;
+
+            if(pair->getState() == DSORES_OOB)
+            {
+                pair->setState(DSORES_OOB);
+                return pair->state_energy;
+            }
+
+            point = pair->elements.mapPoint;
+            frameToTrack = pair->elements.frame;
+
+            // auto hostData = get(pair->elements.mapPoint->getReferenceFrame());
+            // auto targetData = get(pair->elements.frame);
+            hostData = precomputed.mHostData;
+            targetData = precomputed.mTargetData;
+            pointData = self.unsafe_get(pair->elements.mapPoint);
+            scalar_t pointIdepth = point->getReferenceInverseDepth();
+
+            const GradientImage &image = frameToTrack->getCaptureFrame().getDerivativeImage(level);
+
+            assertThrow(hostData->id >= 0, "Host frame invalid");
+            assertThrow(targetData->id >= 0, "Target frame invalid");
+
+            JIdxJIdx_00 = 0; JIdxJIdx_11 = 0; JIdxJIdx_10 = 0;
+            JabJIdx_00 = 0; JabJIdx_01 = 0; JabJIdx_10 = 0; JabJIdx_11 = 0;
+            JabJab_00 = 0; JabJab_01 = 0; JabJab_11 = 0;
+            wJI2_sum = 0;
+            energyLeft = 0;
+
+            refcorner_Distorted_center = point->getReferenceCorner().point0();
+
+            const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
+            const Vector3 &t = precomputed.trialRefToTarget.getTranslation();
+
+
+            {
+
+                refcorner = self.mPinhole.undistort(refcorner_Distorted_center);
+
+                projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
+                projectedcurp_Distorted = self.mPinhole.distort((Vector2)projectedcurp.hnormalized());
+                drescale = 1.0 / projectedcurp[2];
+
+                if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < self.mWidth - 2 && projectedcurp_Distorted.y() < self.mHeight - 2)) {
+                    pair->setNewState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                new_idepth = drescale * pointIdepth;
+                u = projectedcurp.x();
+                v = projectedcurp.y();
+                Ku = projectedcurp_Distorted.x();
+                Kv = projectedcurp_Distorted.y();
+                KliP = refcorner.homogeneous(); // todo : check this
+
+                K = frameToTrack->getK(0);
+                fx = K(0,0);
+                fy = K(1,1);
+
+                pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
+
+                // diff d_idepth
+                d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
+                d_d_y = drescale * (precomputed.PRE_tTll_0[1]-precomputed.PRE_tTll_0[2]*v)*fy;
+
+                // diff calib
+                d_C_x[2] = drescale*(precomputed.PRE_RTll_0(2,0)*u-precomputed.PRE_RTll_0(0,0));
+                d_C_x[3] = fx * drescale*(precomputed.PRE_RTll_0(2,1)*u-precomputed.PRE_RTll_0(0,1)) / fy;
+                d_C_x[0] = KliP[0]*d_C_x[2];
+                d_C_x[1] = KliP[1]*d_C_x[3];
+
+                d_C_y[2] = fy * drescale*(precomputed.PRE_RTll_0(2,0)*v-precomputed.PRE_RTll_0(1,0)) / fx;
+                d_C_y[3] = drescale*(precomputed.PRE_RTll_0(2,1)*v-precomputed.PRE_RTll_0(1,1));
+                d_C_y[0] = KliP[0]*d_C_y[2];
+                d_C_y[1] = KliP[1]*d_C_y[3];
+
+                d_C_x[0] = (d_C_x[0]+u)* self.mScaleF.f();
+                d_C_x[1] *=  self.mScaleF.f();
+                d_C_x[2] = (d_C_x[2]+1)* self.mScaleC.f();
+                d_C_x[3] *=  self.mScaleC.f();
+
+                d_C_y[0] *=  self.mScaleF.f();
+                d_C_y[1] = (d_C_y[1]+v)* self.mScaleF.f();
+                d_C_y[2] *=  self.mScaleC.f();
+                d_C_y[3] = (d_C_y[3]+1)* self.mScaleC.f();
+
+
+                d_xi_x[0] = new_idepth*fx;
+                d_xi_x[1] = 0;
+                d_xi_x[2] = -new_idepth*u*fx;
+                d_xi_x[3] = -u*v*fx;
+                d_xi_x[4] = (1+u*u)*fx;
+                d_xi_x[5] = -v*fx;
+
+                d_xi_y[0] = 0;
+                d_xi_y[1] = new_idepth*fy;
+                d_xi_y[2] = -new_idepth*v*fy;
+                d_xi_y[3] = -(1+v*v)*fy;
+                d_xi_y[4] = u*v*fy;
+                d_xi_y[5] = u*fy;
+
+                pair->rJ.Jpdxi[0] = d_xi_x.cast<float>();
+                pair->rJ.Jpdxi[1] = d_xi_y.cast<float>();
+
+                pair->rJ.Jpdc[0] = d_C_x.cast<float>();
+                pair->rJ.Jpdc[1] = d_C_y.cast<float>();
+                pair->rJ.Jpdd[0] = d_d_x;
+                pair->rJ.Jpdd[1] = d_d_y;
+            }
+
+            assertThrow(pointData->weights.size() > 0, "The point weights must be initialized");
+
+            for (int idx = 0; idx < 8; idx++) {
+
+                shift = PredefinedPattern::star8(idx);
+
+                refcorner_Distorted.noalias() = refcorner_Distorted_center + shift;
+                self.mPinhole.undistort(refcorner_Distorted, refcorner);
+                projectedcurp.noalias()  = R.lazyProduct(refcorner.homogeneous()) + t * pointIdepth;
+                self.mPinhole.distort((Vector2)projectedcurp.hnormalized(), projectedcurp_Distorted);
+
+                // Check that the projection is finite
+                //if (!std::isfinite(projectedcurp_Distorted.x()) || !std::isfinite(projectedcurp_Distorted.y())) {
+                //    pair->setNewState(DSORES_OOB);
+                //    return pair->state_energy;
+                //}
+
+                // Check that the projection is inside the current frame, with a padding of 3, to allow the computation of the derivative on the image
+                if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < self.mWidth - 2 && projectedcurp_Distorted.y() < self.mHeight - 2)) {
+                    pair->setNewState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                // scalar_t refColor = point->getGrayPatch(shift.x(), shift.y(), level);
+                refColor = pointData->colors[idx];
+
+
+                image.interpolate(projectedcurp_Distorted.cast<float>(), curColorWithGradient);
+
+                if (!curColorWithGradient.allFinite()) {
+                    pair->setState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                curColor = curColorWithGradient(0);
+                curColorGradient.noalias() = curColorWithGradient.tail<2>();
+
+                curRealColor = curColor;
+                refRealColor = precomputed.exposureTransition(refColor);
+
+                residual = curRealColor - refRealColor;
+
+                hw = fabs(residual) < self.mHuberThreshold.f() ? 1 : self.mHuberThreshold.f() / fabsf(residual);
+                w = sqrtf(self.mSettingOutlierTHSumComponent.f() / (self.mSettingOutlierTHSumComponent.f() + curColorGradient.squaredNorm()));
+                w = 0.5f*(w + pointData->weights[idx]);
+
+                energyLeft += w * w * hw * residual * residual * ( 2.0 - hw);
+
+                {
+                    if(hw < 1) hw = sqrtf(hw);
+                    hw = hw * w;
+
+                    b0 = hostData->getB0(self.mScaleLightB.f());
+
+                    hitColor[0] = curColor;
+                    hitColor[1] = curColorGradient(0) * hw;
+                    hitColor[2] = curColorGradient(1) * hw;
+                    drdA = curColor - b0;
+
+                    pair->rJ.resF[idx] = residual*hw;
+
+                    pair->rJ.JIdx[0][idx] = hitColor[1];
+                    pair->rJ.JIdx[1][idx] = hitColor[2];
+                    pair->rJ.JabF[0][idx] = drdA*hw;
+                    pair->rJ.JabF[1][idx] = hw;
+
+                    JIdxJIdx_00+=hitColor[1]*hitColor[1];
+                    JIdxJIdx_11+=hitColor[2]*hitColor[2];
+                    JIdxJIdx_10+=hitColor[1]*hitColor[2];
+
+                    JabJIdx_00+= drdA*hw * hitColor[1];
+                    JabJIdx_01+= drdA*hw * hitColor[2];
+                    JabJIdx_10+= hw * hitColor[1];
+                    JabJIdx_11+= hw * hitColor[2];
+
+                    JabJab_00+= drdA*drdA*hw*hw;
+                    JabJab_01+= drdA*hw*hw;
+                    JabJab_11+= hw*hw;
+
+
+                    wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
+
+                    if (!self.mOptimizeA.b()) {
+                        pair->rJ.JabF[0][idx]=0;
+                    }
+                    if (!self.mOptimizeB.b()) {
+                        pair->rJ.JabF[1][idx]=0;
+                    }
+
+                }
+
+            }
+
+            pair->rJ.JIdx2(0,0) = JIdxJIdx_00;
+            pair->rJ.JIdx2(0,1) = JIdxJIdx_10;
+            pair->rJ.JIdx2(1,0) = JIdxJIdx_10;
+            pair->rJ.JIdx2(1,1) = JIdxJIdx_11;
+            pair->rJ.JabJIdx(0,0) = JabJIdx_00;
+            pair->rJ.JabJIdx(0,1) = JabJIdx_01;
+            pair->rJ.JabJIdx(1,0) = JabJIdx_10;
+            pair->rJ.JabJIdx(1,1) = JabJIdx_11;
+            pair->rJ.Jab2(0,0) = JabJab_00;
+            pair->rJ.Jab2(0,1) = JabJab_01;
+            pair->rJ.Jab2(1,0) = JabJab_01;
+            pair->rJ.Jab2(1,1) = JabJab_11;
+
+            if (!std::isfinite(energyLeft)) {
+                pair->setNewState(DSORES_OOB);
+                return pair->state_energy;
+            }
+            pair->state_NewEnergyWithOutlier = energyLeft;
+
+            if(energyLeft > std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH) || wJI2_sum < 2)
+            {
+                energyLeft = std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH);
+                pair->setNewState(DSORES_OUTLIER);
+            }
+            else
+            {
+                pair->setNewState(DSORES_IN);
+            }
+
+            pair->state_NewEnergy = energyLeft;
+            return energyLeft;
+
+        }
+
+
+    };
+}
+
 CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent) : AbstractFunction(parent), DSOContext(parent->getMap()) {
     mMarginalizedHessian = Matrix<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
     mMarginalizedB = Vector<Dynamic>(CPARS + 8);
@@ -1201,19 +1502,38 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 #endif
 {
         logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
-    }
+#if CML_USE_OPENMP
+        int ompNumThread = omp_get_num_threads();
+#else
+        int ompNumThread = 1;
+#endif
+        if (mLinearizationContextSize != ompNumThread) {
+            if (mLinearizationContext) {
+                delete[] mLinearizationContext;
+            }
+            mLinearizationContext = new DSOBundleAdjustmentLinearizationContext[ompNumThread];
+            mLinearizationContextSize = ompNumThread;
+        }
+}
 
 #if CML_USE_OPENMP
 #pragma omp for
 #endif
         for (size_t i = 0; i < mActiveResiduals.size(); i++) {
+
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+            int tid = omp_get_thread_num();
+#else
+            int tid = 0;
+#endif
+
             auto &r = mActiveResiduals[i];
 
             auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
 
             Eigen::internal::set_is_malloc_allowed(false);
 
-            stats += linearize(r, precomputed);
+            stats += mLinearizationContext[tid].linearize(*this, r, precomputed, 0);
 
             Eigen::internal::set_is_malloc_allowed(true);
 
@@ -1295,251 +1615,6 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
     }
 
     return Vector3(lastEnergyP, lastEnergyR, num);
-
-}
-
-inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidual* pair, const DSOFramePrecomputed &precomputed, int level) {
-
-    assertThrow(level == 0, "Incompatible level");
-
-    pair->state_NewEnergyWithOutlier = -1;
-
-    if(pair->getState() == DSORES_OOB)
-    {
-        pair->setState(DSORES_OOB);
-        return pair->state_energy;
-    }
-
-    auto point = pair->elements.mapPoint;
-    auto frameToTrack = pair->elements.frame;
-
-    // auto hostData = get(pair->elements.mapPoint->getReferenceFrame());
-    // auto targetData = get(pair->elements.frame);
-    auto hostData = precomputed.mHostData;
-    auto targetData = precomputed.mTargetData;
-    auto pointData = unsafe_get(pair->elements.mapPoint);
-    scalar_t pointIdepth = point->getReferenceInverseDepth();
-
-    const GradientImage &image = frameToTrack->getCaptureFrame().getDerivativeImage(level);
-
-    assertThrow(hostData->id >= 0, "Host frame invalid");
-    assertThrow(targetData->id >= 0, "Target frame invalid");
-
-    float JIdxJIdx_00 = 0, JIdxJIdx_11 = 0, JIdxJIdx_10 = 0;
-    float JabJIdx_00 = 0, JabJIdx_01 = 0, JabJIdx_10 = 0, JabJIdx_11 = 0;
-    float JabJab_00 = 0, JabJab_01 = 0, JabJab_11 = 0;
-
-    float wJI2_sum = 0;
-
-    float energyLeft = 0;
-
-    Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0();
-
-    const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
-    const Vector3 &t = precomputed.trialRefToTarget.getTranslation();
-
-
-    {
-
-        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted_center);
-
-        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
-        float drescale = 1.0 / projectedcurp[2];
-
-        if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < mWidth - 2 && projectedcurp_Distorted.y() < mHeight - 2)) {
-            pair->setNewState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        Vector<6> d_xi_x, d_xi_y; // todo : remove malloc here
-        Vector<4> d_C_x, d_C_y;
-        float d_d_x, d_d_y;
-
-        float new_idepth = drescale * pointIdepth;
-        float u = projectedcurp.x();
-        float v = projectedcurp.y();
-        float Ku = projectedcurp_Distorted.x();
-        float Kv = projectedcurp_Distorted.y();
-        Vector3 KliP = refcorner.homogeneous(); // todo : check this
-
-        Matrix33 K = frameToTrack->getK(0);
-        float fx = K(0,0);
-        float fy = K(1,1);
-
-        pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
-
-        // diff d_idepth
-        d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
-        d_d_y = drescale * (precomputed.PRE_tTll_0[1]-precomputed.PRE_tTll_0[2]*v)*fy;
-
-        // diff calib
-        d_C_x[2] = drescale*(precomputed.PRE_RTll_0(2,0)*u-precomputed.PRE_RTll_0(0,0));
-        d_C_x[3] = fx * drescale*(precomputed.PRE_RTll_0(2,1)*u-precomputed.PRE_RTll_0(0,1)) / fy;
-        d_C_x[0] = KliP[0]*d_C_x[2];
-        d_C_x[1] = KliP[1]*d_C_x[3];
-
-        d_C_y[2] = fy * drescale*(precomputed.PRE_RTll_0(2,0)*v-precomputed.PRE_RTll_0(1,0)) / fx;
-        d_C_y[3] = drescale*(precomputed.PRE_RTll_0(2,1)*v-precomputed.PRE_RTll_0(1,1));
-        d_C_y[0] = KliP[0]*d_C_y[2];
-        d_C_y[1] = KliP[1]*d_C_y[3];
-
-        d_C_x[0] = (d_C_x[0]+u)* mScaleF.f();
-        d_C_x[1] *=  mScaleF.f();
-        d_C_x[2] = (d_C_x[2]+1)* mScaleC.f();
-        d_C_x[3] *=  mScaleC.f();
-
-        d_C_y[0] *=  mScaleF.f();
-        d_C_y[1] = (d_C_y[1]+v)* mScaleF.f();
-        d_C_y[2] *=  mScaleC.f();
-        d_C_y[3] = (d_C_y[3]+1)* mScaleC.f();
-
-
-        d_xi_x[0] = new_idepth*fx;
-        d_xi_x[1] = 0;
-        d_xi_x[2] = -new_idepth*u*fx;
-        d_xi_x[3] = -u*v*fx;
-        d_xi_x[4] = (1+u*u)*fx;
-        d_xi_x[5] = -v*fx;
-
-        d_xi_y[0] = 0;
-        d_xi_y[1] = new_idepth*fy;
-        d_xi_y[2] = -new_idepth*v*fy;
-        d_xi_y[3] = -(1+v*v)*fy;
-        d_xi_y[4] = u*v*fy;
-        d_xi_y[5] = u*fy;
-
-        pair->rJ.Jpdxi[0] = d_xi_x.cast<float>();
-        pair->rJ.Jpdxi[1] = d_xi_y.cast<float>();
-
-        pair->rJ.Jpdc[0] = d_C_x.cast<float>();
-        pair->rJ.Jpdc[1] = d_C_y.cast<float>();
-        pair->rJ.Jpdd[0] = d_d_x;
-        pair->rJ.Jpdd[1] = d_d_y;
-    }
-
-    assertThrow(pointData->weights.size() > 0, "The point weights must be initialized");
-
-    for (int idx = 0; idx < 8; idx++) {
-
-        Vector2 shift = PredefinedPattern::star8(idx);
-
-        Vector2 refcorner_Distorted = refcorner_Distorted_center + shift;
-        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted);
-        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
-
-        // Check that the projection is finite
-        //if (!std::isfinite(projectedcurp_Distorted.x()) || !std::isfinite(projectedcurp_Distorted.y())) {
-        //    pair->setNewState(DSORES_OOB);
-        //    return pair->state_energy;
-        //}
-
-        // Check that the projection is inside the current frame, with a padding of 3, to allow the computation of the derivative on the image
-        if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < mWidth - 2 && projectedcurp_Distorted.y() < mHeight - 2)) {
-            pair->setNewState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        // scalar_t refColor = point->getGrayPatch(shift.x(), shift.y(), level);
-        float refColor = pointData->colors[idx];
-
-
-        auto curColorWithGradient = image.interpolate(projectedcurp_Distorted.cast<float>());
-
-        if (!curColorWithGradient.allFinite()) {
-            pair->setState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        float curColor = curColorWithGradient(0);
-        Vector2f curColorGradient = curColorWithGradient.tail<2>();
-
-        float curRealColor = curColor;
-        float refRealColor = precomputed.exposureTransition(refColor);
-
-        float residual = curRealColor - refRealColor;
-
-        float hw = fabs(residual) < mHuberThreshold.f() ? 1 : mHuberThreshold.f() / fabsf(residual);
-        float w = sqrtf(mSettingOutlierTHSumComponent.f() / (mSettingOutlierTHSumComponent.f() + curColorGradient.squaredNorm()));
-        w = 0.5f*(w + pointData->weights[idx]);
-
-        energyLeft += w * w * hw * residual * residual * ( 2.0 - hw);
-
-        {
-            if(hw < 1) hw = sqrtf(hw);
-            hw = hw * w;
-
-            float b0 = hostData->getB0(mScaleLightB.f());
-
-            Vector3 hitColor = Vector3(curColor, curColorGradient(0) * hw, curColorGradient(1) * hw);
-            float drdA = curColor - b0;
-
-            pair->rJ.resF[idx] = residual*hw;
-
-            pair->rJ.JIdx[0][idx] = hitColor[1];
-            pair->rJ.JIdx[1][idx] = hitColor[2];
-            pair->rJ.JabF[0][idx] = drdA*hw;
-            pair->rJ.JabF[1][idx] = hw;
-
-            JIdxJIdx_00+=hitColor[1]*hitColor[1];
-            JIdxJIdx_11+=hitColor[2]*hitColor[2];
-            JIdxJIdx_10+=hitColor[1]*hitColor[2];
-
-            JabJIdx_00+= drdA*hw * hitColor[1];
-            JabJIdx_01+= drdA*hw * hitColor[2];
-            JabJIdx_10+= hw * hitColor[1];
-            JabJIdx_11+= hw * hitColor[2];
-
-            JabJab_00+= drdA*drdA*hw*hw;
-            JabJab_01+= drdA*hw*hw;
-            JabJab_11+= hw*hw;
-
-
-            wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
-
-            if (!mOptimizeA.b()) {
-                pair->rJ.JabF[0][idx]=0;
-            }
-            if (!mOptimizeB.b()) {
-                pair->rJ.JabF[1][idx]=0;
-            }
-
-        }
-
-    }
-
-    pair->rJ.JIdx2(0,0) = JIdxJIdx_00;
-    pair->rJ.JIdx2(0,1) = JIdxJIdx_10;
-    pair->rJ.JIdx2(1,0) = JIdxJIdx_10;
-    pair->rJ.JIdx2(1,1) = JIdxJIdx_11;
-    pair->rJ.JabJIdx(0,0) = JabJIdx_00;
-    pair->rJ.JabJIdx(0,1) = JabJIdx_01;
-    pair->rJ.JabJIdx(1,0) = JabJIdx_10;
-    pair->rJ.JabJIdx(1,1) = JabJIdx_11;
-    pair->rJ.Jab2(0,0) = JabJab_00;
-    pair->rJ.Jab2(0,1) = JabJab_01;
-    pair->rJ.Jab2(1,0) = JabJab_01;
-    pair->rJ.Jab2(1,1) = JabJab_11;
-
-    if (!std::isfinite(energyLeft)) {
-        pair->setNewState(DSORES_OOB);
-        return pair->state_energy;
-    }
-    pair->state_NewEnergyWithOutlier = energyLeft;
-
-    if(energyLeft > std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH) || wJI2_sum < 2)
-    {
-        energyLeft = std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH);
-        pair->setNewState(DSORES_OUTLIER);
-    }
-    else
-    {
-        pair->setNewState(DSORES_IN);
-    }
-
-    pair->state_NewEnergy = energyLeft;
-    return energyLeft;
 
 }
 
@@ -2164,7 +2239,7 @@ void CML::Optimization::DSOBundleAdjustment::tryMarginalize() {
                     auto targetData =  get(r->elements.frame);
 
                     r->resetOOB();
-                    linearize(r, DSOFramePrecomputed(hostData.p(), targetData.p()));
+                    mLinearizationContext[0].linearize(*this, r, DSOFramePrecomputed(hostData.p(), targetData.p()), 0);
                     r->isLinearized = false;
                     applyRes(r, true);
                     if(r->isActiveAndIsGoodNEW)

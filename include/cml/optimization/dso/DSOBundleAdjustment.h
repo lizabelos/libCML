@@ -11,12 +11,16 @@ namespace CML {
 
     namespace Optimization {
 
+        class DSOBundleAdjustmentLinearizationContext;
+
         /// \class DSOBundleAdjustment
         /// \brief Photometric bundle adjustment from Direct Sparse Odometry \cite{engel2017direct}
         ///
         /// This class iteratively optimize the photometric map, and compute the outliers.
         /// It is recommended to use it with \ref DSOTracker and \ref DSOTracer.
         class DSOBundleAdjustment : public AbstractFunction, public Parameter::Observer, public DSOContext {
+
+            friend class DSOBundleAdjustmentLinearizationContext;
 
         public:
             DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent);
@@ -117,8 +121,6 @@ namespace CML {
                                                     bool mustOrthogonalize);
 
             Vector3 linearizeAll(bool fixLinearization);
-
-            scalar_t linearize(DSOResidual*pair, const DSOFramePrecomputed &precomputed, int level = 0);
 
             void applyActiveRes(bool copyJacobians);
 
@@ -285,6 +287,9 @@ namespace CML {
             HashMap<PFrame, Camera, Hasher> mLastOptimizedCamera;
 
             Hartley2003Triangulation *mTriangulator;
+
+            DSOBundleAdjustmentLinearizationContext *mLinearizationContext = nullptr;
+            int mLinearizationContextSize = 0;
 
         };
 

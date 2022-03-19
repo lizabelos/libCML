@@ -194,6 +194,29 @@ namespace CML {
 
         }
 
+        EIGEN_STRONG_INLINE void interpolate(const Vector2f &pos, T &result) const {
+
+            const float x = pos.x();
+            const float y = pos.y();
+
+            const int ix = (int)x;
+            const int iy = (int)y;
+            const float dx = x - (float)ix;
+            const float dy = y - (float)iy;
+            const float dxdy = dx * dy;
+
+            const int w = getWidth();
+
+            const int i1 = iy * w + ix;
+            const int i2 = i1 + w;
+
+            result.noalias() =   mData[i1 + 0] * (1-dx-dy+dxdy)
+                     + mData[i1 + 1] * (dx-dxdy)
+                     + mData[i2 + 0] * (dy-dxdy)
+                     + mData[i2 + 1] * dxdy;
+
+        }
+
         EIGEN_STRONG_INLINE Vector3f gradient(int x, int y) const {
             return Vector3f(
                     (float)get(x, y),

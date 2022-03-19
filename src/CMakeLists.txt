@@ -69,13 +69,6 @@ add_library(CML STATIC
         cml/features/cornerTracker/BoWTracker.cpp
         cml/features/cornerTracker/VFC.cpp
 
-        fast/fast.c
-        fast/fast_9.c
-        fast/fast_10.c
-        fast/fast_11.c
-        fast/fast_12.c
-        fast/nonmax.c
-
         lodepng/lodepng.cpp
 )
 

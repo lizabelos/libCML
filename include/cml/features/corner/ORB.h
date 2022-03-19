@@ -6,6 +6,7 @@
 #include <cml/features/Features.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/capture/CaptureImage.h>
+#include <cml/features/corner/FAST.h>
 #include <zip.h>
 
 namespace CML::Features {
@@ -148,6 +149,8 @@ namespace CML::Features {
         List<Corner> mCorners;
         List<Corner> vToDistributeKeys;
         List<Binary256Descriptor> mDescriptors;
+
+        FAST *mFast;
 
 
     };

@@ -69,6 +69,29 @@ namespace CML {
             return Vector2f((input.x() - (float)mC.x()) * (float)mFinv.x(), (input.y() - (float)mC.y()) * (float)mFinv.y());
         }
 
+
+
+        EIGEN_STRONG_INLINE void distort(const Vector2d &input, Vector2d &result) const {
+            result[0] = input.x() * mF.x() + mC.x();
+            result[1] = input.y() * mF.y() + mC.y();
+        }
+
+        EIGEN_STRONG_INLINE void undistort(const Vector2d &input, Vector2d &result) const {
+            result[0] =(input.x() - mC.x()) * mFinv.x();
+            result[1] = (input.y() - mC.y()) * mFinv.y();
+        }
+
+        EIGEN_STRONG_INLINE void distort(const Vector2f &input, Vector2f &result) const {
+            result[0] = input.x() * mF.x() + mC.x();
+            result[1] = input.y() * mF.y() + mC.y();
+        }
+
+        EIGEN_STRONG_INLINE void undistort(const Vector2f &input, Vector2f &result) const {
+            result[0] =(input.x() - mC.x()) * mFinv.x();
+            result[1] = (input.y() - mC.y()) * mFinv.y();
+        }
+
+
         EIGEN_STRONG_INLINE Matrix33 getK() const {
             Matrix33 K = Matrix33::Identity();
             K(0, 0) = mF.x();

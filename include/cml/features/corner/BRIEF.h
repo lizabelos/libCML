@@ -6,6 +6,7 @@
 #include <cml/features/Features.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/capture/CaptureImage.h>
+#include <cml/features/corner/FAST.h>
 
 namespace CML::Features {
 
@@ -36,6 +37,7 @@ namespace CML::Features {
     private:
         Parameter mThreshold = createParameter("Threshold", 10);
         Ptr<BRIEFVocabulary, Nullable> mVocabulary;
+        FAST mFast;
 
     };
 
