@@ -42,6 +42,7 @@ def system(command, comment="", disable_openmp=True):
         wd = os.path.dirname(os.path.realpath(executable))
 
         start_time = time.time()
+        isSLAM = False
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
         p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
 
@@ -49,6 +50,9 @@ def system(command, comment="", disable_openmp=True):
         while p.poll() is None:
             line = p.stdout.readline().decode("utf-8")
             lines.append(line)
+            if "frame " in line and not isSLAM:
+                isSLAM = True
+                start_time = time.time()
             if "(" in line and ")" in line:
                 line = comment + "," + line[line.find("(")+1:line.find(")")]
                 currentStatus[threading.get_ident()] = line
