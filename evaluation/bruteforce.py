@@ -78,7 +78,7 @@ def criteria(dataset, ate, fps):
     if ate is None:
         return 9999999
 
-    return ate + fps
+    return ate / numFramesOf(dataset)
 
 def bruteforceFindBest(currentParam):
     datasets, datasets_names, slams, slams_names = parse_config()
