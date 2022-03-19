@@ -72,8 +72,8 @@ add_library(CML STATIC
         lodepng/lodepng.cpp
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF tiffxx gdcmjpeg8)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} /usr/include/suitesparse)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/include/suitesparse)
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)
