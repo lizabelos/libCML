@@ -146,7 +146,7 @@ def bruteforceFindBest(currentParam):
                     try:
                         ate = evaluateOn(context, datasets[i])
                         fps = context.getTime() / numFramesOf(datasets[i].name())
-                        toprint = toprint + str(float(ate)) + " at " + str(fps) + "\t"
+                        toprint = toprint + str(float(int(ate))) + " at " + str(int(fps)) + "\t"
                         currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
                     except KeyboardInterrupt:
                         return 0,0,""
