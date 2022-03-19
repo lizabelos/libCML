@@ -34,8 +34,8 @@
 *.app
 
 # Build folder
-*/build
-*/build-*
+#*/build
+# */build-*
 */.idea
 evaluation/results
 evaluation/resources
@@ -58,7 +58,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+# build/
 develop-eggs/
 dist/
 downloads/
