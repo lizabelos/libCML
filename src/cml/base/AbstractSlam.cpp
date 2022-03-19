@@ -129,8 +129,6 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
 
     mMap.getGarbageCollector().collect(mGarbageCollectorInstance);
 
-    usleep(10);
-
     // todo : use condition variable
     getNextFrameBegin:
     if (mIsPaused && mPausedNextFrame > 0) {
@@ -158,7 +156,7 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
         return {};
     }
     timer.stop();
-//    logger.important("Retrivied the next frame in " + std::to_string(timer.getValue()));
+    logger.important("Retrivied the next frame in " + std::to_string(timer.getValue()));
 
 
     mLastCaptureImage = captureFrame;
