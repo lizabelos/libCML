@@ -62,7 +62,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
         computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
 
-        if (oldResidual.numTermsInE[level] < 200) {
+        if (oldResidual.numTermsInE[level] < 20) {
             logger.debug("Not enough terms in E");
             oldResidual.isCorrect = false;
             return oldResidual;
@@ -74,7 +74,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
         }
 
-        if (oldResidual.numTermsInE[level] - oldResidual.numSaturated[level] < 100) {
+        if (oldResidual.numTermsInE[level] - oldResidual.numSaturated[level] < 10) {
             logger.error("Not enough terms in E (minus saturated)");
             oldResidual.isCorrect = false;
             return oldResidual;
@@ -115,6 +115,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             if (!mOptimizeA.b() && !mOptimizeB.b()) {
                 trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().ldlt().solve(-trackerContext->jacobian.head<6>());
                 trackerContext->increment.tail<2>().setZero();
+
             }
 
             if (!trackerContext->increment.allFinite()) {
@@ -160,7 +161,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             bool accept = (newResidual.E[level] / (scalar_t)newResidual.numTermsInE[level]) < (oldResidual.E[level] / (scalar_t)oldResidual.numTermsInE[level]);
 
             if (accept) {
-                logger.debug("Accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
                 computeHessian(frameToTrack, mCD, reference->getExposure(), newRefToNew, mNewExposure, level, trackerContext);
                 oldResidual = newResidual;
                 currentRefToNew = newRefToNew;
@@ -169,7 +169,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             } else {
 
                 lambda *= 4;
-                logger.debug("Not accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
             }
 
             if(trackerContext->increment.norm() < 1e-3)
