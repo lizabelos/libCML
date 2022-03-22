@@ -171,6 +171,20 @@ namespace CML {
             return mData[y * getWidth() + x];
         }
 
+        EIGEN_STRONG_INLINE bool goodPosition(int xCenter, int yCenter) const {
+
+            for (int y = -8; y <= 8; y++) {
+                for (int x = -8; x <= 8; x++) {
+                    if (!std::isfinite(getBorder(xCenter + x, yCenter + y))) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+
+        }
+
         EIGEN_STRONG_INLINE T interpolate(const Vector2f &pos) const override {
 
             const float x = pos.x();
