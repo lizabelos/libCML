@@ -387,11 +387,25 @@ namespace CML {
             return mNewPinholeLevels[lvl];
         }
 
-        template <typename T> Array2D<T> removeDistortion(const Array2D<T> &input, int outputWidth = 0, int outputHeight = 0) const {
+        template <typename T> Array2D<T> removeDistortion(Array2D<T> input, int outputWidth = 0, int outputHeight = 0) const {
 
             if (mPreundistorter == nullptr) return input;
 
             assertThrow(input.getWidth() == mOriginalSize.x() && input.getHeight() == mOriginalSize.y(), "Invalid input size");
+
+            float factor = 1.0f;
+            while (true) {
+                if (input.getWidth() / 2 > outputWidth && input.getHeight() / 2 > outputHeight) {
+                    input = input.reduceByTwo();
+                    factor = factor * 0.5f;
+                } else break;
+            }
+
+            logger.important(
+                    "Using a factor of " + std::to_string(factor) + " for calibration undistortion ("
+                    + std::to_string(input.getWidth()) + "x" + std::to_string(input.getHeight()) + " ===> "
+                    + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + ")"
+                    );
 
             Array2D<T> output(mNewSize.x(), mNewSize.y(), 0.0f);
 
@@ -402,7 +416,7 @@ namespace CML {
             #endif
             for (int i = 0; i < wh; i++) {
                 if (std::isfinite(mUndistortMap.data()[i][0])) {
-                    output.data()[i] = input.interpolate(mUndistortMap.data()[i]);
+                    output.data()[i] = input.interpolate(mUndistortMap.data()[i] * factor);
                 }
             }
 
