@@ -141,8 +141,8 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
         // preprocess the resized image
-        // mImages[level].convolution(mFilter, mBluredImages[level]);
-        mBluredImages[level].copyToThis(mImages[level]);
+        mImages[level].convolution(mFilter, mBluredImages[level]);
+        //mBluredImages[level].copyToThis(mImages[level]);
 
 
         // Compute the descriptors
@@ -160,8 +160,10 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
             // And add the keypoints to the output
             for (int j = 0; j < mAllKeypoints[level].size(); j++) {
                 mAllKeypoints[level][j].padPoint(0.5, 0.5);
-                mCorners.emplace_back(mAllKeypoints[level][j]);
-                mDescriptors.emplace_back(desc[j]);
+                if (captureImage.getGrayImage(0).goodPosition(mAllKeypoints[level][j].x(), mAllKeypoints[level][j].y())) {
+                    mCorners.emplace_back(mAllKeypoints[level][j]);
+                    mDescriptors.emplace_back(desc[j]);
+                }
             }
         }
 
