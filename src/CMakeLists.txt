@@ -72,6 +72,10 @@ add_library(CML STATIC
         lodepng/lodepng.cpp
 )
 
+if (WIN32)
+target_link_libraries(CML "-Wl,--stack,10000000")
+endif()
+
 target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/include/suitesparse)
 
