@@ -102,14 +102,14 @@ namespace CML {
             std::string decompressedFilePath = decompressFile(mCurrentImage, &data, &size);
             auto images = loadTiffImage(data, size);
 
-           /* for (int y = 0; y < images.first.getHeight(); y++) {
+            for (int y = 0; y < images.first.getHeight(); y++) {
                 for (int x = 0; x < images.first.getWidth(); x++) {
-                    if (mMask(x,y) < 128) {
+                    if (mMask(x,y) < 128 || (y < images.first.getHeight() / 3 && images.first(x,y) > 250)) {
                         images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
                         images.second(x,y) = ColorRGBA(0,0,0,0);
                     }
                 }
-            }*/
+            }
 
 
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
