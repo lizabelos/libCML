@@ -1300,9 +1300,13 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     }
 
 
-        if (getFrames().size() > 4) {
-            addIndirectToProblem(x);
-        }
+    if (!x.allFinite()) {
+        dumpSystem(HFinalScaled, SVecI.asDiagonal() * bFinal_top);
+    }
+
+    if (getFrames().size() > 4) {
+        addIndirectToProblem(x);
+    }
 
     // Orthogonalize x later
     if (mustOrthogonalize) {
