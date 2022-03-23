@@ -120,6 +120,8 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
             if (!trackerContext->increment.allFinite()) {
 
+                dumpSystem(trackerContext->dampedHessian, trackerContext->jacobian);
+
                 if (mBackupSolver.b()) {
                     logger.important("Non finite DSO Tracker increment. Trying to backup");
                     trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().householderQr().solve(-trackerContext->jacobian.head<6>());
