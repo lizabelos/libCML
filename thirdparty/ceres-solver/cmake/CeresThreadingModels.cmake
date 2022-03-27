@@ -29,15 +29,15 @@
 # Author: alexs.mac@gmail.com (Alex Stewart)
 
 # Ordered by expected preference.
-set(CERES_THREADING_MODELS "CXX_THREADS;OPENMP;NO_THREADS")
+set(CERES_THREADING_MODELS "NO_THREADS")
 
 function(find_available_ceres_threading_models CERES_THREADING_MODELS_AVAILABLE_VAR)
   set(CERES_THREADING_MODELS_AVAILABLE ${CERES_THREADING_MODELS})
   # Remove any threading models for which the dependencies are not available.
-  find_package(OpenMP QUIET)
-  if (NOT OPENMP_FOUND)
+ # find_package(OpenMP QUIET)
+  #if (NOT OPENMP_FOUND)
     list(REMOVE_ITEM CERES_THREADING_MODELS_AVAILABLE "OPENMP")
-  endif()
+  #endif()
   if (NOT CERES_THREADING_MODELS_AVAILABLE)
     # At least NO_THREADS should never be removed.  This check is purely
     # protective against future threading model updates.
