@@ -17,7 +17,9 @@ namespace CML {
     pthread_barrier_t barrier;
     pthread_barrierattr_t battr;
 
+#ifdef WIN32
     DWORD mainThreadId;
+#endif
 
     void initCML() {
         mHashCounter = new Atomic<size_t>;
@@ -26,17 +28,21 @@ namespace CML {
         *haveCurrentDeterValue = false;
         currentDeterValue = new std::string;
         *currentDeterValue = "";
+#ifdef WIN32
         mainThreadId = GetCurrentThreadId();
+#endif
         int ret;
         ret = pthread_barrier_init(&barrier, &battr, 2);
     }
 
     void setMainThread() {
+#ifdef WIN32
         mainThreadId = GetCurrentThreadId();
+#endif
     }
 
     void _assertDeterministic(const std::string &value) {
-
+#ifdef WIN32
         auto id = GetCurrentThreadId();
         pthread_barrier_wait(&barrier);
 
@@ -58,6 +64,7 @@ namespace CML {
         }
 
         pthread_barrier_wait(&barrier);
+#endif
     }
 
 }
