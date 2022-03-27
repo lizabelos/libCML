@@ -24,6 +24,22 @@ namespace CML {
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         public:
+            DSORawResidualJacobian() {
+                resF.setZero();
+                Jpdxi[0].setZero();
+                Jpdxi[1].setZero();
+                Jpdc[0].setZero();
+                Jpdc[1].setZero();
+                Jpdd.setZero();
+                JIdx[0].setZero();
+                JIdx[1].setZero();
+                JabF[0].setZero();
+                JabF[1].setZero();
+                JIdx2.setZero();
+                JabJIdx.setZero();
+                Jab2.setZero();
+            }
+
             // ================== new structure: save independently =============.
             Vector8f resF; // todo : this is the pattern size here (or the pattern max size)
 

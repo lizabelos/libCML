@@ -125,9 +125,16 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         return;
     }
 
+    assertDeterministic("Original image", captureImage.getGrayImage(0).eigenMatrix().sum());
+
     captureImage.getGrayImage(0).castToUChar(mImages[0]);
+    assertDeterministic("Image 0", mImages[0].eigenMatrix().sum());
     for (int i = 1; i < nlevels; i++) {
-        mImages[i - 1].resize(fastRound((float)captureImage.getWidth(0) * mvInvScaleFactor[i]), fastRound((float)captureImage.getHeight(0) * mvInvScaleFactor[i]), mImages[i]);
+        int imgWidth = (float)captureImage.getWidth(0) * mvInvScaleFactor[i];
+        imgWidth = imgWidth / 16;
+        imgWidth = imgWidth * 16;
+        mImages[i - 1].resize(imgWidth, captureImage.getHeight(0) * imgWidth / captureImage.getWidth(0), mImages[i]);
+        assertDeterministic("Image", mImages[i].eigenMatrix().sum());
     }
 
     computeKeyPointsOctTree();
@@ -141,12 +148,12 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
         // preprocess the resized image
-        mImages[level].convolution(mFilter, mBluredImages[level]);
+        mImages[level].cast<float>().fasterConvolution(mFilter, mBluredImages[level]);
         //mBluredImages[level].copyToThis(mImages[level]);
 
 
         // Compute the descriptors
-        computeDescriptors(mBluredImages[level], mAllKeypoints[level], desc);
+        computeDescriptors(mBluredImages[level].cast<unsigned char>(), mAllKeypoints[level], desc);
 
         // Scale keypoint coordinates
         #pragma omp single
@@ -265,9 +272,12 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 List<Corner> vKeysCell;
                 mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST);
 
+                assertDeterministic("FAST (try 1)", vKeysCell.size());
+
                 if(vKeysCell.empty())
                 {
                     mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST);
+                    assertDeterministic("FAST (try 2)", vKeysCell.size());
                 }
 
                 #pragma omp ordered
@@ -289,6 +299,8 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
             List<Corner> &keypoints = mAllKeypoints[level];
             distributeOctTree(vToDistributeKeys, keypoints, minBorderX, maxBorderX, minBorderY, maxBorderY,
                               mnFeaturesPerLevel[level], level);
+            assertDeterministic("Final number of keypoints", keypoints.size());
+
 
             const int scaledPatchSize = PATCH_SIZE * mvScaleFactor[level];
 

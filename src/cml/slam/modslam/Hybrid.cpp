@@ -22,15 +22,12 @@ Hybrid::Hybrid() : AbstractSlam() {
 
     if (mEnableIndirect.b()) {
         mCornerExtractor = new CornerAndDescriptor(this, 2000);
-        mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
 
         mInitTracker = new Features::BoWTracker(this, 0.9, true);
         mMotionModelTracker = new Features::BoWTracker(this, 0.9, true);
         mReferenceTracker = new Features::BoWTracker(this, 0.7, true);
         mLocalPointsTracker = new Features::BoWTracker(this, 0.8, false);
         mTriangulationTracker = new Features::BoWTracker(this, 0.6, false);
-
-        mRelocalizer = new Features::Relocalization(this, mCornerExtractor->getVocabulary());
 
         mTriangulator = new Hartley2003Triangulation(this);
         mInitializer = new Robust::RobustRaulmurInitializer(this);
@@ -73,12 +70,16 @@ void Hybrid::onReset() {
     mDirectNeedToKetchupMatching = false;
     mFirstTrackingMatchingNumber = -1;
     mBaMode = BADIRECT;
-    mFrameToFree = HashMap<PFrame, int, Hasher>();
-    mLocalKeyFrames = Set<PFrame, Hasher>();
+    mFrameToFree = HashMap<PFrame, int>();
+    mLocalKeyFrames = Set<PFrame>();
     mLastRelocFrame = nullptr;
 }
 
 void Hybrid::run() {
+
+    assertDeterministic("Run");
+    mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
+
 
     mPhotometricBA->setMixedBundleAdjustment(mMixedBundleAdjustment.b());
 

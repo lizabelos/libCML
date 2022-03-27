@@ -10,7 +10,7 @@ CML::AbstractSlam::AbstractSlam() : AbstractFunction(nullptr), mMap(), mGarbageC
     mIsStopped = true;
 }
 
-void CML::AbstractSlam::start(Ptr<AbstractCapture, NonNullable> capture) {
+void CML::AbstractSlam::start(Ptr<AbstractCapture, NonNullable> capture, bool useAsMainThread) {
     interrupt();
 
     mCapture = capture;
@@ -20,7 +20,10 @@ void CML::AbstractSlam::start(Ptr<AbstractCapture, NonNullable> capture) {
     mPausedNextFrame = 0;
 
     capture->play();
-    mThread = std::thread([this](){
+    mThread = std::thread([this,&useAsMainThread](){
+        if (useAsMainThread) {
+            setMainThread();
+        }
         while (mNeedToRestart) {
             onReset();
             mMap.reset();

@@ -10,6 +10,8 @@ namespace CML::Evaluation {
 
 double CML::Evaluation::align(const List<Camera> &input, const List<Optional<Camera>> &groundtruth, List<Camera> &output) {
 
+    return 0;
+
     if (input.size() == 0) {
         return 0;
     }
@@ -112,7 +114,7 @@ double CML::Evaluation::align(const List<Camera> &input, const List<Optional<Cam
         logger.error("Ceres Message : (evaluation)\n" + summary.message);
         //return std::numeric_limits<float>::infinity();
     } else {
-        if (!summary.message.empty()) logger.info("Ceres Message : (evaluation)\n" + summary.message);
+        //if (!summary.message.empty()) logger.info("Ceres Message : (evaluation)\n" + summary.message);
     }
 
     for (size_t i = 0; i < input.size(); i++) {

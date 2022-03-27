@@ -131,10 +131,6 @@ void Hybrid::keyframeCulling() {
             continue;
         }
 
-        if (keyframes[centerframe]->isGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP)) {
-            continue;
-        }
-
         if (!keyframes[centerframe - 1]->isGroup(INDIRECTKEYFRAME)) {
             continue;
         }
@@ -412,7 +408,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     // Retrieve neighbor keyframes
     int nn=20;
 
-    Set<PFrame, Hasher> covisibleFrames;
+    Set<PFrame> covisibleFrames;
     for(auto pKFi : getMap().processIndirectCovisiblity(currentFrame, nn, INDIRECTKEYFRAME))
     {
         covisibleFrames.insert(pKFi);
@@ -443,7 +439,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     }
 
 
-    Set<PPoint, Hasher> covisibleMapPointsSet;
+    Set<PPoint> covisibleMapPointsSet;
 
     for(auto frame : covisibleFrames) {
         for (auto point : frame->getGroupMapPoints(getMap().INDIRECTGROUP)) {

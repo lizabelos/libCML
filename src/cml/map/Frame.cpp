@@ -10,6 +10,10 @@
 CML::PoolAllocator CML::Frame::allocator{1024};
 
 void CML::Frame::setCamera(const Camera &camera, bool updateDeforms) {
+
+    assertDeterministic("Set Camera Translation", camera.getTranslation().sum());
+    assertDeterministic("Set Camera Translation", camera.getQuaternion().getParameters().sum());
+
     mCamera = camera;
 
     Vector3 center = mCamera.eye();
@@ -44,13 +48,13 @@ void CML::Frame::setCamera(const Camera &camera, bool updateDeforms) {
     }
 }
 
-void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera, Hasher> &frames) {
-    Set<PFrame, Hasher> skip;
+void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera> &frames) {
+    Set<PFrame> skip;
     setCameraAndDeform(frames, skip);
 }
 
 
-void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera, Hasher> &frames, Set<PFrame, Hasher> &skip) {
+void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera> &frames, Set<PFrame> &skip) {
 
     bool isFirst = skip.size() == 0;
 
@@ -58,8 +62,8 @@ void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera, Hasher> &frame
         return;
     }
 
-    Set<PFrame, Hasher> framesToDeform;
-    HashMap<PFrame, Camera, Hasher> newFramesAndCamera;
+    Set<PFrame> framesToDeform;
+    HashMap<PFrame, Camera> newFramesAndCamera;
 
     for (auto [frame, camera] : frames) {
 

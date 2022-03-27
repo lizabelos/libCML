@@ -35,7 +35,7 @@ namespace CML {
             auto images = loadTiffImage(data, size);
             mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
 
-            //mLookupTable = GrayLookupTable::gammaDecode();
+            mLookupTable = GrayLookupTable::gammaDecode();
 
             mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
 

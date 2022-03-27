@@ -53,7 +53,7 @@ namespace CML::Optimization::G2O {
 
     private:
         OrderedSet<PFrame, Comparator>  lLocalKeyFrames, lFixedCameras;
-        Set<PPoint, Hasher> lLocalIndirectPoints;
+        Set<PPoint> lLocalIndirectPoints;
         List<g2o::EdgeSE3ProjectXYZ*> vpEdges;
         List<Pair<PFrame, PPoint>> vpEdgesPairs;
         unsigned long maxKFid = 0;

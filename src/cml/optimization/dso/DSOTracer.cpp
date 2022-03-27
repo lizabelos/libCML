@@ -14,7 +14,7 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
 
     int trace_total=0, trace_good=0, trace_oob=0, trace_out=0, trace_skip=0, trace_badcondition=0, trace_uninitialized=0;
 
-    Set<PPoint, Hasher> toRemove;
+    Set<PPoint> toRemove;
 
     for (auto point : getMap().getGroupMapPoints(IMMATUREPOINT)) {
 
@@ -55,7 +55,7 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
 
 }
 
-CML::Set<CML::PPoint, CML::Hasher> CML::Optimization::DSOTracer::activatePoints(int frameGroup, int pointGroup) {
+CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGroup, int pointGroup) {
 
     auto points = getMap().getGroupMapPoints(pointGroup);
     
@@ -220,7 +220,7 @@ CML::Set<CML::PPoint, CML::Hasher> CML::Optimization::DSOTracer::activatePoints(
     }
 
     List<Vector3f> lastTraced;
-    Set<PPoint, Hasher> mappedPoints;
+    Set<PPoint> mappedPoints;
 
     int numMapped = 0, numNonMapped = 0, numDrop = 0;
     for(size_t k = 0; k < toOptimize.size(); k++)

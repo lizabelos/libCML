@@ -74,7 +74,9 @@ public:
 
     void viewOnReconstruction(DrawBoard &drawBoard) final {
 
-        for (auto frame : getMap().getGroupFrames(ORBTRACKEDFRAME)) {
+        mPhotometricTracker->viewOnReconstruction(drawBoard);
+
+   /*     for (auto frame : getMap().getGroupFrames(ORBTRACKEDFRAME)) {
             drawBoard.color(0, 1, 0);
             drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
@@ -91,7 +93,7 @@ public:
             drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
         }
-
+*/
         /*for (auto point : getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT)) {
             drawBoard.color(0, 0, 1);
             drawBoard.pointSize(2);
@@ -240,7 +242,6 @@ private:
     Optimization::Ceres::IndirectBundleAdjustment *mIndirectCeresBundleAdjustment;
     Optimization::G2O::IndirectBundleAdjustment *mIndirectG2OBundleAdjustment;
     Optimization::IndirectPointOptimizer *mIndirectPointOptimizer;
-    Features::Relocalization *mRelocalizer;
 
     Optimization::DSOTracker::Residual mLastPhotometricTrackingResidual;
     Optimization::G2O::IndirectCameraOptimizerResult mLastIndirectTrackingResult;
@@ -271,12 +272,12 @@ private:
     bool mShouldPreferDso = false;
 
     Mutex mFrameToFreeMutex;
-    HashMap<PFrame, int, Hasher> mFrameToFree;
+    HashMap<PFrame, int> mFrameToFree;
 
     Queue<OptPFrame, 100> mDirectMappingQueue;
    // Queue<OptPFrame, 100> mLoopClosingQueue;
     Queue<OptPFrame, 100> mIndirectMappingQueue;
-    Set<PFrame, Hasher> mLocalKeyFrames;
+    Set<PFrame> mLocalKeyFrames;
     OptPFrame mReferenceKeyFrame;
     OptPFrame mLastRelocFrame;
 
@@ -288,12 +289,11 @@ private:
     /// PARAMETERS
     bool mOnlyInitialize = false;
     int mFrameLimit = -1;
-    Parameter mEnableNeuralNetwork = createParameter("enableNN", true);
+    Parameter mEnableNeuralNetwork = createParameter("enableNN", false);
     Parameter mEnableIndirect = createParameter("enableIndirect", true);
     Parameter mEnableDirect = createParameter("enableDirect", true);
     Parameter mLinearizeDirect = createParameter("linearizeDirect", true);
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
-    Parameter mEnableHybridPoint = createParameter("enableHybridPoint", false);
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", true);
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);

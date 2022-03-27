@@ -73,10 +73,12 @@ namespace CML {
         }
 
         void play() final {
-            mThreadContinue = true;
-            mThread = std::thread(&AbstractMultithreadFiniteCapture::run, this);
-            mTimer.start();
-            mCurrentImageCount = 0;
+            if (!mThreadContinue) {
+                mThreadContinue = true;
+                mThread = std::thread(&AbstractMultithreadFiniteCapture::run, this);
+                mTimer.start();
+                mCurrentImageCount = 0;
+            }
         }
 
         void stop() final {
@@ -116,7 +118,7 @@ namespace CML {
     private:
         Queue<Ptr<CaptureImage, Nullable>, 1> mQueue;
         std::thread mThread;
-        bool mThreadContinue = true;
+        bool mThreadContinue = false;
         Timer mTimer;
         int mCurrentImageCount;
         scalar_t mFirstTime = -1;

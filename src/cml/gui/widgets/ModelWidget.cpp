@@ -73,7 +73,7 @@ void CML::ModelWidget::initializeGL() {
 
 void CML::ModelWidget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
-    mProjectionMatrix = perspective<float>(90.0f, (float)w / (float)h, 0.001f, 1000.0f);
+    mProjectionMatrix = perspective<float>(90.0f, (float)w / (float)h, 0.001f, 1000000000.0f);
 
     mDrawBoard->setProjectionMatrix(mProjectionMatrix);
 

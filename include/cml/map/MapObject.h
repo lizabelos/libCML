@@ -299,7 +299,7 @@ namespace CML {
 
         mutable Mutex mApparitionsMutex;
 #if CML_MAPPOINT_STOREINDIRECTFRAME || CML_MAPPOINT_STOREDIRECTFRAME
-        DenseHashMap<OptPFrame, uint8_t, Hasher> mApparitions;
+        DenseHashMap<OptPFrame, uint8_t> mApparitions;
 #endif
         LinkedList<Ptr<Observer, NonNullable>> mObservers;
 #if CML_MAPPOINT_STOREPATCH

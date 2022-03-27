@@ -491,7 +491,7 @@ void CML::Optimization::DSOTracker::computeHessian(PFrame frameToTrack, DSOTrack
 
 }
 
-void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoint, Hasher> points) {
+void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoint> points) {
 
     auto mNewCD = create(reference);
 

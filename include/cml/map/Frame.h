@@ -170,9 +170,9 @@ namespace CML {
 
         void setCamera(const Camera &camera, bool updateDeforms = false);
 
-        static void setCameraAndDeform(const HashMap<PFrame, Camera, Hasher> &frames);
+        static void setCameraAndDeform(const HashMap<PFrame, Camera> &frames);
 
-        static void setCameraAndDeform(const HashMap<PFrame, Camera, Hasher> &frames, Set<PFrame, Hasher> &skip);
+        static void setCameraAndDeform(const HashMap<PFrame, Camera> &frames, Set<PFrame> &skip);
 
         void setCameraWithoutObserver(const Camera &camera);
 
@@ -311,7 +311,7 @@ namespace CML {
 
         void addDirectApparitions(OptPPoint mapPoint);
 
-        Set<PPoint, Hasher> getMapPointsApparitions() {
+        Set<PPoint> getMapPointsApparitions() {
             LockGuard lg(mMapPointsApparitionsMutex);
             return mMapPointsApparitions;
         }
@@ -386,13 +386,13 @@ namespace CML {
             return mBoW[group].isNotNull();
         }
 
-        Set<PPoint, Hasher> getGroupMapPoints(int groupId) {
+        Set<PPoint> getGroupMapPoints(int groupId) {
             assertThrow(groupId >= 0, "Invalid group id");
             LockGuard lg(mGroupsMapPointMutexes[groupId]);
             return mGroupsMapPoint[groupId];
         }
 
-        void getGroupMapPointsNoClean(int groupId, Set<PPoint, Hasher> &output) {
+        void getGroupMapPointsNoClean(int groupId, Set<PPoint> &output) {
             assertThrow(groupId >= 0, "Invalid group id");
             LockGuard lg(mGroupsMapPointMutexes[groupId]);
             for (auto point : mGroupsMapPoint[groupId]) {
@@ -400,7 +400,7 @@ namespace CML {
             }
         }
 
-        Set<PPoint, Hasher> getReferenceGroupMapPoints(int groupId) {
+        Set<PPoint> getReferenceGroupMapPoints(int groupId) {
             LockGuard lg(mGroupsMapPointReferenceMutexes[groupId]);
             return mGroupsMapPointReference[groupId];
         }
@@ -456,7 +456,7 @@ namespace CML {
             return mParent;
         }
 
-        Set<PFrame, Hasher> getChilds() {
+        Set<PFrame> getChilds() {
             return mChilds;
         }
 
@@ -511,12 +511,12 @@ namespace CML {
             }
         }
 
-        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int, Hasher> getIndirectCovisibilities() {
+        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int> getIndirectCovisibilities() {
             LockGuard lg(mIndirectCovisibilityMutex);
             return mIndirectCovisibility;
         }
 
-        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int, Hasher> getDirectCovisibilities() {
+        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int> getDirectCovisibilities() {
             LockGuard lg(mDirectCovisibilityMutex);
             return mDirectCovisibility;
         }
@@ -555,33 +555,33 @@ namespace CML {
         //HashMap<FeatureIndex, PPoint, FeatureIndex> mMapPoints;
         List<List<OptPPoint>> mMapPoints;
         OrderedSet<PPoint, Comparator> mOrderedMapPoints;
-        HashMap<PPoint, FeatureIndex, Hasher> mMapPointsIndex;
+        HashMap<PPoint, FeatureIndex> mMapPointsIndex;
         mutable Mutex mMapPointsMutex;
 
-        Set<PPoint, Hasher> mMapPointsApparitions;
+        Set<PPoint> mMapPointsApparitions;
         mutable Mutex mMapPointsApparitionsMutex;
 
         FloatImage *mDepthMap = nullptr;
 
         PrivateData mPrivataData;
 
-        std::array<Set<PPoint, Hasher>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPoint;
+        std::array<Set<PPoint>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPoint;
         std::array<Mutex, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointMutexes;
 
-        std::array<Set<PPoint, Hasher>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReference;
+        std::array<Set<PPoint>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReference;
         std::array<Mutex, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReferenceMutexes;
 
         Mutex mDeformsMutex;
         List<Deform> mDeforms;
 
         Mutex mToDeformMuex;
-        Set<PFrame, Hasher> mToDeform;
+        Set<PFrame> mToDeform;
 
         OptPFrame mParent;
-        Set<PFrame, Hasher> mChilds;
+        Set<PFrame> mChilds;
 
         Mutex mIndirectCovisibilityMutex, mDirectCovisibilityMutex;
-        DenseHashMap<OptPFrame, int, Hasher> mIndirectCovisibility, mDirectCovisibility;
+        DenseHashMap<OptPFrame, int> mIndirectCovisibility, mDirectCovisibility;
 
     };
 

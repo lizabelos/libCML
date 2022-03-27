@@ -27,7 +27,7 @@ namespace CML {
 
             void createResidual(PFrame frame, PPoint point);
 
-            void addPoints(const Set<PPoint, Hasher>& points);
+            void addPoints(const Set<PPoint>& points);
 
             void addNewFrame(PFrame frame, int immatureGroup);
 
@@ -47,7 +47,7 @@ namespace CML {
 
             void computeNullspaces();
 
-            const Set<PPoint, Hasher> &getOutliers() {
+            const Set<PPoint> &getOutliers() {
                 return mOutliers;
             }
 
@@ -68,13 +68,13 @@ namespace CML {
                 }
             }
 
-            HashMap<PFrame, Camera, Hasher> getLastOptimizedCameras() {
+            HashMap<PFrame, Camera> getLastOptimizedCameras() {
                 LockGuard lg(mLastOptimizedCameraMutex);
                 return mLastOptimizedCamera;
             }
 
-            Set<PPoint, Hasher> getGoodPointsForTracking() {
-                Set<PPoint, Hasher> points;
+            Set<PPoint> getGoodPointsForTracking() {
+                Set<PPoint> points;
                 for (auto point : getPoints()) {
                     auto ph = get(point);
                     if(ph->getLastResidual(0).first != nullptr && ph->getLastResidual(0).second == DSORES_IN) {
@@ -202,7 +202,7 @@ namespace CML {
             Matrix<Dynamic, Dynamic> mMarginalizedHessian;
             Vector<Dynamic> mMarginalizedB;
 
-            Set<PPoint, Hasher> mOutliers;
+            Set<PPoint> mOutliers;
 
             List<Matrix<Dynamic, Dynamic>> sdt_tH;
             List<Vector<Dynamic>> sdt_tb;
@@ -284,7 +284,7 @@ namespace CML {
             Parameter mOptimizeCalibration = createParameter("optimizeCalibration", false);
 
             Mutex mLastOptimizedCameraMutex;
-            HashMap<PFrame, Camera, Hasher> mLastOptimizedCamera;
+            HashMap<PFrame, Camera> mLastOptimizedCamera;
 
             Hartley2003Triangulation *mTriangulator;
 

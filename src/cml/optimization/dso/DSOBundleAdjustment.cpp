@@ -94,6 +94,7 @@ namespace CML::Optimization {
             energyLeft = 0;
 
             refcorner_Distorted_center = point->getReferenceCorner().point0();
+            assertDeterministic("refcorner_Distorted_center", refcorner_Distorted_center.norm());
 
             const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
             const Vector3 &t = precomputed.trialRefToTarget.getTranslation();
@@ -102,6 +103,11 @@ namespace CML::Optimization {
             {
 
                 refcorner = self.mPinhole.undistort(refcorner_Distorted_center);
+
+                assertDeterministic("R", R.norm());
+                assertDeterministic("refcorner", refcorner.norm());
+                assertDeterministic("t", t.norm());
+                assertDeterministic("pointIdepth", pointIdepth);
 
                 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
                 projectedcurp_Distorted = self.mPinhole.distort((Vector2)projectedcurp.hnormalized());
@@ -124,6 +130,13 @@ namespace CML::Optimization {
                 fy = K(1,1);
 
                 pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
+
+                assertDeterministic("u", u);
+                assertDeterministic("v", v);
+                assertDeterministic("fx", fx);
+                assertDeterministic("fy", fy);
+                assertDeterministic("PRE_tTll_0", precomputed.PRE_tTll_0.norm());
+                assertDeterministic("drescale", drescale);
 
                 // diff d_idepth
                 d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
@@ -170,6 +183,8 @@ namespace CML::Optimization {
 
                 pair->rJ.Jpdc[0] = d_C_x.cast<float>();
                 pair->rJ.Jpdc[1] = d_C_y.cast<float>();
+                assertDeterministic("d_d_x", d_d_x);
+                assertDeterministic("d_d_y", d_d_y);
                 pair->rJ.Jpdd[0] = d_d_x;
                 pair->rJ.Jpdd[1] = d_d_y;
             }
@@ -365,7 +380,7 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint, Hasher>& points) {
+void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint>& points) {
 
     for (auto point : points) {
 
@@ -740,7 +755,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         updateCamera(frame);
     }
 
-    mOutliers = Set<PPoint, Hasher>();
+    mOutliers = Set<PPoint>();
 
     if (getPoints().empty()) {
         logger.error("No points...");
@@ -753,6 +768,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
     {
         if(!r->isLinearized)
         {
+            assertDeterministic("Active residual push back", r->elements.mapPoint->getReferenceInverseDepth());
             mActiveResiduals.push_back(r);
             r->resetOOB();
         }
@@ -1473,7 +1489,7 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
     // Precomputation
 
-    HashMap<PFrame, int, Hasher> frameToId;
+    HashMap<PFrame, int> frameToId;
     DSOFramePrecomputed precomputedArray[getFrames().size()][getFrames().size()];
     scalar_t stats = 0;
     Set<DSOResidual *> toRemove;
@@ -1535,11 +1551,9 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
             auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
 
-            Eigen::internal::set_is_malloc_allowed(false);
+            assertDeterministic("Point reference inverse depth before linearization", r->elements.mapPoint->getReferenceInverseDepth());
 
             stats += mLinearizationContext[tid].linearize(*this, r, precomputed, 0);
-
-            Eigen::internal::set_is_malloc_allowed(true);
 
 
             if (fixLinearization) {
@@ -1612,7 +1626,7 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
         }
 
         logger.warn("Dropping " + std::to_string(toRemove.size()) + " residuals ( " + std::to_string(numResidualRemoveOnLastFrame) + " outlier on last frame )");
-        Set<PPoint, Hasher> outliers = removeResiduals(toRemove);
+        Set<PPoint> outliers = removeResiduals(toRemove);
         logger.warn(std::to_string(outliers.size()) + " points have no residual.");
         mOutliers.insert(outliers.begin(), outliers.end());
 
@@ -1870,6 +1884,7 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
     }
 
     float H = self->Hdd_accAF + self->Hdd_accLF + self->priorF;
+    assertDeterministic("Point H", H);
     if(H < 1e-10) H = 1e-10;
 
     self->setInverseDepthHessian(H);
@@ -1903,6 +1918,10 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
             mAccD[r1ht+selfTarget2->id*nFrames2].update(r1->JpJdF, r2->JpJdF, self->HdiF);
         }
 
+        assertDeterministic("JpJdF", r1->JpJdF.norm());
+        assertDeterministic("HdiF", self->HdiF);
+        assertDeterministic("bdSumF", self->bdSumF);
+
         mAccE[r1ht].update(r1->JpJdF, Hcd, self->HdiF);
         mAccEB[r1ht].update(r1->JpJdF,self->HdiF*self->bdSumF);
     }
@@ -1913,6 +1932,9 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
 
     fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
     fb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+
+    assertDeterministic("fH", fH.norm());
+    assertDeterministic("fb", fb.norm());
 
 #if CML_USE_OPENMP && OPENMP_UNSTABLE
     int ompNumThread = omp_get_num_threads();
@@ -1945,14 +1967,24 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
             mAccE[ijIdx].finish();
             mAccEB[ijIdx].finish();
 
+            assertDeterministic("accEM", mAccE[ijIdx].A1m.norm());
+            assertDeterministic("mAccEB", mAccEB[ijIdx].A1m.norm());
+
             Matrix<8, 4> accEM = mAccE[ijIdx].A1m.cast<scalar_t>();
             Vector<8> accEBV = mAccEB[ijIdx].A1m.cast<scalar_t>();
 
             tH.block<8, 4>(iIdx, 0) += mAdHost[ijIdx] * accEM;
             tH.block<8, 4>(jIdx, 0) += mAdTarget[ijIdx] * accEM;
 
-            fb.segment<8>(iIdx) += mAdHost[ijIdx] * accEBV;
-            fb.segment<8>(jIdx) += mAdTarget[ijIdx] * accEBV;
+            tb.segment<8>(iIdx) += mAdHost[ijIdx] * accEBV;
+            tb.segment<8>(jIdx) += mAdTarget[ijIdx] * accEBV;
+
+            assertDeterministic("adHost", mAdHost[ijIdx].norm());
+            assertDeterministic("adTarget", mAdTarget[ijIdx].norm());
+
+            assertDeterministic("tH", tH.norm());
+            assertDeterministic("tb", tb.norm());
+
 
             for (size_t k = 0; k < getFrames().size(); k++) {
                 int kIdx = 4 + k * 8;
@@ -1964,15 +1996,11 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
                 Matrix<8, 8> accDM = mAccD[ijkIdx].A1m.cast<scalar_t>();
 
                 tH.block<8, 8>(iIdx, iIdx) += mAdHost[ijIdx] * accDM * mAdHost[ikIdx].transpose();
-
                 tH.block<8, 8>(jIdx, kIdx) += mAdTarget[ijIdx] * accDM * mAdTarget[ikIdx].transpose();
-
                 tH.block<8, 8>(jIdx, iIdx) += mAdTarget[ijIdx] * accDM * mAdHost[ikIdx].transpose();
-
                 tH.block<8, 8>(iIdx, kIdx) += mAdHost[ijIdx] * accDM * mAdTarget[ikIdx].transpose();
 
             }
-
         }
     }
 
@@ -1982,6 +2010,10 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
         fb += tball[i];
 
     }
+
+    assertDeterministic("fH", fH.norm());
+    assertDeterministic("fb", fb.norm());
+
 
     mAccHcc.finish();
     mAccbc.finish();
@@ -2024,11 +2056,21 @@ void CML::Optimization::DSOBundleAdjustment::applyRes(DSOResidual* residual, boo
 
             Vector2f JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
 
+            assertDeterministic("Jpdd",  residual->efsJ.Jpdd.norm());
+            assertDeterministic("JIdx2",  residual->efsJ.JIdx2.norm());
+
+            assertDeterministic("JI_JI_Jd", JI_JI_Jd.norm());
+            assertDeterministic("Jpdxi[0]", residual->efsJ.Jpdxi[0].norm());
+            assertDeterministic("Jpdxi[1]", residual->efsJ.Jpdxi[1].norm());
+            assertDeterministic("JabJIdx",  residual->efsJ.JabJIdx.norm());
+
             for(int i=0;i<6;i++) {
                 residual->JpJdF[i] = residual->efsJ.Jpdxi[0][i] * JI_JI_Jd[0] + residual->efsJ.Jpdxi[1][i] * JI_JI_Jd[1];
             }
 
             residual->JpJdF.segment<2>(6) = residual->efsJ.JabJIdx * residual->efsJ.Jpdd;
+
+            assertDeterministic("JpJdF applyres", residual->JpJdF.norm());
 
         }
         else
@@ -2424,7 +2466,7 @@ void CML::Optimization::DSOBundleAdjustment::marginalizePointsF()
     computeDelta();
     setZero();
 
-    Set<PPoint, Hasher> allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
+    Set<PPoint> allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
 
     if (allPointsToMarg.size() > 0) {
         logger.info("DSO Bundle Adjustment marginalize " + std::to_string(allPointsToMarg.size()) + " points");

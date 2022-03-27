@@ -59,7 +59,7 @@ namespace CML {
                 point->getPrivate().free(mPointPrivateDataInstance, "DSOContext::free");
             }
 
-            const Set<PPoint, Hasher> &getPoints() {
+            const Set<PPoint> &getPoints() {
                 return mPoints;
             }
 
@@ -97,7 +97,7 @@ namespace CML {
                 }
                 Set<DSOResidual*> residualsToRemove = get(point)->residuals; // Important to make a copy, and not pass as reference
                 if (marginalize) {
-                    Set<PFrame, Hasher> frames;
+                    Set<PFrame> frames;
                     for (auto residual : residualsToRemove) {
                         frames.insert(residual->elements.frame);
                     }
@@ -110,7 +110,7 @@ namespace CML {
                 assertThrow(mPoints.count(point) == 0, "Remove point seems to have a problem");
             }
 
-            void removePoints(const Set<PPoint, Hasher> &points) {
+            void removePoints(const Set<PPoint> &points) {
                 logger.debug("Removing " + std::to_string(points.size()) + " points");
 
                 Set<DSOResidual*> residualsToRemove;
@@ -154,7 +154,7 @@ namespace CML {
             void removeFrame(PFrame frameToRemove) {
                 logger.debug("Removing one frame");
 
-                Set<PPoint, Hasher> pointsToRemove = get(frameToRemove)->points;
+                Set<PPoint> pointsToRemove = get(frameToRemove)->points;
                 removePoints(pointsToRemove);
                 Set<DSOResidual*> residualsToRemove = get(frameToRemove)->residuals;
                 removeResiduals(residualsToRemove);
@@ -201,7 +201,7 @@ namespace CML {
                 get(residualToInsert->elements.frame)->residuals.insert(residualToInsert);
             }
 
-            Set<PPoint, Hasher> removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
+            Set<PPoint> removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
                 logger.debug("Removing " + std::to_string(residualsToRemove.size()) + " residuals");
                 for (auto residualToRemove : residualsToRemove) {
                     mResiduals.erase(residualToRemove);
@@ -215,8 +215,8 @@ namespace CML {
             }
 
         protected:
-            Set<PPoint, Hasher> removeAllPointsWithoutResidual() {
-                Set<PPoint, Hasher> pointsToRemove;
+            Set<PPoint> removeAllPointsWithoutResidual() {
+                Set<PPoint> pointsToRemove;
                 for (auto point : mPoints) {
                     if (get(point)->residuals.empty()) pointsToRemove.insert(point);
                 }
@@ -237,7 +237,7 @@ namespace CML {
 
             PrivateDataInstance mPointPrivateDataInstance, mFramePrivateDataInstance;
 
-            Set<PPoint, Hasher> mPoints;
+            Set<PPoint> mPoints;
             List<PFrame> mFrames;
 
             Set<DSOResidual*> mResiduals;

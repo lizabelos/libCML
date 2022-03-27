@@ -144,7 +144,8 @@ namespace CML::Features {
         Ptr<ORBVocabulary, Nullable> mVocabulary;
         scalar_t mScaleFactor;
 
-        List<GrayImage> mImages, mBluredImages;
+        List<GrayImage> mImages;
+        List<Array2D<float>> mBluredImages;
         List<List<Corner>> mAllKeypoints;
         List<Corner> mCorners;
         List<Corner> vToDistributeKeys;

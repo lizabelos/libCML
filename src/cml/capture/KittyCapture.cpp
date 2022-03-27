@@ -150,6 +150,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::KittyCapture::multithreadNext() 
         auto images = loadPngImage(mImages[0][mCurrentImage]);
         maker.setImage(images.first);
         //maker.setImage(images.second);
+        logger.important("Image " + std::to_string(mCurrentImage) + " : " + std::to_string(images.first.eigenMatrix().sum()));
     }
 
     maker.setPath(mImages[0][mCurrentImage])

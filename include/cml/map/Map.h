@@ -74,11 +74,11 @@ namespace CML {
 
         void addFrame(PFrame frame);
 
-        Set<PPoint, Hasher> getMapPoints();
+        Set<PPoint> getMapPoints();
 
         int getMapPointsNumber();
 
-        Set<PPoint, Hasher> getGroupMapPoints(int groupId);
+        Set<PPoint> getGroupMapPoints(int groupId);
 
         inline List<PPoint> getGroupMapPointsAsList(int groupId) {
             auto points = getGroupMapPoints(groupId);
@@ -246,7 +246,7 @@ namespace CML {
 
     private:
         Mutex mMapPointsMutex;
-        Set<PPoint, Hasher> mMapPoints;
+        Set<PPoint> mMapPoints;
 
         Mutex mFramesMutex;
         OrderedSet<PFrame, Comparator> mFrames;
@@ -255,7 +255,7 @@ namespace CML {
         PrivateDataContext mFramePrivateDataContext, mMapPointsPrivateDataContext;
 
         std::array<OrderedSet<PFrame, Comparator>, MAXGROUPSIZE> mGroupsFrames;
-        std::array<Set<PPoint, Hasher>, MAXGROUPSIZE> mGroupsMapPoint;
+        std::array<Set<PPoint>, MAXGROUPSIZE> mGroupsMapPoint;
         std::array<Mutex, MAXGROUPSIZE> mGroupsFrameMutexes;
         std::array<Mutex, MAXGROUPSIZE> mGroupsMapPointMutexes;
 

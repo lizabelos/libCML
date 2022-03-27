@@ -32,7 +32,7 @@ CML::Map::Map() {
 
 CML::Map::~Map() {
 
-    Set<PPoint, Hasher> points = mMapPoints;
+    Set<PPoint> points = mMapPoints;
     for (auto point : points) {
         removeMapPoint(point);
     }
@@ -137,7 +137,7 @@ void CML::Map::removeMapPoint(PPoint mapPoint, bool singleHolder) {
 
     assertThrow(!mapPoint->isGroup(0), "Some strange bug");
 
-    Set<PFrame, Hasher> frames;
+    Set<PFrame> frames;
     for (auto frame : mapPoint->getDirectApparitions()) {
         frames.insert(frame);
     }
@@ -204,7 +204,7 @@ void CML::Map::addFrame(PFrame frame) {
     }
 }
 
-CML::Set<CML::PPoint, CML::Hasher> CML::Map::getMapPoints() {
+CML::Set<CML::PPoint> CML::Map::getMapPoints() {
     LockGuard lg(mMapPointsMutex);
     return mMapPoints;
 }
@@ -213,7 +213,7 @@ int CML::Map::getMapPointsNumber() {
     return mMapPoints.size();
 }
 
-CML::Set<CML::PPoint, CML::Hasher> CML::Map::getGroupMapPoints(int groupId) {
+CML::Set<CML::PPoint> CML::Map::getGroupMapPoints(int groupId) {
     LockGuard lg(mGroupsMapPointMutexes[groupId]);
     return mGroupsMapPoint[groupId];
 }
@@ -390,7 +390,7 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
-    HashMap<OptPFrame, int, Hasher> candidates;
+    HashMap<OptPFrame, int> candidates;
     List<PFrame> mTmpIndirectApparitions;
     mTmpIndirectApparitions.reserve(1000);
     for (auto [index, point] : frame->getMapPoints()) {
@@ -454,7 +454,7 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
-    HashMap<OptPFrame, int, Hasher> candidates;
+    HashMap<OptPFrame, int> candidates;
     List<PFrame> mTmpDirectApparitions;
     mTmpDirectApparitions.reserve(1000);
     for (auto point : frame->getMapPointsApparitions()) {

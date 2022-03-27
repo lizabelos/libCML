@@ -129,6 +129,7 @@ CML::scalar_t CML::MapPoint::getReferenceInverseDepth() const {
 }
 
 void CML::MapPoint::setReferenceInverseDepth(scalar_t idepth) {
+    assertDeterministic("Set reference inverse depth", idepth);
     assertThrow(std::isfinite(idepth), "Non finite depth");
     assertThrow(idepth > 0, "Negative depth");
     mReferenceInverseDepth = idepth;
@@ -155,6 +156,7 @@ CML::WorldPoint CML::MapPoint::getWorldCoordinateIf(double idepth, const Vector2
 }
 
 void CML::MapPoint::setWorldCoordinate(WorldPoint worldCoordinate) {
+    assertDeterministic("Set world coordinate", worldCoordinate.absolute().sum());
     // assertThrow(mReference->getCamera().inFront(point.absolute()), "The point must be in front of the reference camera");
     for (int i = 0; i < CML_MAPPOINT_SPARSITY; i++) {
         mWorldCoordinate[3 * i + 0] = worldCoordinate.absolute()[0];

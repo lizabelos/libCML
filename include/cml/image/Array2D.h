@@ -133,6 +133,10 @@ namespace CML {
             return mMatrix(x, y);
         }
 
+        EIGEN_STRONG_INLINE const T &operator()(int x) {
+            return mData[x];
+        }
+
         EIGEN_STRONG_INLINE T &operator()(const Eigen::Vector2i &pos) {
             return mMatrix(pos.x(), pos.y());
         }
@@ -151,6 +155,10 @@ namespace CML {
 
         EIGEN_STRONG_INLINE const T &operator()(const Eigen::Vector2i &pos) const {
             return mData[pos.y() * getWidth() + pos.x()];
+        }
+
+        EIGEN_STRONG_INLINE const T &operator()(int x) const {
+            return mData[x];
         }
 
         EIGEN_STRONG_INLINE T get(int x, int y) const final {
@@ -498,6 +506,51 @@ namespace CML {
 
                 }
             }
+        }
+
+        template <typename U> void fasterConvolution(const Array2D<float> &kernel, Array2D<U> &newImage) const {
+
+            assertThrow((intptr_t)mData % 16 == 0, "Input not aligned");
+
+            if (newImage.getWidth() != getWidth() || newImage.getHeight() != getHeight()) {
+                newImage = Array2D<U>(getWidth(), getHeight());
+            }
+
+            assertThrow((intptr_t)newImage.data() % 16 == 0, "Ouput not aligned");
+
+
+            const int res_shiftx = (kernel.getWidth() - 1) / 2;
+            const int res_shifty = (kernel.getHeight() - 1) / 2;
+
+            float tmp[4] __attribute__ ((aligned (16)));
+            __m128 mkernel[kernel.getHeight()][kernel.getWidth()]  __attribute__ ((aligned (16)));
+            for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                    tmp[0] = kernel(ker_x, ker_y);
+                    tmp[1] = tmp[0];
+                    tmp[2] = tmp[0];
+                    tmp[3] = tmp[0];
+                    mkernel[ker_y][ker_x] = _mm_load_ps(tmp);
+                }
+            }
+
+            __m128 accumulation  __attribute__ ((aligned (16)));
+            __m128 datablock  __attribute__ ((aligned (16)));
+            int img_x, ker_y, ker_x;
+
+            for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
+                for (img_x = 0; img_x < getWidth() - kernel.getWidth(); img_x = img_x + 4) {
+                    accumulation = _mm_setzero_ps();
+                    for (ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            datablock = _mm_loadu_ps(&mMatrix(img_x + ker_x, img_y + ker_y));
+                            accumulation = _mm_add_ps(_mm_mul_ps(mkernel[ker_y][ker_x], datablock), accumulation);
+                        }
+                    }
+                    _mm_storeu_ps(&newImage(img_x + res_shiftx, img_y + res_shifty), accumulation);
+                }
+            }
+
         }
 
         Array2D<T> blur() const {

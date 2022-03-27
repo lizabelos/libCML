@@ -59,7 +59,7 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
 
     mPhotometricTracer->traceNewCoarse(currentFrame, mPhotometricBA->ACTIVEKEYFRAME);
     mPhotometricBA->addNewFrame(currentFrame, mPhotometricTracer->IMMATUREPOINT);
-    Set<PPoint, Hasher> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
+    Set<PPoint> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
     logger.info("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
     mPhotometricBA->addPoints(photometricPoints);
 
@@ -124,13 +124,6 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
             // frameToAddToBA.emplace_back(frame);
        // }
 
-    }
-
-    if (mEnableIndirect.b() && (*getMap().getGroupFrames(mPhotometricBA->ACTIVEKEYFRAME).rbegin())->getId() > 1) {
-        PFrame lastActiveKeyFrame = (*getMap().getGroupFrames(mPhotometricBA->ACTIVEKEYFRAME).rbegin());
-        if (!lastActiveKeyFrame->isGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP)) {
-            lastActiveKeyFrame->setGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP, true);
-        }
     }
 
     mLastDirectKeyFrame = currentFrame;

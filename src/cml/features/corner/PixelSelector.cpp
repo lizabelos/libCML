@@ -384,7 +384,15 @@ void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> 
 int CML::Features::PixelSelector::makeMaps(const CaptureImage &cp, Array2D<float>& map_out, float density, int recursionsLeft, float thFactor) {
 
     map_out = Array2D<float>(cp.getWidth(0), cp.getHeight(0), 0.0f);
-    return makeMaps(cp, map_out.data(), density, recursionsLeft, thFactor);
+    int res = makeMaps(cp, map_out.data(), density, recursionsLeft, thFactor);
+    for (int y = 0; y < cp.getHeight(0); y++) {
+        for (int x = 0; x < cp.getWidth(0); x++) {
+            if (!cp.getGrayImage(0).goodPosition(x, y)) {
+                map_out(x, y) = 0;
+            }
+        }
+    }
+    return res;
 
 }
 

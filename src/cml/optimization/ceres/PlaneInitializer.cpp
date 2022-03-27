@@ -14,8 +14,8 @@ bool CML::Optimization::Ceres::PlaneInitializer::initialize() {
 
     OrderedSet<PFrame, Comparator> frames = getMap().getFrames();
 
-    HashMap<PPoint, double*, Hasher> pointsData;
-    HashMap<PFrame, Pair<double*, double*>, Hasher> framesData;
+    HashMap<PPoint, double*> pointsData;
+    HashMap<PFrame, Pair<double*, double*>> framesData;
 
     int i = 0;
 
