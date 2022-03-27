@@ -4,7 +4,7 @@ add_library(CML STATIC
 
         ${HEADER_LIST}
 
-        cml/fastmath.cpp
+        cml/types.cpp
 
         cml/base/AbstractSlam.cpp
         cml/base/Statistic.cpp

@@ -15,6 +15,7 @@
 #cmakedefine01 CML_ENABLE_GUI
 #cmakedefine01 CML_USE_GOOGLE_HASH
 #cmakedefine01 CML_IS_ANDROID
+#define TEST_DETERMINISITY 1
 
 namespace CML {
 

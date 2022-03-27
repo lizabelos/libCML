@@ -193,8 +193,11 @@ int main(int argc, char *argv[])
     a.exec();
 }
 #else
+
 int main(int argc, char *argv[])
 {
+
+    CML::initCML();
 
     // logger.info("OpenMP Max Threads : " + std::to_string(omp_get_max_threads()));
 
@@ -239,6 +242,13 @@ int main(int argc, char *argv[])
 
     Ptr<AbstractSlam, Nullable> slam = new Hybrid();
     Ptr<AbstractCapture, Nullable> capture;
+#if TEST_DETERMINISITY
+    Ptr<AbstractSlam, Nullable> slamDeter = new Hybrid();
+    Ptr<AbstractCapture, Nullable> captureDeter;
+#else
+    Ptr<AbstractSlam, Nullable> slamDeter;
+    Ptr<AbstractCapture, Nullable> captureDeter;
+#endif
     ExecutionMode executionMode = CONSOLE;
 #if CML_HAVE_YAML_CPP
     YAML::Node configuration;
@@ -247,8 +257,11 @@ int main(int argc, char *argv[])
     std::string resultFormat = "all";
     std::string saveImagePath = "";
 
-    program.add_argument("-d", "--dataset").nargs(1).help("Path to the dataset").action([&capture](const std::string &value){
+    program.add_argument("-d", "--dataset").nargs(1).help("Path to the dataset").action([&capture, &captureDeter](const std::string &value){
         capture = loadDataset(value);
+#if TEST_DETERMINISITY
+        captureDeter = loadDataset(value);
+#endif
         if (capture.isNull()) {
             logger.error("Can't load dataset '" + value + "'");
         }
@@ -258,10 +271,13 @@ int main(int argc, char *argv[])
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
 //#endif
 #if CML_HAVE_YAML_CPP
-    program.add_argument("-c", "--config").nargs(1).help("Configuration file for the slam").action([&configuration, &slam, &executionPath](const std::string &value){
+    program.add_argument("-c", "--config").nargs(1).help("Configuration file for the slam").action([&configuration, &slam, &slamDeter, &executionPath](const std::string &value){
         logger.info("Parsing : " + value);
         configuration = YAML::LoadFile(value);
         slam->setConfiguration(configuration);
+#if TEST_DETERMINISITY
+        slamDeter->setConfiguration(configuration);
+#endif
     });
 #endif
     program.add_argument("-r", "--result").nargs(1).help("Result path").action([&resultPath](const std::string &value){
@@ -322,8 +338,10 @@ int main(int argc, char *argv[])
     }
 
     if (executionMode == CONSOLE) {
+#if TEST_DETERMINISITY
+        slamDeter->start(captureDeter);
+#endif
         slam->startSingleThread(capture);
-        slam->getMap().getATE();
     }
 
 #if CML_ENABLE_GUI
@@ -344,7 +362,10 @@ int main(int argc, char *argv[])
         }
 
         w.show();
-        slam->start(capture);
+        slam->start(capture, true);
+#if TEST_DETERMINISITY
+        slamDeter->start(captureDeter);
+#endif
         a.exec();
 
 
