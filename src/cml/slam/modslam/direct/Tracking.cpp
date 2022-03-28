@@ -11,6 +11,10 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
         return false;
     }
 
+    float ratio = 1;
+    if (mPhotometricTracer->urgentlyNeedNewPoints()) {
+        ratio = 0.5;
+    }
     /*if (mDirectMappingQueue.getCurrentSize() > 0) {
         if (mLastPhotometricTrackingResidual.saturatedRatio() > 0.1) {
             while (mDirectMappingQueue.getCurrentSize() > 0) {
@@ -34,7 +38,7 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
                       (currentFrame->getWidth(0) + currentFrame->getHeight(0)) +
                       setting_maxShiftWeightRT * CML::sqrt(mLastPhotometricTrackingResidual.flowVector[2]) /
                       (currentFrame->getWidth(0) + currentFrame->getHeight(0)) +
-                      setting_maxAffineWeight * abs(log(refToFh[0])) > mDsoKeyframeWeight.f();
+                      setting_maxAffineWeight * abs(log(refToFh[0])) > mDsoKeyframeWeight.f() * ratio;
 
     if (mFirstDirectRMSE < 0) {
         mFirstDirectRMSE = mLastPhotometricTrackingResidual.rmse();
@@ -55,7 +59,7 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
         );
     }
 
-    bool photometricNeedKeyframe = flowTooBig || trackingResidualTooBig;
+    bool photometricNeedKeyframe = flowTooBig;
 
 
     return photometricNeedKeyframe;

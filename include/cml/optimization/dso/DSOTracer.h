@@ -126,6 +126,10 @@ namespace CML {
              return this;
          }
 
+         inline bool urgentlyNeedNewPoints() {
+             return mUrgentlyNeedNewPoints;
+         }
+
         protected:
             class ImmaturePointTemporaryResidual {
             public:
@@ -150,6 +154,8 @@ namespace CML {
 
          private:
             const Pattern mPattern = PredefinedPattern::star8();
+
+            bool mUrgentlyNeedNewPoints = false;
 
             PrivateDataInstance mPrivateDataInstance;
 

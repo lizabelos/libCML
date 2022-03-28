@@ -294,7 +294,7 @@ private:
     Parameter mEnableDirect = createParameter("enableDirect", true);
     Parameter mLinearizeDirect = createParameter("linearizeDirect", true);
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
-    Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", true);
+    Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", false);
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);
     Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);

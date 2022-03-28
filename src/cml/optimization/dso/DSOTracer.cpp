@@ -77,6 +77,8 @@ CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGrou
     if((int)points.size() > mSettingsDesiredPointDensity.i())
         mCurrentMinimumDistance += 0.1;
 
+    mUrgentlyNeedNewPoints = mCurrentMinimumDistance < 1;
+
     if(mCurrentMinimumDistance < 0) {
         mCurrentMinimumDistance = 0;
         logger.warn("We need urgently some new points !!");

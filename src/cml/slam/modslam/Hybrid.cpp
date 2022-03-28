@@ -322,15 +322,8 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
      }*/
 
     if (mEnableDirect.b()) {
-        if (!mTrackingOk) {
-            currentFrame->setGroup(RECOVEREDFRAME, true);
-            mTrackingOk = mPhotometricTracker->trackWithMotionModel(currentFrame, mPhotometricTracker->getLastComputed(), getMap().getLastFrame(1)->getCamera(),getMap().getLastFrame(2)->getCamera(), mLastPhotometricTrackingResidual);
-            if (mTrackingOk) {
-                mTrackedWithDirect = true;
-                mode = mode + 0;
-                modeSum = modeSum + 2;
-            }
-        } else {
+
+        if (mTrackingOk) {
             currentFrame->setGroup(ORBTRACKEDFRAME, true);
             Camera camera = currentFrame->getCamera();
             Exposure exposure = currentFrame->getExposure();
@@ -340,6 +333,8 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 logger.info("Refined with DSO");
                 mode = mode + 0;
                 modeSum = modeSum + 1;
+            } else {
+                mTrackingOk = false;
             }
             if (mLastPhotometricTrackingResidual.isCorrect) {
                 mPhotometricTracker->addStatistic(mLastPhotometricTrackingResidual, exposure);
@@ -347,6 +342,16 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 modeSum = modeSum + 1;
                 mTrackedWithDirect = true;
                 currentFrame->setExposureParameters(exposure);
+            }
+        }
+
+        if (!mTrackingOk) {
+            currentFrame->setGroup(RECOVEREDFRAME, true);
+            mTrackingOk = mPhotometricTracker->trackWithMotionModel(currentFrame, mPhotometricTracker->getLastComputed(), getMap().getLastFrame(1)->getCamera(),getMap().getLastFrame(2)->getCamera(), mLastPhotometricTrackingResidual);
+            if (mTrackingOk) {
+                mTrackedWithDirect = true;
+                mode = mode + 0;
+                modeSum = modeSum + 2;
             }
         }
     }
