@@ -334,7 +334,9 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 mode = mode + 0;
                 modeSum = modeSum + 1;
             } else {
-                mTrackingOk = false;
+                if (mCheckPoseEstimationWithDso.b()) {
+                    mTrackingOk = false;
+                }
             }
             if (mLastPhotometricTrackingResidual.isCorrect) {
                 mPhotometricTracker->addStatistic(mLastPhotometricTrackingResidual, exposure);

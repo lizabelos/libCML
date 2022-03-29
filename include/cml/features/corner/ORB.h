@@ -122,6 +122,7 @@ namespace CML::Features {
     private:
         Parameter mNumCorner = createParameter("Number of corner", 1024);
         Parameter mUseCache = createParameter("Use cache", false);
+        Parameter mBlur = createParameter("Blur", false);
 
         int nlevels;
         int iniThFAST;
@@ -145,7 +146,7 @@ namespace CML::Features {
         scalar_t mScaleFactor;
 
         List<GrayImage> mImages;
-        List<Array2D<float>> mBluredImages;
+        List<GrayImage> mBluredImages;
         List<List<Corner>> mAllKeypoints;
         List<Corner> mCorners;
         List<Corner> vToDistributeKeys;

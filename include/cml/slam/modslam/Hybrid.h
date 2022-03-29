@@ -328,6 +328,9 @@ private:
     Parameter mOrbKeyframeSkipOnFailure = createParameter("orbKeyframeSkipOnFailure", false);
     Parameter mOrbKeyframeMinimumPoints = createParameter("orbKeyframeMinimumPoints", -1);
 
+    Parameter mCheckPoseEstimationWithDso = createParameter("checkPoseEstimationWithDso", false);
+    Parameter mDsoUrgentlyNeedNewPointsKFRatio = createParameter("dsoUrgentlyNeedNewPointsKFRatio", 0.5f);
+
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
     Ptr<Statistic, NonNullable> mStatBAORBNum = createStatistic("BA ORB Num");

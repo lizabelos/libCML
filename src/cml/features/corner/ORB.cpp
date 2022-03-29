@@ -148,12 +148,14 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
         // preprocess the resized image
-        mImages[level].cast<float>().fasterConvolution(mFilter, mBluredImages[level]);
-        //mBluredImages[level].copyToThis(mImages[level]);
-
+        if (mBlur.b()) {
+            mImages[level].cast<float>().convolution(mFilter, mBluredImages[level]);
+        } else {
+            mBluredImages[level].copyToThis(mImages[level]);
+        }
 
         // Compute the descriptors
-        computeDescriptors(mBluredImages[level].cast<unsigned char>(), mAllKeypoints[level], desc);
+        computeDescriptors(mBluredImages[level], mAllKeypoints[level], desc);
 
         // Scale keypoint coordinates
         #pragma omp single

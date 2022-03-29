@@ -13,7 +13,7 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
 
     float ratio = 1;
     if (mPhotometricTracer->urgentlyNeedNewPoints()) {
-        ratio = 0.5;
+        ratio = mDsoUrgentlyNeedNewPointsKFRatio.f();
     }
     /*if (mDirectMappingQueue.getCurrentSize() > 0) {
         if (mLastPhotometricTrackingResidual.saturatedRatio() > 0.1) {
