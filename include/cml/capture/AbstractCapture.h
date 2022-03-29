@@ -35,6 +35,8 @@ namespace CML {
             return false;
         }
 
+        virtual inline scalar_t getTime(){return 0;};
+
     };
 
     class AbstractFiniteCapture : public AbstractCapture {

@@ -64,6 +64,15 @@ namespace CML {
 
         Ptr<CaptureImage, Nullable> getLastCaptureFrame();
 
+        void addGroundtruth(std::string pathGroundtruth);
+
+        Camera getGroundtruth(int index){
+            if(!mHaveGroundtruth || index >= mGroundtruths.size()){
+              throw("you tried to use groundtruth with slam without initialization");
+            }
+            return mGroundtruths[index];
+        }
+
         virtual inline std::string getName() {
             return "Abstract Slam";
         }
@@ -152,6 +161,15 @@ namespace CML {
         Ptr<CaptureImage, Nullable> mLastCaptureImage;
 
         GarbageCollectorInstance mGarbageCollectorInstance;
+
+        std::vector<scalar_t> mTimes;
+        std::vector<Camera> mGroundtruths;
+
+        Vector3 correct_translation;
+        Matrix33 correct_rotation;
+        Camera correct_cam;
+
+        bool mHaveGroundtruth = false;
 
         int mMemoryLimit = 0; // MB
 

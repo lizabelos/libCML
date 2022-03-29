@@ -30,6 +30,14 @@ namespace CML {
 
         int remaining() final;
 
+        scalar_t getTime() final{
+          return mTimestamps[mCurrentIndex];
+        }
+
+        inline int imageNumbers() final{
+          return mCurrentIndex + mStart;
+        }
+
     protected:
         FloatImage loadImage(int id);
 

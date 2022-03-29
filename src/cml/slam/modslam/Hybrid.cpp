@@ -370,6 +370,7 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
 void Hybrid::trackWithDso(PFrame currentFrame) {
     assertThrow(mEnableDirect.b(), "You can't call this function with direct disabled");
 
+    logger.debug("track with dso");
     currentFrame->setGroup(DSOTRACKEDFRAME, true);
 
     mTrackedWithIndirect = false;
