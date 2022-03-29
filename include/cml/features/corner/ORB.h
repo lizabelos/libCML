@@ -6,6 +6,7 @@
 #include <cml/features/Features.h>
 #include <cml/features/bow/Bow.h>
 #include <cml/capture/CaptureImage.h>
+#include <cml/features/corner/FAST.h>
 #include <zip.h>
 
 namespace CML::Features {
@@ -121,6 +122,7 @@ namespace CML::Features {
     private:
         Parameter mNumCorner = createParameter("Number of corner", 1024);
         Parameter mUseCache = createParameter("Use cache", false);
+        Parameter mBlur = createParameter("Blur", false);
 
         int nlevels;
         int iniThFAST;
@@ -143,11 +145,14 @@ namespace CML::Features {
         Ptr<ORBVocabulary, Nullable> mVocabulary;
         scalar_t mScaleFactor;
 
-        List<GrayImage> mImages, mBluredImages;
+        List<GrayImage> mImages;
+        List<GrayImage> mBluredImages;
         List<List<Corner>> mAllKeypoints;
         List<Corner> mCorners;
         List<Corner> vToDistributeKeys;
         List<Binary256Descriptor> mDescriptors;
+
+        FAST *mFast;
 
 
     };

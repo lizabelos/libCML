@@ -34,7 +34,7 @@ namespace CML {
 
         virtual ~AbstractSlam() = default;
 
-        void start(Ptr<AbstractCapture, NonNullable> capture);
+        void start(Ptr<AbstractCapture, NonNullable> capture, bool useAsMainThread = false);
 
         void startSingleThread(Ptr<AbstractCapture, NonNullable> capture);
 

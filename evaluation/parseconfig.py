@@ -26,6 +26,8 @@ def parse_config(config_file = "config.txt"):
             datasets = datasets + dataset.TUM(line[1])
         elif line[0] == "KITTI":
             datasets = datasets + dataset.KITTI(line[1])
+        elif line[0] == "Stereopolis":
+            datasets = datasets + dataset.Stereopolis(line[1])
         else:
             print("Unknown dataset type : " + line[0])
 

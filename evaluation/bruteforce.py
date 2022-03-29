@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import sys
 import csv
 import math
@@ -39,6 +40,8 @@ def parse_config():
             datasets = datasets + dataset.TUM(line[1])
         elif line[0] == "KITTI":
             datasets = datasets + dataset.KITTI(line[1])
+        elif line[0] == "Stereopolis":
+            datasets = datasets + dataset.Stereopolis(line[1])
         else:
             print("Unknown dataset type : " + line[0])
 
@@ -61,6 +64,9 @@ def movingAverage(t, iter = 5, delta = 0.75):
 
 def numFramesOf(dataset):
 
+    if not " " in dataset:
+        return 1
+
     if dataset.startswith("TUM"):
         return 6
 
@@ -68,7 +74,7 @@ def numFramesOf(dataset):
 
     return numFrames[int(dataset.split(" ")[1])]
 
-def criteria(dataset, ate):
+def criteria(dataset, ate, fps):
     if ate is None:
         return 9999999
 
@@ -137,17 +143,20 @@ def bruteforceFindBest(currentParam):
                     for p in currentParam:
                         context.setconfig(p, currentParam[p])
                     context.setconfig(param[0], v)
-                    if datasets[i].gt() is None:
-                        continue
                     try:
                         ate = evaluateOn(context, datasets[i])
-                        toprint = toprint + str(ate) + "\t"
-                        currentSum = currentSum + criteria(datasets[i].name(), ate)
+                        fps = context.getTime() / numFramesOf(datasets[i].name())
+                        toprint = toprint + str(float(int(ate * 10) / 10)) + " at " + str(int(fps)) + "\t"
+                        currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
                     except KeyboardInterrupt:
                         return 0,0,""
                     except Exception as e:
-                        toprint = toprint + context.getError() + "\t"
-                        currentSum = currentSum + criteria(datasets[i].name(), None)
+                        slamLog = context.getError()
+                        lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
+                        numFrame = re.findall(r'\d+', lastLine)[0]
+                        err = 10000 - int(numFrame)
+                        toprint = toprint + str(err) + "\t"
+                        currentSum = currentSum + err
                 return currentSum, toprint
 
             for v in param[1]:

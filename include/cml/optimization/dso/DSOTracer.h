@@ -46,7 +46,7 @@ namespace CML {
 
             void traceNewCoarse(PFrame frameToTrace, int frameGroup);
 
-            Set<PPoint, Hasher> activatePoints(int frameGroup, int pointGroup);
+            Set<PPoint> activatePoints(int frameGroup, int pointGroup);
 
             int optimizeImmaturePoint(PPoint point, int minObs, int frameGroup);
 
@@ -94,7 +94,7 @@ namespace CML {
 
                 return true;
                 /*
-                Set<PPoint, Hasher> lastTraced, lastlastTraced;
+                Set<PPoint> lastTraced, lastlastTraced;
 
                 {
                     LockGuard lg(mLastTracedMutex);
@@ -126,6 +126,10 @@ namespace CML {
              return this;
          }
 
+         inline bool urgentlyNeedNewPoints() {
+             return mUrgentlyNeedNewPoints;
+         }
+
         protected:
             class ImmaturePointTemporaryResidual {
             public:
@@ -150,6 +154,8 @@ namespace CML {
 
          private:
             const Pattern mPattern = PredefinedPattern::star8();
+
+            bool mUrgentlyNeedNewPoints = false;
 
             PrivateDataInstance mPrivateDataInstance;
 

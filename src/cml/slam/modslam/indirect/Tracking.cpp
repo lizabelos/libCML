@@ -310,7 +310,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
         return;
     }
 
-    HashMap<PFrame, int, Hasher> keyframeCounter;
+    HashMap<PFrame, int> keyframeCounter;
     keyframeCounter.reserve(100);
 
     List<PFrame> tmpIndirectApparitions;
@@ -355,7 +355,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
 
 
     // Include also some not-already-included keyframes that are neighbors to already-included keyframes
-    Set<PFrame, Hasher> localKeyFrames = mLocalKeyFrames; // todo : recursive ??
+    Set<PFrame> localKeyFrames = mLocalKeyFrames; // todo : recursive ??
     for (auto pKF : localKeyFrames)
     {
         // Limit the number of keyframes
@@ -383,7 +383,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
 }
 
 void Hybrid::indirectUpdateLocalPoints(PFrame currentFrame) {
-    Set<PPoint, Hasher> toUnactive = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT), toActive;
+    Set<PPoint> toUnactive = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT), toActive;
 
     for (auto pKF : mLocalKeyFrames)
     {

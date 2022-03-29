@@ -158,6 +158,49 @@ void CML::Array2D<unsigned char>::resize(int newWidth, int newHeight, Array2D<un
     }
 }
 
+namespace CML {
+    template<typename T, int bitspersample>
+    CML::Pair<CML::FloatImage, CML::Image> loadTiffImage(TIFF *tif, uint32_t width, uint32_t height) {
+        FloatImage image(width, height);
+        Image colorImage(width, height);
+
+        tdata_t buf = _TIFFmalloc(TIFFScanlineSize(tif));
+        if (!buf) {
+            throw std::runtime_error("tiff can't malloc ?");
+        }
+        T *bufT = (T *) buf;
+
+        float factor = 255.0f / (float) pow(2, bitspersample);
+        float factor85 = 85.0f / (float) pow(2, bitspersample);
+
+
+        for (uint32_t y = 0; y < height; y++) {
+            TIFFReadScanline(tif, buf, y);
+
+            for (uint32_t x = 0; x < width; x++) {
+
+                colorImage(x, y).g() = (float)bufT[x * 3 + 0] * factor;
+                colorImage(x, y).b() = (float)bufT[x * 3 + 1] * factor;
+                colorImage(x, y).r() = (float)bufT[x * 3 + 2] * factor;
+
+                image(x, y) = (float)(bufT[x * 3 + 0] + bufT[x * 3 + 1] + bufT[x * 3 + 2]) * factor85;
+                     /*   GrayLookupTable::gammaEncode(
+                                (GrayLookupTable::gammaDecode((float)bufT[x * 3 + 0] * factor) +
+                            GrayLookupTable::gammaDecode((float)bufT[x * 3 + 1] * factor) +
+                            GrayLookupTable::gammaDecode((float)bufT[x * 3 + 2] * factor))
+                            / 3.0f
+                        );*/
+
+
+            }
+        }
+
+
+        _TIFFfree(buf);
+        TIFFClose(tif);
+
+        return {image, colorImage};
+    }
 CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const std::string& path) {
     // std::istringstream input_TIFF_stream(std::string((char *)str, lenght));
 
@@ -266,81 +309,25 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
         throw std::runtime_error("Can't open the tiff file");
     }
 
-    uint32_t width, height, bitspersample, depth;
-
+    uint32_t height, width, bitspersample;
     TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bitspersample);
-    //TIFFGetField(tif, TIFFTAG_IMAGEDEPTH, &depth);
-    depth = 3;
 
-    FloatImage image(width, height);
-    Image colorImage(width, height);
-
-    tdata_t buf = _TIFFmalloc(TIFFScanlineSize(tif));
-    if (!buf) {
-        throw std::runtime_error("tiff can't malloc ?");
+    if (bitspersample == 8) {
+        return loadTiffImage<uint8_t, 8>(tif, width, height);
     }
-    uint8_t *buf8 = (uint8_t *) buf;
-
-    uint32_t mask = 0;
-    for (uint32_t i = 0; i < bitspersample; i++) {
-        mask ^= 1U << i;
+    if (bitspersample == 16) {
+        return loadTiffImage<uint16_t, 16>(tif, width, height);
+    }
+    if (bitspersample == 32) {
+        return loadTiffImage<uint32_t, 32>(tif, width, height);
+    }
+    if (bitspersample == 64) {
+        return loadTiffImage<uint64_t, 64>(tif, width, height);
     }
 
-    float factor = 255.0f / (float) pow(2, bitspersample);
-
-    for (uint32_t y = 0; y < height; y++) {
-        TIFFReadScanline(tif, buf, y);
-        uint32_t currentBitPosition = 0;
-
-        for (uint32_t x = 0; x < width; x++) {
-
-            float avg = 0;
-
-            for (uint32_t c = 0; c < depth; c++) {
-
-                uint32_t pos = currentBitPosition / 8;
-                uint32_t left = currentBitPosition % 8;
-                uint32_t right = (32 - bitspersample) - left;
-
-                uint32_t *pintensity = (uint32_t *) &buf8[pos];
-                uint32_t intensity = *pintensity;
-
-                intensity = intensity >> right;
-                intensity = intensity & mask;
-
-                float value = (float) intensity * factor;
-
-                if (c == 0) {
-                    colorImage(x, y).g() = value;
-
-                } else if (c == 1) {
-                    colorImage(x, y).b() = value;
-
-                } else if (c == 2) {
-                    colorImage(x, y).r() = value;
-
-                }
-
-                avg += value;
-
-                currentBitPosition += bitspersample;
-
-            }
-
-            avg /= (float) depth;
-
-            image(x, y) = avg;
-
-        }
-    }
-
-
-    _TIFFfree(buf);
-    TIFFClose(tif);
-
-    return {image, colorImage};
+    throw std::runtime_error("Unsupported tiff bit per sample : " + std::to_string(bitspersample));
 
 }
 

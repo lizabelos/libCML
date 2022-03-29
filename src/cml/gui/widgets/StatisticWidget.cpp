@@ -18,9 +18,12 @@ CML::StatisticWidget::StatisticWidget(PStatistic statistic, QWidget *parent) : Q
     mChart->addSeries(mLineSeries);
     mLayout->addWidget(mChartView);
 
-  //  connect(mCustomPlot, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(plotClick(QMouseEvent*)));
+    mChart->legend()->setVisible(true);
 
-    mStatistic->subscribeObserver(this);
+
+    //  connect(mCustomPlot, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(plotClick(QMouseEvent*)));
+
+    //mStatistic->subscribeObserver(this);
 }
 
 CML::StatisticWidget::~StatisticWidget() {

@@ -12,8 +12,8 @@ CML::Optional<CML::Camera> CML::Optimization::Ceres::IndirectCameraOptimizer::lo
     ceres::Solver::Options options;
 
 
-    HashMap<PPoint, double*, Hasher> pointsData;
-    HashMap<PFrame, Pair<double*, double*>, Hasher> framesData;
+    HashMap<PPoint, double*> pointsData;
+    HashMap<PFrame, Pair<double*, double*>> framesData;
 
     {
 

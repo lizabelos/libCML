@@ -2,6 +2,324 @@
 #include "cml/optimization/dso/DSOTracer.h"
 #include "cml/optimization/Residual.h"
 
+#define OPENMP_UNSTABLE 0
+
+
+
+namespace CML::Optimization {
+
+    class DSOBundleAdjustmentLinearizationContext {
+
+        friend class DSOBundleAdjustment;
+
+        OptPPoint point;
+        OptPFrame frameToTrack;
+        DSOFrame *hostData, *targetData;
+        Ptr<DSOPoint, Nullable> pointData;
+
+        float JIdxJIdx_00 = 0, JIdxJIdx_11 = 0, JIdxJIdx_10 = 0;
+        float JabJIdx_00 = 0, JabJIdx_01 = 0, JabJIdx_10 = 0, JabJIdx_11 = 0;
+        float JabJab_00 = 0, JabJab_01 = 0, JabJab_11 = 0;
+        float wJI2_sum = 0;
+        float energyLeft = 0;
+        float drescale;
+        float d_d_x, d_d_y;
+        float new_idepth;
+        float u;
+        float v;
+        float Ku;
+        float Kv;
+        float refColor;
+        float curColor;
+        float curRealColor;
+        float refRealColor;
+        float residual;
+        float hw;
+        float w;
+        float b0;
+        float drdA;
+
+        Vector2 shift;
+        Vector2 refcorner_Distorted_center;
+        Vector2 refcorner_Distorted;
+        Vector2 refcorner;
+        Vector3 projectedcurp;
+        Vector2 projectedcurp_Distorted;
+        Vector3f curColorWithGradient;
+        Vector2f curColorGradient;
+        Vector3 hitColor;
+
+        Vector<6> d_xi_x, d_xi_y;
+        Vector<4> d_C_x, d_C_y;
+
+
+        Vector3 KliP;
+
+        Matrix33 K;
+        float fx, fy;
+
+    private:
+
+        scalar_t linearize(DSOBundleAdjustment &self, DSOResidual* pair, const DSOFramePrecomputed &precomputed, int level) {
+
+            assertThrow(level == 0, "Incompatible level");
+
+            pair->state_NewEnergyWithOutlier = -1;
+
+            if(pair->getState() == DSORES_OOB)
+            {
+                pair->setState(DSORES_OOB);
+                return pair->state_energy;
+            }
+
+            point = pair->elements.mapPoint;
+            frameToTrack = pair->elements.frame;
+
+            // auto hostData = get(pair->elements.mapPoint->getReferenceFrame());
+            // auto targetData = get(pair->elements.frame);
+            hostData = precomputed.mHostData;
+            targetData = precomputed.mTargetData;
+            pointData = self.unsafe_get(pair->elements.mapPoint);
+            scalar_t pointIdepth = point->getReferenceInverseDepth();
+
+            const GradientImage &image = frameToTrack->getCaptureFrame().getDerivativeImage(level);
+
+            assertThrow(hostData->id >= 0, "Host frame invalid");
+            assertThrow(targetData->id >= 0, "Target frame invalid");
+
+            JIdxJIdx_00 = 0; JIdxJIdx_11 = 0; JIdxJIdx_10 = 0;
+            JabJIdx_00 = 0; JabJIdx_01 = 0; JabJIdx_10 = 0; JabJIdx_11 = 0;
+            JabJab_00 = 0; JabJab_01 = 0; JabJab_11 = 0;
+            wJI2_sum = 0;
+            energyLeft = 0;
+
+            refcorner_Distorted_center = point->getReferenceCorner().point0();
+            assertDeterministic("refcorner_Distorted_center", refcorner_Distorted_center.norm());
+
+            const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
+            const Vector3 &t = precomputed.trialRefToTarget.getTranslation();
+
+
+            {
+
+                refcorner = self.mPinhole.undistort(refcorner_Distorted_center);
+
+                assertDeterministic("R", R.norm());
+                assertDeterministic("refcorner", refcorner.norm());
+                assertDeterministic("t", t.norm());
+                assertDeterministic("pointIdepth", pointIdepth);
+
+                projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
+                projectedcurp_Distorted = self.mPinhole.distort((Vector2)projectedcurp.hnormalized());
+                drescale = 1.0 / projectedcurp[2];
+
+                if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < self.mWidth - 2 && projectedcurp_Distorted.y() < self.mHeight - 2)) {
+                    pair->setNewState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                new_idepth = drescale * pointIdepth;
+                u = projectedcurp.x();
+                v = projectedcurp.y();
+                Ku = projectedcurp_Distorted.x();
+                Kv = projectedcurp_Distorted.y();
+                KliP = refcorner.homogeneous(); // todo : check this
+
+                K = frameToTrack->getK(0);
+                fx = K(0,0);
+                fy = K(1,1);
+
+                pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
+
+                assertDeterministic("u", u);
+                assertDeterministic("v", v);
+                assertDeterministic("fx", fx);
+                assertDeterministic("fy", fy);
+                assertDeterministic("PRE_tTll_0", precomputed.PRE_tTll_0.norm());
+                assertDeterministic("drescale", drescale);
+
+                // diff d_idepth
+                d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
+                d_d_y = drescale * (precomputed.PRE_tTll_0[1]-precomputed.PRE_tTll_0[2]*v)*fy;
+
+                // diff calib
+                d_C_x[2] = drescale*(precomputed.PRE_RTll_0(2,0)*u-precomputed.PRE_RTll_0(0,0));
+                d_C_x[3] = fx * drescale*(precomputed.PRE_RTll_0(2,1)*u-precomputed.PRE_RTll_0(0,1)) / fy;
+                d_C_x[0] = KliP[0]*d_C_x[2];
+                d_C_x[1] = KliP[1]*d_C_x[3];
+
+                d_C_y[2] = fy * drescale*(precomputed.PRE_RTll_0(2,0)*v-precomputed.PRE_RTll_0(1,0)) / fx;
+                d_C_y[3] = drescale*(precomputed.PRE_RTll_0(2,1)*v-precomputed.PRE_RTll_0(1,1));
+                d_C_y[0] = KliP[0]*d_C_y[2];
+                d_C_y[1] = KliP[1]*d_C_y[3];
+
+                d_C_x[0] = (d_C_x[0]+u)* self.mScaleF.f();
+                d_C_x[1] *=  self.mScaleF.f();
+                d_C_x[2] = (d_C_x[2]+1)* self.mScaleC.f();
+                d_C_x[3] *=  self.mScaleC.f();
+
+                d_C_y[0] *=  self.mScaleF.f();
+                d_C_y[1] = (d_C_y[1]+v)* self.mScaleF.f();
+                d_C_y[2] *=  self.mScaleC.f();
+                d_C_y[3] = (d_C_y[3]+1)* self.mScaleC.f();
+
+
+                d_xi_x[0] = new_idepth*fx;
+                d_xi_x[1] = 0;
+                d_xi_x[2] = -new_idepth*u*fx;
+                d_xi_x[3] = -u*v*fx;
+                d_xi_x[4] = (1+u*u)*fx;
+                d_xi_x[5] = -v*fx;
+
+                d_xi_y[0] = 0;
+                d_xi_y[1] = new_idepth*fy;
+                d_xi_y[2] = -new_idepth*v*fy;
+                d_xi_y[3] = -(1+v*v)*fy;
+                d_xi_y[4] = u*v*fy;
+                d_xi_y[5] = u*fy;
+
+                pair->rJ.Jpdxi[0] = d_xi_x.cast<float>();
+                pair->rJ.Jpdxi[1] = d_xi_y.cast<float>();
+
+                pair->rJ.Jpdc[0] = d_C_x.cast<float>();
+                pair->rJ.Jpdc[1] = d_C_y.cast<float>();
+                assertDeterministic("d_d_x", d_d_x);
+                assertDeterministic("d_d_y", d_d_y);
+                pair->rJ.Jpdd[0] = d_d_x;
+                pair->rJ.Jpdd[1] = d_d_y;
+            }
+
+            assertThrow(pointData->weights.size() > 0, "The point weights must be initialized");
+
+            for (int idx = 0; idx < 8; idx++) {
+
+                shift = PredefinedPattern::star8(idx);
+
+                refcorner_Distorted.noalias() = refcorner_Distorted_center + shift;
+                self.mPinhole.undistort(refcorner_Distorted, refcorner);
+                projectedcurp.noalias()  = R.lazyProduct(refcorner.homogeneous()) + t * pointIdepth;
+                self.mPinhole.distort((Vector2)projectedcurp.hnormalized(), projectedcurp_Distorted);
+
+                // Check that the projection is finite
+                //if (!std::isfinite(projectedcurp_Distorted.x()) || !std::isfinite(projectedcurp_Distorted.y())) {
+                //    pair->setNewState(DSORES_OOB);
+                //    return pair->state_energy;
+                //}
+
+                // Check that the projection is inside the current frame, with a padding of 3, to allow the computation of the derivative on the image
+                if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < self.mWidth - 2 && projectedcurp_Distorted.y() < self.mHeight - 2)) {
+                    pair->setNewState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                // scalar_t refColor = point->getGrayPatch(shift.x(), shift.y(), level);
+                refColor = pointData->colors[idx];
+
+
+                image.interpolate(projectedcurp_Distorted.cast<float>(), curColorWithGradient);
+
+                if (!curColorWithGradient.allFinite()) {
+                    pair->setState(DSORES_OOB);
+                    return pair->state_energy;
+                }
+
+                curColor = curColorWithGradient(0);
+                curColorGradient.noalias() = curColorWithGradient.tail<2>();
+
+                curRealColor = curColor;
+                refRealColor = precomputed.exposureTransition(refColor);
+
+                residual = curRealColor - refRealColor;
+
+                hw = fabs(residual) < self.mHuberThreshold.f() ? 1 : self.mHuberThreshold.f() / fabsf(residual);
+                w = sqrtf(self.mSettingOutlierTHSumComponent.f() / (self.mSettingOutlierTHSumComponent.f() + curColorGradient.squaredNorm()));
+                w = 0.5f*(w + pointData->weights[idx]);
+
+                energyLeft += w * w * hw * residual * residual * ( 2.0 - hw);
+
+                {
+                    if(hw < 1) hw = sqrtf(hw);
+                    hw = hw * w;
+
+                    b0 = hostData->getB0(self.mScaleLightB.f());
+
+                    hitColor[0] = curColor;
+                    hitColor[1] = curColorGradient(0) * hw;
+                    hitColor[2] = curColorGradient(1) * hw;
+                    drdA = curColor - b0;
+
+                    pair->rJ.resF[idx] = residual*hw;
+
+                    pair->rJ.JIdx[0][idx] = hitColor[1];
+                    pair->rJ.JIdx[1][idx] = hitColor[2];
+                    pair->rJ.JabF[0][idx] = drdA*hw;
+                    pair->rJ.JabF[1][idx] = hw;
+
+                    JIdxJIdx_00+=hitColor[1]*hitColor[1];
+                    JIdxJIdx_11+=hitColor[2]*hitColor[2];
+                    JIdxJIdx_10+=hitColor[1]*hitColor[2];
+
+                    JabJIdx_00+= drdA*hw * hitColor[1];
+                    JabJIdx_01+= drdA*hw * hitColor[2];
+                    JabJIdx_10+= hw * hitColor[1];
+                    JabJIdx_11+= hw * hitColor[2];
+
+                    JabJab_00+= drdA*drdA*hw*hw;
+                    JabJab_01+= drdA*hw*hw;
+                    JabJab_11+= hw*hw;
+
+
+                    wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
+
+                    if (!self.mOptimizeA.b()) {
+                        pair->rJ.JabF[0][idx]=0;
+                    }
+                    if (!self.mOptimizeB.b()) {
+                        pair->rJ.JabF[1][idx]=0;
+                    }
+
+                }
+
+            }
+
+            pair->rJ.JIdx2(0,0) = JIdxJIdx_00;
+            pair->rJ.JIdx2(0,1) = JIdxJIdx_10;
+            pair->rJ.JIdx2(1,0) = JIdxJIdx_10;
+            pair->rJ.JIdx2(1,1) = JIdxJIdx_11;
+            pair->rJ.JabJIdx(0,0) = JabJIdx_00;
+            pair->rJ.JabJIdx(0,1) = JabJIdx_01;
+            pair->rJ.JabJIdx(1,0) = JabJIdx_10;
+            pair->rJ.JabJIdx(1,1) = JabJIdx_11;
+            pair->rJ.Jab2(0,0) = JabJab_00;
+            pair->rJ.Jab2(0,1) = JabJab_01;
+            pair->rJ.Jab2(1,0) = JabJab_01;
+            pair->rJ.Jab2(1,1) = JabJab_11;
+
+            if (!std::isfinite(energyLeft)) {
+                pair->setNewState(DSORES_OOB);
+                return pair->state_energy;
+            }
+            pair->state_NewEnergyWithOutlier = energyLeft;
+
+            if(energyLeft > std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH) || wJI2_sum < 2)
+            {
+                energyLeft = std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH);
+                pair->setNewState(DSORES_OUTLIER);
+            }
+            else
+            {
+                pair->setNewState(DSORES_IN);
+            }
+
+            pair->state_NewEnergy = energyLeft;
+            return energyLeft;
+
+        }
+
+
+    };
+}
+
 CML::Optimization::DSOBundleAdjustment::DSOBundleAdjustment(Ptr<AbstractFunction, NonNullable> parent) : AbstractFunction(parent), DSOContext(parent->getMap()) {
     mMarginalizedHessian = Matrix<Dynamic, Dynamic>(CPARS + 8, CPARS + 8);
     mMarginalizedB = Vector<Dynamic>(CPARS + 8);
@@ -62,11 +380,13 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint, Hasher>& points) {
+void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint>& points) {
 
     for (auto point : points) {
 
-        assertThrow(!have(point), "The point is already added !");
+        if (have(point)) {
+            continue;
+        }
 
         addPoint(point);
 
@@ -435,7 +755,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         updateCamera(frame);
     }
 
-    mOutliers = Set<PPoint, Hasher>();
+    mOutliers = Set<PPoint>();
 
     if (getPoints().empty()) {
         logger.error("No points...");
@@ -448,6 +768,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
     {
         if(!r->isLinearized)
         {
+            assertDeterministic("Active residual push back", r->elements.mapPoint->getReferenceInverseDepth());
             mActiveResiduals.push_back(r);
             r->resetOOB();
         }
@@ -995,9 +1316,13 @@ CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenberg
     }
 
 
-        if (getFrames().size() > 4) {
-            addIndirectToProblem(x);
-        }
+    if (!x.allFinite()) {
+        dumpSystem(HFinalScaled, SVecI.asDiagonal() * bFinal_top);
+    }
+
+    if (getFrames().size() > 4) {
+        addIndirectToProblem(x);
+    }
 
     // Orthogonalize x later
     if (mustOrthogonalize) {
@@ -1164,86 +1489,112 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
     // Precomputation
 
-    HashMap<PFrame, int, Hasher> frameToId;
+    HashMap<PFrame, int> frameToId;
     DSOFramePrecomputed precomputedArray[getFrames().size()][getFrames().size()];
+    scalar_t stats = 0;
+    Set<DSOResidual *> toRemove;
+    Mutex toRemoveMutex;
 
-    #if CML_USE_OPENMP
-    #pragma omp for schedule(static) ordered
-    #endif
-    for (size_t i = 0; i < getFrames().size(); i++) {
+//#if CML_USE_OPENMP
+//#pragma omp parallel shared(frameToId) shared(precomputedArray) shared(stats) shared(toRemove) shared(toRemoveMutex)
+//#endif
+    {
 
-        frameToId[getFrames()[i]] = i;
+#if CML_USE_OPENMP
+#pragma omp single
+#endif
+        for (size_t i = 0; i < getFrames().size(); i++) {
 
-        for (size_t j = 0; j < getFrames().size(); j++) {
+            frameToId[getFrames()[i]] = i;
 
-            auto hostData = get(getFrames()[i]);
-            auto targetData =  get(getFrames()[j]);
-            precomputedArray[i][j] = DSOFramePrecomputed(hostData.p(), targetData.p());
+            for (size_t j = 0; j < getFrames().size(); j++) {
+
+                auto hostData = get(getFrames()[i]);
+                auto targetData = get(getFrames()[j]);
+                precomputedArray[i][j] = DSOFramePrecomputed(hostData.p(), targetData.p());
+
+            }
 
         }
 
-    }
+#if CML_USE_OPENMP
+#pragma omp single
+#endif
+{
+        logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
+#if CML_USE_OPENMP
+        int ompNumThread = omp_get_num_threads();
+#else
+        int ompNumThread = 1;
+#endif
+        if (mLinearizationContextSize != ompNumThread) {
+            if (mLinearizationContext) {
+                delete[] mLinearizationContext;
+            }
+            mLinearizationContext = new DSOBundleAdjustmentLinearizationContext[ompNumThread];
+            mLinearizationContextSize = ompNumThread;
+        }
+}
 
+#if CML_USE_OPENMP
+#pragma omp for
+#endif
+        for (size_t i = 0; i < mActiveResiduals.size(); i++) {
+
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+            int tid = omp_get_thread_num();
+#else
+            int tid = 0;
+#endif
+
+            auto &r = mActiveResiduals[i];
+
+            auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
+
+            assertDeterministic("Point reference inverse depth before linearization", r->elements.mapPoint->getReferenceInverseDepth());
+
+            stats += mLinearizationContext[tid].linearize(*this, r, precomputed, 0);
+
+
+            if (fixLinearization) {
+                applyRes(r, true);
+
+                if (r->isActiveAndIsGoodNEW) {
+                    auto p = get(r->elements.mapPoint);
+
+                    Matrix33 K = r->elements.frame->getK(0);
+
+                    Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
+                    Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
+
+                    Vector3 ptp_inf = PRE_KRKiTll *
+                                      r->elements.mapPoint->getReferenceCorner().point0().homogeneous();    // projected point assuming infinite depth.
+                    Vector3 ptp = ptp_inf + PRE_KtTll *
+                                            r->elements.mapPoint->getReferenceInverseDepth();    // projected point with real depth.
+                    float relBS = 0.01 * ((ptp_inf.head<2>() / ptp_inf[2]) -
+                                          (ptp.head<2>() / ptp[2])).norm();    // 0.01 = one pixel.
+
+                    if (relBS > p->getMaxRelBaseline()) {
+                        p->setMaxRelBaseline(relBS);
+                        p->updatePointUncertainty(r->elements.mapPoint, mScaledVarTH.f(), mAbsVarTH.f(),
+                                                  mMinRelBS.f());
+                    }
+
+                    p->numGoodResiduals++;
+
+
+                } else {
+                    LockGuard lg(toRemoveMutex);
+                    toRemove.insert(r);
+                }
+            }
+        }
+
+    }
 
     double lastEnergyP = 0;
     double lastEnergyR = 0;
     double num = 0;
-
-
-    Set<DSOResidual*> toRemove;
-    Mutex toRemoveMutex;
-
-    scalar_t stats = 0;
-
-    logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
-
-    Timer timer;
-    timer.start();
-
-    for (size_t i = 0; i < mActiveResiduals.size(); i++)
-    {
-        auto &r = mActiveResiduals[i];
-
-        auto &precomputed = precomputedArray[frameToId[r->elements.mapPoint->getReferenceFrame()]][frameToId[r->elements.frame]];
-
-        stats += linearize(r, precomputed);
-
-        if(fixLinearization)
-        {
-            applyRes(r, true);
-
-            if(r->isActiveAndIsGoodNEW)
-            {
-                auto p = get(r->elements.mapPoint);
-
-                Matrix33 K = r->elements.frame->getK(0);
-
-                Matrix33 PRE_KRKiTll = K * precomputed.PRE_RTll * K.inverse();
-                Vector3 PRE_KtTll = K * precomputed.PRE_tTll;
-
-                Vector3 ptp_inf = PRE_KRKiTll * r->elements.mapPoint->getReferenceCorner().point0().homogeneous();	// projected point assuming infinite depth.
-                Vector3 ptp = ptp_inf + PRE_KtTll * r->elements.mapPoint->getReferenceInverseDepth();	// projected point with real depth.
-                float relBS = 0.01*((ptp_inf.head<2>() / ptp_inf[2])-(ptp.head<2>() / ptp[2])).norm();	// 0.01 = one pixel.
-
-                if(relBS > p->getMaxRelBaseline()) {
-                    p->setMaxRelBaseline(relBS);
-                    p->updatePointUncertainty(r->elements.mapPoint, mScaledVarTH.f(), mAbsVarTH.f(),
-                                              mMinRelBS.f());
-                }
-
-                p->numGoodResiduals++;
-
-
-            }
-            else
-            {
-                LockGuard lg(toRemoveMutex);
-                toRemove.insert(r);
-            }
-        }
-    }
-
-    timer.stopAndPrint("Linearization time");
 
     lastEnergyP = stats;
 
@@ -1275,258 +1626,13 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
         }
 
         logger.warn("Dropping " + std::to_string(toRemove.size()) + " residuals ( " + std::to_string(numResidualRemoveOnLastFrame) + " outlier on last frame )");
-        Set<PPoint, Hasher> outliers = removeResiduals(toRemove);
+        Set<PPoint> outliers = removeResiduals(toRemove);
         logger.warn(std::to_string(outliers.size()) + " points have no residual.");
         mOutliers.insert(outliers.begin(), outliers.end());
 
     }
 
     return Vector3(lastEnergyP, lastEnergyR, num);
-
-}
-
-inline CML::scalar_t CML::Optimization::DSOBundleAdjustment::linearize(DSOResidual* pair, const DSOFramePrecomputed &precomputed, int level) {
-
-    assertThrow(level == 0, "Incompatible level");
-
-    pair->state_NewEnergyWithOutlier = -1;
-
-    if(pair->getState() == DSORES_OOB)
-    {
-        pair->setState(DSORES_OOB);
-        return pair->state_energy;
-    }
-
-    auto point = pair->elements.mapPoint;
-    auto frameToTrack = pair->elements.frame;
-
-    // auto hostData = get(pair->elements.mapPoint->getReferenceFrame());
-    // auto targetData = get(pair->elements.frame);
-    auto hostData = precomputed.mHostData;
-    auto targetData = precomputed.mTargetData;
-    auto pointData = unsafe_get(pair->elements.mapPoint);
-    scalar_t pointIdepth = point->getReferenceInverseDepth();
-
-    const GradientImage &image = frameToTrack->getCaptureFrame().getDerivativeImage(level);
-
-    assertThrow(hostData->id >= 0, "Host frame invalid");
-    assertThrow(targetData->id >= 0, "Target frame invalid");
-
-    float JIdxJIdx_00 = 0, JIdxJIdx_11 = 0, JIdxJIdx_10 = 0;
-    float JabJIdx_00 = 0, JabJIdx_01 = 0, JabJIdx_10 = 0, JabJIdx_11 = 0;
-    float JabJab_00 = 0, JabJab_01 = 0, JabJab_11 = 0;
-
-    float wJI2_sum = 0;
-
-    float energyLeft = 0;
-
-    Vector2 refcorner_Distorted_center = point->getReferenceCorner().point0();
-
-    Matrix33 R = precomputed.trialRefToTarget.getRotationMatrix();
-    Vector3 t = precomputed.trialRefToTarget.getTranslation();
-
-
-    {
-
-        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted_center);
-
-        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
-        float drescale = 1.0 / projectedcurp[2];
-
-        if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < mWidth - 2 && projectedcurp_Distorted.y() < mHeight - 2)) {
-            pair->setNewState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        Vector<6> d_xi_x, d_xi_y;
-        Vector<4> d_C_x, d_C_y;
-        float d_d_x, d_d_y;
-
-        float new_idepth = drescale * pointIdepth;
-        float u = projectedcurp.x();
-        float v = projectedcurp.y();
-        float Ku = projectedcurp_Distorted.x();
-        float Kv = projectedcurp_Distorted.y();
-        Vector3 KliP = refcorner.homogeneous(); // todo : check this
-
-        Matrix33 K = frameToTrack->getK(0);
-        float fx = K(0,0);
-        float fy = K(1,1);
-
-        pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
-
-        // diff d_idepth
-        d_d_x = drescale * (precomputed.PRE_tTll_0[0]-precomputed.PRE_tTll_0[2]*u)*fx;
-        d_d_y = drescale * (precomputed.PRE_tTll_0[1]-precomputed.PRE_tTll_0[2]*v)*fy;
-
-        // diff calib
-        d_C_x[2] = drescale*(precomputed.PRE_RTll_0(2,0)*u-precomputed.PRE_RTll_0(0,0));
-        d_C_x[3] = fx * drescale*(precomputed.PRE_RTll_0(2,1)*u-precomputed.PRE_RTll_0(0,1)) / fy;
-        d_C_x[0] = KliP[0]*d_C_x[2];
-        d_C_x[1] = KliP[1]*d_C_x[3];
-
-        d_C_y[2] = fy * drescale*(precomputed.PRE_RTll_0(2,0)*v-precomputed.PRE_RTll_0(1,0)) / fx;
-        d_C_y[3] = drescale*(precomputed.PRE_RTll_0(2,1)*v-precomputed.PRE_RTll_0(1,1));
-        d_C_y[0] = KliP[0]*d_C_y[2];
-        d_C_y[1] = KliP[1]*d_C_y[3];
-
-        d_C_x[0] = (d_C_x[0]+u)* mScaleF.f();
-        d_C_x[1] *=  mScaleF.f();
-        d_C_x[2] = (d_C_x[2]+1)* mScaleC.f();
-        d_C_x[3] *=  mScaleC.f();
-
-        d_C_y[0] *=  mScaleF.f();
-        d_C_y[1] = (d_C_y[1]+v)* mScaleF.f();
-        d_C_y[2] *=  mScaleC.f();
-        d_C_y[3] = (d_C_y[3]+1)* mScaleC.f();
-
-
-        d_xi_x[0] = new_idepth*fx;
-        d_xi_x[1] = 0;
-        d_xi_x[2] = -new_idepth*u*fx;
-        d_xi_x[3] = -u*v*fx;
-        d_xi_x[4] = (1+u*u)*fx;
-        d_xi_x[5] = -v*fx;
-
-        d_xi_y[0] = 0;
-        d_xi_y[1] = new_idepth*fy;
-        d_xi_y[2] = -new_idepth*v*fy;
-        d_xi_y[3] = -(1+v*v)*fy;
-        d_xi_y[4] = u*v*fy;
-        d_xi_y[5] = u*fy;
-
-        pair->rJ.Jpdxi[0] = d_xi_x.cast<float>();
-        pair->rJ.Jpdxi[1] = d_xi_y.cast<float>();
-
-        pair->rJ.Jpdc[0] = d_C_x.cast<float>();
-        pair->rJ.Jpdc[1] = d_C_y.cast<float>();
-        pair->rJ.Jpdd[0] = d_d_x;
-        pair->rJ.Jpdd[1] = d_d_y;
-    }
-
-    assertThrow(pointData->weights.size() > 0, "The point weights must be initialized");
-
-    for (int idx = 0; idx < 8; idx++) {
-
-        Vector2 shift = PredefinedPattern::star8(idx);
-
-        Vector2 refcorner_Distorted = refcorner_Distorted_center + shift;
-        Vector2 refcorner = mPinhole.undistort(refcorner_Distorted);
-        Vector3 projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-        Vector2 projectedcurp_Distorted = mPinhole.distort((Vector2)projectedcurp.hnormalized());
-
-        // Check that the projection is finite
-        //if (!std::isfinite(projectedcurp_Distorted.x()) || !std::isfinite(projectedcurp_Distorted.y())) {
-        //    pair->setNewState(DSORES_OOB);
-        //    return pair->state_energy;
-        //}
-
-        // Check that the projection is inside the current frame, with a padding of 3, to allow the computation of the derivative on the image
-        if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < mWidth - 2 && projectedcurp_Distorted.y() < mHeight - 2)) {
-            pair->setNewState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        // scalar_t refColor = point->getGrayPatch(shift.x(), shift.y(), level);
-        float refColor = pointData->colors[idx];
-
-
-        auto curColorWithGradient = image.interpolate(projectedcurp_Distorted.cast<float>());
-
-        if (!curColorWithGradient.allFinite()) {
-            pair->setState(DSORES_OOB);
-            return pair->state_energy;
-        }
-
-        float curColor = curColorWithGradient(0);
-        Vector2f curColorGradient = curColorWithGradient.tail<2>();
-
-        float curRealColor = curColor;
-        float refRealColor = precomputed.exposureTransition(refColor);
-
-        float residual = curRealColor - refRealColor;
-
-        float hw = fabs(residual) < mHuberThreshold.f() ? 1 : mHuberThreshold.f() / fabsf(residual);
-        float w = sqrtf(mSettingOutlierTHSumComponent.f() / (mSettingOutlierTHSumComponent.f() + curColorGradient.squaredNorm()));
-        w = 0.5f*(w + pointData->weights[idx]);
-
-        energyLeft += w * w * hw * residual * residual * ( 2.0 - hw);
-
-        {
-            if(hw < 1) hw = sqrtf(hw);
-            hw = hw * w;
-
-            float b0 = hostData->getB0(mScaleLightB.f());
-
-            Vector3 hitColor = Vector3(curColor, curColorGradient(0) * hw, curColorGradient(1) * hw);
-            float drdA = curColor - b0;
-
-            pair->rJ.resF[idx] = residual*hw;
-
-            pair->rJ.JIdx[0][idx] = hitColor[1];
-            pair->rJ.JIdx[1][idx] = hitColor[2];
-            pair->rJ.JabF[0][idx] = drdA*hw;
-            pair->rJ.JabF[1][idx] = hw;
-
-            JIdxJIdx_00+=hitColor[1]*hitColor[1];
-            JIdxJIdx_11+=hitColor[2]*hitColor[2];
-            JIdxJIdx_10+=hitColor[1]*hitColor[2];
-
-            JabJIdx_00+= drdA*hw * hitColor[1];
-            JabJIdx_01+= drdA*hw * hitColor[2];
-            JabJIdx_10+= hw * hitColor[1];
-            JabJIdx_11+= hw * hitColor[2];
-
-            JabJab_00+= drdA*drdA*hw*hw;
-            JabJab_01+= drdA*hw*hw;
-            JabJab_11+= hw*hw;
-
-
-            wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
-
-            if (!mOptimizeA.b()) {
-                pair->rJ.JabF[0][idx]=0;
-            }
-            if (!mOptimizeB.b()) {
-                pair->rJ.JabF[1][idx]=0;
-            }
-
-        }
-
-    }
-
-    pair->rJ.JIdx2(0,0) = JIdxJIdx_00;
-    pair->rJ.JIdx2(0,1) = JIdxJIdx_10;
-    pair->rJ.JIdx2(1,0) = JIdxJIdx_10;
-    pair->rJ.JIdx2(1,1) = JIdxJIdx_11;
-    pair->rJ.JabJIdx(0,0) = JabJIdx_00;
-    pair->rJ.JabJIdx(0,1) = JabJIdx_01;
-    pair->rJ.JabJIdx(1,0) = JabJIdx_10;
-    pair->rJ.JabJIdx(1,1) = JabJIdx_11;
-    pair->rJ.Jab2(0,0) = JabJab_00;
-    pair->rJ.Jab2(0,1) = JabJab_01;
-    pair->rJ.Jab2(1,0) = JabJab_01;
-    pair->rJ.Jab2(1,1) = JabJab_11;
-
-    if (!std::isfinite(energyLeft)) {
-        pair->setNewState(DSORES_OOB);
-        return pair->state_energy;
-    }
-    pair->state_NewEnergyWithOutlier = energyLeft;
-
-    if(energyLeft > std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH) || wJI2_sum < 2)
-    {
-        energyLeft = std::max<float>(hostData->frameEnergyTH, targetData->frameEnergyTH);
-        pair->setNewState(DSORES_OUTLIER);
-    }
-    else
-    {
-        pair->setNewState(DSORES_IN);
-    }
-
-    pair->state_NewEnergy = energyLeft;
-    return energyLeft;
 
 }
 
@@ -1665,43 +1771,32 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
 void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrix<Dynamic, Dynamic> &fH, Vector<Dynamic> &fb, bool usePrior) {
 
+    #if CML_USE_OPENMP && OPENMP_UNSTABLE
+        int ompNumThread = omp_get_num_threads();
+    #else
+        int ompNumThread = 1;
+    #endif
     #pragma omp single
     {
-#if CML_USE_OPENMP
-        int ompNumThread = omp_get_num_threads();
-#else
-        int ompNumThread = 1;
-#endif
-        if (fH.rows() != getFrames().size() * 8 + 4) {
-            fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
-            fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
-        } else {
-            fH.setZero();
-            fb.setZero();
-        }
-        if (sdt_tH.size() != ompNumThread) {
-            sdt_tH.resize(ompNumThread);
-            sdt_tb.resize(ompNumThread);
-            for (int i = 0; i < sdt_tH.size(); i++) {
-                sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-                sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
-            }
-        }
-        if (sdt_tH[0].rows() != getFrames().size() * 8 + 4) {
-            for (int i = 0; i < sdt_tH.size(); i++) {
-                sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-                sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
-            }
+        fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
+        fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
+
+        sdt_tH.resize(ompNumThread);
+        sdt_tb.resize(ompNumThread);
+
+        for (int i = 0; i < sdt_tH.size(); i++) {
+            sdt_tH[i] = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
+            sdt_tb[i] = Vector<Dynamic>::Zero(getFrames().size()*8+4);
         }
     }
 
-    #if CML_USE_OPENMP
+    #if CML_USE_OPENMP && OPENMP_UNSTABLE
     #pragma omp for
     #endif
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
-#if CML_USE_OPENMP
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
             int tid = omp_get_thread_num();
 #else
             int tid = 0;
@@ -1709,9 +1804,6 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
             Matrix<Dynamic, Dynamic> &tH = sdt_tH[tid]; // Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
             Vector<Dynamic> &tb = sdt_tb[tid]; //Vector<Dynamic>::Zero(getFrames().size()*8+4);
-
-            tH.setZero();
-            tb.setZero();
 
             int hIdx = 4 + h * 8;
             int tIdx = 4 + t * 8;
@@ -1722,7 +1814,6 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
             if (acc[aidx].num == 0) continue;
 
             Matrix<8 + 4 + 1, 8 + 4 + 1> accH = acc[aidx].H.cast<scalar_t>();
-
 
             tH.block<8, 8>(hIdx, hIdx).noalias() += mAdHost[aidx] * accH.block<8, 8>(4, 4) * mAdHost[aidx].transpose();
 
@@ -1742,15 +1833,14 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
 
             tb.head<4>().noalias() += accH.block<4, 1>(0, 8 + 4);
 
-            #pragma omp critical
-            {
-                fH += tH;
-                fb += tb;
-            }
-
-
-
         }
+    }
+
+    for (int i = 0; i < ompNumThread; i++) {
+
+        fH += sdt_tH[i];
+        fb += sdt_tb[i];
+
     }
 
 #pragma omp single
@@ -1794,6 +1884,7 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
     }
 
     float H = self->Hdd_accAF + self->Hdd_accLF + self->priorF;
+    assertDeterministic("Point H", H);
     if(H < 1e-10) H = 1e-10;
 
     self->setInverseDepthHessian(H);
@@ -1827,6 +1918,10 @@ void CML::Optimization::DSOBundleAdjustment::addToHessianSC(PPoint point, Ptr<DS
             mAccD[r1ht+selfTarget2->id*nFrames2].update(r1->JpJdF, r2->JpJdF, self->HdiF);
         }
 
+        assertDeterministic("JpJdF", r1->JpJdF.norm());
+        assertDeterministic("HdiF", self->HdiF);
+        assertDeterministic("bdSumF", self->bdSumF);
+
         mAccE[r1ht].update(r1->JpJdF, Hcd, self->HdiF);
         mAccEB[r1ht].update(r1->JpJdF,self->HdiF*self->bdSumF);
     }
@@ -1838,16 +1933,32 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
     fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
     fb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
 
-    Mutex mutex;
+    assertDeterministic("fH", fH.norm());
+    assertDeterministic("fb", fb.norm());
 
-    #if CML_USE_OPENMP
-    #pragma omp for collapse(2) schedule(static) ordered
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+    int ompNumThread = omp_get_num_threads();
+#else
+    int ompNumThread = 1;
+#endif
+
+    List<Matrix<Dynamic, Dynamic>> tHall(ompNumThread, Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4));
+    List<Vector<Dynamic>> tball(ompNumThread, Vector<Dynamic>::Zero(getFrames().size()*8+4));
+
+    #if CML_USE_OPENMP && OPENMP_UNSTABLE
+    #pragma omp for collapse(2)
     #endif
     for(size_t i=0;i<getFrames().size();i++) {
         for (size_t j = 0; j < getFrames().size(); j++) {
 
-            Matrix<Dynamic, Dynamic> tH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4);
-            Vector<Dynamic> tb = Vector<Dynamic>::Zero(getFrames().size()*8+4);
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+            int tid = omp_get_thread_num();
+#else
+            int tid = 0;
+#endif
+
+            Matrix<Dynamic, Dynamic> &tH = tHall[tid];
+            Vector<Dynamic> &tb = tball[tid];
 
             int iIdx = 4 + i * 8;
             int jIdx = 4 + j * 8;
@@ -1856,14 +1967,24 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
             mAccE[ijIdx].finish();
             mAccEB[ijIdx].finish();
 
+            assertDeterministic("accEM", mAccE[ijIdx].A1m.norm());
+            assertDeterministic("mAccEB", mAccEB[ijIdx].A1m.norm());
+
             Matrix<8, 4> accEM = mAccE[ijIdx].A1m.cast<scalar_t>();
             Vector<8> accEBV = mAccEB[ijIdx].A1m.cast<scalar_t>();
 
             tH.block<8, 4>(iIdx, 0) += mAdHost[ijIdx] * accEM;
             tH.block<8, 4>(jIdx, 0) += mAdTarget[ijIdx] * accEM;
 
-            fb.segment<8>(iIdx) += mAdHost[ijIdx] * accEBV;
-            fb.segment<8>(jIdx) += mAdTarget[ijIdx] * accEBV;
+            tb.segment<8>(iIdx) += mAdHost[ijIdx] * accEBV;
+            tb.segment<8>(jIdx) += mAdTarget[ijIdx] * accEBV;
+
+            assertDeterministic("adHost", mAdHost[ijIdx].norm());
+            assertDeterministic("adTarget", mAdTarget[ijIdx].norm());
+
+            assertDeterministic("tH", tH.norm());
+            assertDeterministic("tb", tb.norm());
+
 
             for (size_t k = 0; k < getFrames().size(); k++) {
                 int kIdx = 4 + k * 8;
@@ -1875,21 +1996,24 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
                 Matrix<8, 8> accDM = mAccD[ijkIdx].A1m.cast<scalar_t>();
 
                 tH.block<8, 8>(iIdx, iIdx) += mAdHost[ijIdx] * accDM * mAdHost[ikIdx].transpose();
-
                 tH.block<8, 8>(jIdx, kIdx) += mAdTarget[ijIdx] * accDM * mAdTarget[ikIdx].transpose();
-
                 tH.block<8, 8>(jIdx, iIdx) += mAdTarget[ijIdx] * accDM * mAdHost[ikIdx].transpose();
-
                 tH.block<8, 8>(iIdx, kIdx) += mAdHost[ijIdx] * accDM * mAdTarget[ikIdx].transpose();
 
             }
-
-            LockGuard lg(mutex);
-            fH += tH;
-            fb += tb;
-
         }
     }
+
+    for (int i = 0; i < ompNumThread; i++) {
+
+        fH += tHall[i];
+        fb += tball[i];
+
+    }
+
+    assertDeterministic("fH", fH.norm());
+    assertDeterministic("fb", fb.norm());
+
 
     mAccHcc.finish();
     mAccbc.finish();
@@ -1932,11 +2056,21 @@ void CML::Optimization::DSOBundleAdjustment::applyRes(DSOResidual* residual, boo
 
             Vector2f JI_JI_Jd = residual->efsJ.JIdx2 * residual->efsJ.Jpdd;
 
+            assertDeterministic("Jpdd",  residual->efsJ.Jpdd.norm());
+            assertDeterministic("JIdx2",  residual->efsJ.JIdx2.norm());
+
+            assertDeterministic("JI_JI_Jd", JI_JI_Jd.norm());
+            assertDeterministic("Jpdxi[0]", residual->efsJ.Jpdxi[0].norm());
+            assertDeterministic("Jpdxi[1]", residual->efsJ.Jpdxi[1].norm());
+            assertDeterministic("JabJIdx",  residual->efsJ.JabJIdx.norm());
+
             for(int i=0;i<6;i++) {
                 residual->JpJdF[i] = residual->efsJ.Jpdxi[0][i] * JI_JI_Jd[0] + residual->efsJ.Jpdxi[1][i] * JI_JI_Jd[1];
             }
 
             residual->JpJdF.segment<2>(6) = residual->efsJ.JabJIdx * residual->efsJ.Jpdd;
+
+            assertDeterministic("JpJdF applyres", residual->JpJdF.norm());
 
         }
         else
@@ -2151,7 +2285,7 @@ void CML::Optimization::DSOBundleAdjustment::tryMarginalize() {
                     auto targetData =  get(r->elements.frame);
 
                     r->resetOOB();
-                    linearize(r, DSOFramePrecomputed(hostData.p(), targetData.p()));
+                    mLinearizationContext[0].linearize(*this, r, DSOFramePrecomputed(hostData.p(), targetData.p()), 0);
                     r->isLinearized = false;
                     applyRes(r, true);
                     if(r->isActiveAndIsGoodNEW)
@@ -2332,7 +2466,7 @@ void CML::Optimization::DSOBundleAdjustment::marginalizePointsF()
     computeDelta();
     setZero();
 
-    Set<PPoint, Hasher> allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
+    Set<PPoint> allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
 
     if (allPointsToMarg.size() > 0) {
         logger.info("DSO Bundle Adjustment marginalize " + std::to_string(allPointsToMarg.size()) + " points");

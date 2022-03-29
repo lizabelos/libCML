@@ -217,7 +217,7 @@ namespace CML {
                 return step;
             }
 
-            const Set<PPoint, Hasher> &getPoints() const {
+            const Set<PPoint> &getPoints() const {
                 return points;
             }
 
@@ -231,7 +231,7 @@ namespace CML {
 
         protected:
             Set<DSOResidual*> residuals;
-            Set<PPoint, Hasher> points;
+            Set<PPoint> points;
             int numResidualsOut = 0;
             int numMarginalized = 0;
 

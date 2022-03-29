@@ -62,10 +62,22 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
         computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
 
+        if (oldResidual.numTermsInE[level] < 20) {
+            logger.debug("Not enough terms in E");
+            oldResidual.isCorrect = false;
+            return oldResidual;
+        }
+
         while((oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) > 0.6 && levelCutoffRepeat[level] < 50)
         {
             levelCutoffRepeat[level] *= 2;
             computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
+        }
+
+        if (oldResidual.numTermsInE[level] - oldResidual.numSaturated[level] < 10) {
+            logger.error("Not enough terms in E (minus saturated)");
+            oldResidual.isCorrect = false;
+            return oldResidual;
         }
 
         logger.debug("Using cutoff : " + std::to_string(levelCutoffRepeat[level]) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) + " )");
@@ -103,6 +115,26 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             if (!mOptimizeA.b() && !mOptimizeB.b()) {
                 trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().ldlt().solve(-trackerContext->jacobian.head<6>());
                 trackerContext->increment.tail<2>().setZero();
+
+            }
+
+            if (!trackerContext->increment.allFinite()) {
+
+                dumpSystem(trackerContext->dampedHessian, trackerContext->jacobian);
+
+                if (mBackupSolver.b()) {
+                    logger.important("Non finite DSO Tracker increment. Trying to backup");
+                    trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().householderQr().solve(-trackerContext->jacobian.head<6>());
+                    trackerContext->increment.tail<2>().setZero();
+                }
+
+                if (!trackerContext->increment.allFinite()) {
+                    logger.error("Non finite DSO Tracker increment");
+
+                    // break;
+                    oldResidual.isCorrect = false;
+                    return oldResidual;
+                }
             }
 
             scalar_t extrapFac = 1;
@@ -115,15 +147,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             trackerContext->incrementScaled.segment<1>(6) *= mScaleLightA.f();
             trackerContext->incrementScaled.segment<1>(7) *= mScaleLightB.f();
 
-            for (int i = 0; i < 8; i++) {
-                if (!std::isfinite(trackerContext->incrementScaled[i])) {
-                    // trackerContext->incrementScaled.setZero();
-                    logger.error("Non finite DSO Tracker increment");
-                    // break;
-                    oldResidual.isCorrect = false;
-                    return oldResidual;
-                }
-            }
           /*  if(!trackerContext->incrementScaled.allFinite() || trackerContext->incrementScaled.hasNaN()) {
                 trackerContext->incrementScaled.setZero();
                 logger.error("Non finite DSO Tracker increment");
@@ -140,7 +163,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             bool accept = (newResidual.E[level] / (scalar_t)newResidual.numTermsInE[level]) < (oldResidual.E[level] / (scalar_t)oldResidual.numTermsInE[level]);
 
             if (accept) {
-                logger.debug("Accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
                 computeHessian(frameToTrack, mCD, reference->getExposure(), newRefToNew, mNewExposure, level, trackerContext);
                 oldResidual = newResidual;
                 currentRefToNew = newRefToNew;
@@ -149,7 +171,6 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             } else {
 
                 lambda *= 4;
-                logger.debug("Not accepting step. New residual : " + std::to_string(newResidual.rmse(level)) + "; Old residual : " + std::to_string(oldResidual.rmse(level)));
             }
 
             if(trackerContext->increment.norm() < 1e-3)
@@ -470,7 +491,7 @@ void CML::Optimization::DSOTracker::computeHessian(PFrame frameToTrack, DSOTrack
 
 }
 
-void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoint, Hasher> points) {
+void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoint> points) {
 
     auto mNewCD = create(reference);
 

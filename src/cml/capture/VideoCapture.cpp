@@ -198,8 +198,6 @@ void CML::CaptureFFMPEG::ffmpegRun() {
 
         av_packet_unref(&packet);
 
-        usleep(1);
-
     }
 
     if (!isStopped()) {

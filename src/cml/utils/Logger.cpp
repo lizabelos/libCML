@@ -3,9 +3,7 @@
 //
 
 #include "cml/utils/Logger.h"
-#include <stdio.h>
 #include <unistd.h>
-#include <execution>
 #include <fcntl.h>
 
 namespace CML {
@@ -16,7 +14,7 @@ CML::Logger::Logger() : mLevel(MORE) {
 
     mStdout = dup(STDOUT_FILENO);
     mStderr = dup(STDOUT_FILENO);
-
+/*
 #ifdef WIN32
     int devNull = open("nul", O_WRONLY);
     dup2(devNull, STDOUT_FILENO);
@@ -25,7 +23,7 @@ CML::Logger::Logger() : mLevel(MORE) {
     int devNull = open("/dev/null", O_WRONLY);
     dup2(devNull, STDOUT_FILENO);
     dup2(devNull, STDERR_FILENO);
-#endif
+#endif*/
 }
 
 void CML::Logger::redirect(std::string filename) {

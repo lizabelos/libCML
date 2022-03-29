@@ -69,6 +69,29 @@ namespace CML {
             return Vector2f((input.x() - (float)mC.x()) * (float)mFinv.x(), (input.y() - (float)mC.y()) * (float)mFinv.y());
         }
 
+
+
+        EIGEN_STRONG_INLINE void distort(const Vector2d &input, Vector2d &result) const {
+            result[0] = input.x() * mF.x() + mC.x();
+            result[1] = input.y() * mF.y() + mC.y();
+        }
+
+        EIGEN_STRONG_INLINE void undistort(const Vector2d &input, Vector2d &result) const {
+            result[0] =(input.x() - mC.x()) * mFinv.x();
+            result[1] = (input.y() - mC.y()) * mFinv.y();
+        }
+
+        EIGEN_STRONG_INLINE void distort(const Vector2f &input, Vector2f &result) const {
+            result[0] = input.x() * mF.x() + mC.x();
+            result[1] = input.y() * mF.y() + mC.y();
+        }
+
+        EIGEN_STRONG_INLINE void undistort(const Vector2f &input, Vector2f &result) const {
+            result[0] =(input.x() - mC.x()) * mFinv.x();
+            result[1] = (input.y() - mC.y()) * mFinv.y();
+        }
+
+
         EIGEN_STRONG_INLINE Matrix33 getK() const {
             Matrix33 K = Matrix33::Identity();
             K(0, 0) = mF.x();
@@ -364,11 +387,25 @@ namespace CML {
             return mNewPinholeLevels[lvl];
         }
 
-        template <typename T> Array2D<T> removeDistortion(const Array2D<T> &input, int outputWidth = 0, int outputHeight = 0) const {
+        template <typename T> Array2D<T> removeDistortion(Array2D<T> input, int outputWidth = 0, int outputHeight = 0) const {
 
             if (mPreundistorter == nullptr) return input;
 
             assertThrow(input.getWidth() == mOriginalSize.x() && input.getHeight() == mOriginalSize.y(), "Invalid input size");
+
+            float factor = 1.0f;
+            while (true) {
+                if (input.getWidth() / 2 > outputWidth && input.getHeight() / 2 > outputHeight) {
+                    input = input.reduceByTwo();
+                    factor = factor * 0.5f;
+                } else break;
+            }
+
+            logger.important(
+                    "Using a factor of " + std::to_string(factor) + " for calibration undistortion ("
+                    + std::to_string(input.getWidth()) + "x" + std::to_string(input.getHeight()) + " ===> "
+                    + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + ")"
+                    );
 
             Array2D<T> output(mNewSize.x(), mNewSize.y(), 0.0f);
 
@@ -379,7 +416,7 @@ namespace CML {
             #endif
             for (int i = 0; i < wh; i++) {
                 if (std::isfinite(mUndistortMap.data()[i][0])) {
-                    output.data()[i] = input.interpolate(mUndistortMap.data()[i]);
+                    output.data()[i] = input.interpolate(mUndistortMap.data()[i] * factor);
                 }
             }
 
@@ -460,7 +497,7 @@ namespace CML {
 
     InternalCalibration* parseInternalEurocCalibration(std::string path, Vector2i outputSize);
 
-    InternalCalibration* parseInternalStereopolisCalibration(std::string path, Vector2i outputSize, int top, int bottom);
+    InternalCalibration* parseInternalStereopolisCalibration(std::string path, Vector2i outputSize);
 
 }
 

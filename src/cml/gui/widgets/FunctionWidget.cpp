@@ -73,6 +73,11 @@ CML::FunctionWidget::FunctionWidget(Ptr<AbstractFunction, NonNullable> function,
 
     for (PStatistic statistic : function->getStatistics()) {
 
+        QLabel *label = new QLabel(QString::fromStdString(statistic->getName()));
+        mStatisticsLayout.addWidget(label);
+
+        line++;
+
         StatisticWidget *statisticWidget = new StatisticWidget(statistic);
         mStatisticsLayout.addWidget(statisticWidget);
 

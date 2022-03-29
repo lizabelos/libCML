@@ -173,7 +173,7 @@ namespace CML {
         /**
          * @return Return the translation of the camera
          */
-        EIGEN_STRONG_INLINE Vector3 getTranslation() const {
+        EIGEN_STRONG_INLINE const Vector3 &getTranslation() const {
             return mTranslation;
         }
 
@@ -202,7 +202,7 @@ namespace CML {
         /**
          * @return Return the rotation of the camera in the form of a 3x3 rotation matrix
          */
-        EIGEN_STRONG_INLINE Matrix33 getRotationMatrix() const {
+        EIGEN_STRONG_INLINE const Matrix33 &getRotationMatrix() const {
             return mRotation;
         }
 

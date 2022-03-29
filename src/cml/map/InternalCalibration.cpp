@@ -15,6 +15,7 @@
 
 // From OSBRLAM
 namespace CML {
+
     Pair<PinholeUndistorter, Array2D<Vector2f>> makeOptimalK_crop(PinholeUndistorter originalPinhole, Undistorter *preundistorter, Vector2i originalSize, Vector2i newSize) {
         Array2D<Vector2f> undistortMap(newSize.x(), newSize.y());
         float *remapX = new float[newSize.x() * newSize.y()];
@@ -324,7 +325,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
 }
 
 
-CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize, int top, int bottom) {
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize) {
     rapidxml::xml_document doc;
 
     std::ifstream file(path);
@@ -356,19 +357,19 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
 
         auto res = makeOptimalK_crop(pinhole, fishEye1055, size.cast<int>(), outputSize);
         Vector4 params = res.first.getParameters();
-        float nonCroppedHeight = size.y() * outputSize.x() / size.x();
+        //float nonCroppedHeight = size.y() * outputSize.x() / size.x();
         // logger.important(" NON CROPPED : " + std::to_string(nonCroppedHeight));
 
-        params(1) *= nonCroppedHeight / outputSize.y();
+        //params(1) *= nonCroppedHeight / outputSize.y();
 
-        params(3) = -nonCroppedHeight/2 + std::min((bottom - top), 480)
-        + 1.4f * (nonCroppedHeight - (bottom * nonCroppedHeight /size.y()));
+        //params(3) = -nonCroppedHeight/2 + std::min((bottom - top), 480)
+        //+ 1.4f * (nonCroppedHeight - (bottom * nonCroppedHeight /size.y()));
 
         // logger.important("PARAMS = " + std::to_string(params(0)) + " " + std::to_string(params(1)) + " " + std::to_string(params(2)) + " " + std::to_string(params(3)));
 
         PinholeUndistorter newpinhole(params);
 
-        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, newpinhole, outputSize.cast<scalar_t>());
+        return new InternalCalibration(pinhole, size.cast<scalar_t>(), fishEye1055, params, outputSize.cast<scalar_t>());
 
     }
     else {

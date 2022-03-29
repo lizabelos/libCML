@@ -32,7 +32,7 @@ CML::Map::Map() {
 
 CML::Map::~Map() {
 
-    Set<PPoint, Hasher> points = mMapPoints;
+    Set<PPoint> points = mMapPoints;
     for (auto point : points) {
         removeMapPoint(point);
     }
@@ -137,7 +137,7 @@ void CML::Map::removeMapPoint(PPoint mapPoint, bool singleHolder) {
 
     assertThrow(!mapPoint->isGroup(0), "Some strange bug");
 
-    Set<PFrame, Hasher> frames;
+    Set<PFrame> frames;
     for (auto frame : mapPoint->getDirectApparitions()) {
         frames.insert(frame);
     }
@@ -197,14 +197,14 @@ void CML::Map::addFrame(PFrame frame) {
         }
     }
     {
-        LockGuard lg(mObserversMutex);
+        //LockGuard lg(mObserversMutex);
         for (Observer *observer : mObservers) {
             observer->onAddFrame(*this, frame);
         }
     }
 }
 
-CML::Set<CML::PPoint, CML::Hasher> CML::Map::getMapPoints() {
+CML::Set<CML::PPoint> CML::Map::getMapPoints() {
     LockGuard lg(mMapPointsMutex);
     return mMapPoints;
 }
@@ -213,7 +213,7 @@ int CML::Map::getMapPointsNumber() {
     return mMapPoints.size();
 }
 
-CML::Set<CML::PPoint, CML::Hasher> CML::Map::getGroupMapPoints(int groupId) {
+CML::Set<CML::PPoint> CML::Map::getGroupMapPoints(int groupId) {
     LockGuard lg(mGroupsMapPointMutexes[groupId]);
     return mGroupsMapPoint[groupId];
 }
@@ -368,7 +368,6 @@ void CML::Map::onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {
         }
     }
     {
-        LockGuard lg(mObserversMutex);
         for (Observer *observer : mObservers) {
             observer->onMapPointChangeGroup(*this, mapPoint, groupId, state);
         }
@@ -391,7 +390,7 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
-    HashMap<OptPFrame, int, Hasher> candidates;
+    HashMap<OptPFrame, int> candidates;
     List<PFrame> mTmpIndirectApparitions;
     mTmpIndirectApparitions.reserve(1000);
     for (auto [index, point] : frame->getMapPoints()) {
@@ -455,7 +454,7 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
-    HashMap<OptPFrame, int, Hasher> candidates;
+    HashMap<OptPFrame, int> candidates;
     List<PFrame> mTmpDirectApparitions;
     mTmpDirectApparitions.reserve(1000);
     for (auto point : frame->getMapPointsApparitions()) {
@@ -531,27 +530,21 @@ void CML::Map::refreshErrorFromGroundtruth() {
 
 }
 
-void CML::Map::exportResults(std::string path, MapResultFormat format, bool align) {
+void CML::Map::exportResults(std::string path, MapResultFormat format, bool exportGroundtruth) {
 
     logger.important("Writing the results to " + path);
 
     List<Camera> cameras;
-    List<Optional<Camera>> groundtruth;
-    List<bool> iskeyframe;
 
     for (auto frame : getFrames()) {
-        cameras.emplace_back(frame->getCamera());
-        groundtruth.emplace_back(frame->getCaptureFrame().getGroundtruth());
-        iskeyframe.emplace_back(frame->isGroup(KEYFRAME));
+        if (exportGroundtruth) {
+            cameras.emplace_back(frame->getCaptureFrame().getGroundtruth().value());
+        } else {
+            cameras.emplace_back(frame->getCamera());
+        }
     }
 
     std::reverse(cameras.begin(), cameras.end());
-    std::reverse(groundtruth.begin(), groundtruth.end());
-    std::reverse(iskeyframe.begin(), iskeyframe.end());
-
-    if (align) {
-        Evaluation::align(cameras, groundtruth, cameras);
-    }
 
     logger.important("Writing " + std::to_string(cameras.size()) + " poses");
 
@@ -595,15 +588,6 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool alig
 
         for (int i = 0; i < cameras.size(); i++)
         {
-            if (align && groundtruth[i].has_value()) {
-                ateAllframesRMSE += (cameras[i].eye() - groundtruth[i].value().eye()).squaredNorm();
-                if (iskeyframe[i]) {
-                    ateKeyframesRMSE += (cameras[i].eye() - groundtruth[i].value().eye()).squaredNorm();
-                    ateKeyframesN++;
-                }
-                ateAllframesN++;
-            }
-
             Matrix34 pose = cameras[i].nullspaceCameraMatrix34();
 
             bool isFirst = true;

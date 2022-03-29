@@ -1,5 +1,4 @@
 #include "cml/features/corner/BRIEF.h"
-#include "cml/features/corner/FAST.h"
 #include "BRIEFPattern.cpp"
 
 void CML::Features::BRIEF::compute(const CaptureImage &frame, List<Corner> &corners, List<Binary256Descriptor> &descriptors) {
@@ -8,7 +7,7 @@ void CML::Features::BRIEF::compute(const CaptureImage &frame, List<Corner> &corn
 #else
     auto image = frame.getGrayImage(0).cast<unsigned char>();
 #endif
-    FAST::compute(image, corners, mThreshold.i(), FAST_9, true);
+    mFast.compute(image, corners, mThreshold.i());
     descriptors.resize(corners.size());
     for (size_t i = 0; i < corners.size(); i++) {
         descriptors[i] = computeDescriptor(image, corners[i]);

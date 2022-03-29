@@ -6,8 +6,17 @@
 #if CML_HAVE_LIBZIP
 
 #include "ZipCaptureHelper.h"
+#include "cml/image/Filter.h"
 
 namespace CML {
+
+    class StereopolisPose {
+
+    public:
+        float time;
+        Matrix44 transformMatrix;
+    };
+
 
     class ZipStereopolisCapture : public AbstractMultithreadFiniteCapture, public ZipCaptureHelper {
 
@@ -26,28 +35,54 @@ namespace CML {
             auto images = loadTiffImage(data, size);
             mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
 
-            mLookupTable = GrayLookupTable::exp(255, 1.005f);
+            mLookupTable = GrayLookupTable::gammaDecode();
 
-            // int top = 1000, bottom = images.first.getHeight() - 1;
-            int top = 1000, bottom = 1600;
+            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
 
-            for (int y = 0; y < images.first.getHeight(); y++) {
-                for (int x = 0; x < images.first.getWidth(); x++) {
-                    if (mMask(x,y) < 128 /*|| images.first(x,y) > 254*/) {
-                        if (y < images.first.getHeight() / 2) {
-                            top = std::max(top, y);
-                        } else {
-                            bottom = std::min(bottom, y);
-                        }
-                    }
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
+
+
+            std::ifstream timesFile(zipPath + ".times.txt");
+            if (timesFile.is_open()) {
+                std::string line;
+                while (getline (timesFile,line))
+                {
+                    std::vector<std::string> values;
+                    split(line, values, ' ');
+
+                    mTimes.emplace_back(my_stod(values[1]));
+
                 }
+
+                timesFile.close();
+            } else {
+                throw std::runtime_error("Missing times");
             }
 
+            std::ifstream posesFile(zipPath + ".gt.txt");
+            if (posesFile.is_open()) {
 
-            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), (bottom - top));
+                std::string line;
+                while (getline (posesFile,line))
+                {
+                    std::vector<std::string> values;
+                    split(line, values, ' ');
 
-            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize(), top, bottom);
+                    StereopolisPose pose;
+                    pose.time = my_stod(values[0]);
+                    pose.transformMatrix = Matrix44::Identity();
+                    for (size_t i = 1; i< values.size(); i++) {
+                        pose.transformMatrix((i - 1) / 4, (i - 1) % 4) = my_stod(values[i]);
+                    }
 
+                    mPoses.emplace_back(pose);
+
+                }
+
+                posesFile.close();
+            } else {
+                throw std::runtime_error("Missing groundtruth");
+            }
 
 
         }
@@ -66,32 +101,40 @@ namespace CML {
             size_t size;
             std::string decompressedFilePath = decompressFile(mCurrentImage, &data, &size);
             auto images = loadTiffImage(data, size);
-            /*if (mCurrentImage < 10) {
-                images.second.horizontalFlip().saveBmp(decompressedFilePath + ".bmp");
-            }*/
-            // images.first = images.second.toGrayImage();
-            //images.first = images.first * (255.0f / mImageMax);
 
             for (int y = 0; y < images.first.getHeight(); y++) {
                 for (int x = 0; x < images.first.getWidth(); x++) {
-                    if (mMask(x,y) < 128) {
-                        images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
-                        images.second(x,y) = ColorRGBA(0,255,0,255);
-                    }
-            /*        else if (images.first(x,y) > 255.9) {
+                    if (mMask(x,y) < 128 || (y < images.first.getHeight() / 3 && images.first(x,y) > 250)) {
                         images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
                         images.second(x,y) = ColorRGBA(0,0,0,0);
-                    } */
+                    }
                 }
             }
 
+
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
             imageMaker.setImage(images.first)
-                    .setImage(images.second)
+              //      .setImage(images.second)
                     .setPath(decompressedFilePath)
                     .setTime((scalar_t)mCurrentImage / 10.0)
                     .setCalibration(mCameraParameters)
                     .setLut(&mLookupTable);
+
+            if (mPoses.size() > 0) {
+
+                float currentTime = mTimes[mCurrentImage];
+
+                int poseId = 0;
+                float bestDistance = std::numeric_limits<float>::max();
+                for (int i = 0; i < mPoses.size(); i++) {
+                    if (abs(currentTime - mPoses[i].time) < bestDistance) {
+                        bestDistance = abs(currentTime - mPoses[poseId].time);
+                        poseId = i;
+                    }
+                }
+
+                imageMaker.setGroundtruth(Camera::fromNullspaceMatrix(mPoses[poseId].transformMatrix));
+            }
 
             mCurrentImage++;
 
@@ -101,9 +144,11 @@ namespace CML {
     private:
         CaptureImageGenerator *mCaptureImageGenerator;
         InternalCalibration *mCameraParameters;
-        int mCurrentImage = 1;
+        int mCurrentImage = 0;
         GrayImage mMask;
         GrayLookupTable mLookupTable;
+        List<StereopolisPose> mPoses;
+        List<float> mTimes;
 
 
     };

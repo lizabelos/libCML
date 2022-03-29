@@ -24,7 +24,21 @@ MODSLAM is a mixed ORB-SLAM2 and DSO SLAM system. If you are using this work, pl
 
 # 3. Compilation
 
+**Minimum Ubuntu Version :** 20
+
+**Minimum Fedora Version :** 34
+
 ## a. Windows, Linux and Mac
+
+Required packages : 
+```bash
+apt install libsuitesparse-dev
+```
+
+Optional packages :
+```bash
+apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+```
 
 We recommend you to use CLion from Jetbrains to build and test.
 Otherwise, you can :
@@ -68,6 +82,66 @@ Here is a list of arguments you can pass to the executable :
 -l log.txt # Write the log to a file
 -s path_to_images # Export the 3D rendering to a ton of .jpeg files at specified folder
 -z # Print the statistics at each iteration. Used for python script and result analasys.
+```
+
+# 5. Datasets
+
+## KITTI Odometry
+
+Download here : https://www.cvlibs.net/datasets/kitti/eval_odometry.php
+ - Gray Scale Required
+ - Color Optional
+ - Groundtruth Optional
+
+```
+/KITTI
+├── dataset
+│   ├── poses
+│   │   ├── 00.txt
+│   │   ├── 01.txt
+│   │   ├── 02.txt
+│   │   ├── 03.txt
+│   │   ├── 04.txt
+│   │   ├── 05.txt
+│   │   ├── 06.txt
+│   │   ├── 07.txt
+│   │   ├── 08.txt
+│   │   ├── 09.txt
+│   │   └── 10.txt
+│   └── sequences
+│       ├── 00
+│       ├── 01
+│       ├── 02
+│       ├── 03
+│       ├── 04
+│       ├── 05
+│       ├── 06
+│       ├── 07
+│       ├── 08
+│       ├── 09
+│       ├── 10
+```
+
+```bash
+cd build
+./modslam -d /KITTI/dataset/sequences/02
+```
+
+
+## Stereopolis
+
+```
+/Stereopolis
+├── Camera_0.zip
+├── Camera_0.gt.txt
+├── Camera_0.mask.png
+├── Camera_0.times.txt
+├── Camera_0.xml
+```
+
+```bash
+cd build
+./modslam -d /Stereopolis/Camera_0.zip
 ```
 
 # 5. Evaluation

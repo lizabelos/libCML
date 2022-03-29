@@ -10,6 +10,7 @@
 #include <dirent.h>
 #endif
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseLU>
@@ -100,6 +101,35 @@ namespace CML {
         }
     }
 
+    inline double my_stod (std::string const& s) {
+        std::istringstream iss (s);
+        iss.imbue (std::locale("C"));
+        double d;
+        iss >> d;
+        // insert error checking.
+        return d;
+    }
+
+    inline size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+    {
+        size_t pos = txt.find( ch );
+        size_t initialPos = 0;
+        strs.clear();
+
+        // Decompose statement
+        while( pos != std::string::npos ) {
+            strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+            initialPos = pos + 1;
+
+            pos = txt.find( ch, initialPos );
+        }
+
+        // Add the last one
+        strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+        return strs.size();
+    }
+
     inline std::vector<std::string> listDirectory(std::string path, std::string ext = "") {
 
         std::vector<std::string> result;
@@ -150,19 +180,30 @@ namespace CML {
 #define assertThrow(EXPRESSION, MSG)
 #endif
 
+    void initCML();
+    void setMainThread();
+
+#if TEST_DETERMINISITY
+    void _assertDeterministic(const std::string &value);
+
     template <typename T> inline void assertDeterministic(const std::string &msg, T value) {
-        //logger.raw(std::to_string(value) + "  |  " + msg + "\n");
+        _assertDeterministic(std::to_string(value) + "  |  " + msg + "\n");
     }
 
     inline void assertDeterministic(const std::string &msg) {
-        //logger.raw(msg + "\n");
+        _assertDeterministic(msg + "\n");
     }
+#else
+    template <typename T> inline void assertDeterministic(const std::string &msg, T value) {}
+    inline void assertDeterministic(const std::string &msg) {}
+#endif
 
     inline void setThreadName(std::string name) {
         pthread_setname_np(pthread_self(), name.c_str());
     }
 
     struct Hasher;
+    struct Comparator;
 
     template <typename T, typename U>
             using Pair = std::pair<T, U>;
@@ -173,11 +214,13 @@ namespace CML {
     template <typename T>
             using LinkedList = std::list<T, Eigen::aligned_allocator<T>>;
 
-    template <typename T, typename H = Hasher>
-            using Set = spp::sparse_hash_set<T, H, std::equal_to<T>>;
+    //template <typename T, typename H = Hasher>
+    //        using Set = spp::sparse_hash_set<T, H, std::equal_to<T>>;
 
-    template <typename T, typename C=std::less<T>>
+    template <typename T, typename C= Comparator>
             using OrderedSet = std::set<T, C, Eigen::aligned_allocator<T>>;
+    template <typename T, typename C= Comparator>
+            using Set = std::set<T, C, Eigen::aligned_allocator<T>>;
 
     template <typename T, typename U, typename H = Hasher>
             using HashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
@@ -893,13 +936,13 @@ namespace CML {
 
     class Map;
 
-    extern Atomic<size_t> mHashCounter;
+    extern Atomic<size_t> *mHashCounter;
 
     class DeterministicallyHashable {
 
     public:
         inline DeterministicallyHashable() {
-            mHash = mHashCounter++;
+            mHash = (*mHashCounter)++; // todo : need one hash for each thread ? noooo. this need to be really really really deterministic... attach it to the map maybe (the hash). make a virtual function get map or something like that ?
         }
 
         inline size_t hash() const {
@@ -943,15 +986,18 @@ namespace CML {
         inline size_t operator()(size_t a, size_t b) const {
             return a > b;
         }
+        inline size_t operator()(const std::string &a, const std::string &b) const {
+            return a > b;
+        }
     };
 
 
 
-    template <typename T> using FrameHashMap = HashMap<PFrame, T, Hasher>;
-    template <typename T> using PointHashMap = HashMap<PPoint, T, Hasher>;
+    template <typename T> using FrameHashMap = HashMap<PFrame, T>;
+    template <typename T> using PointHashMap = HashMap<PPoint, T>;
 
-    using FrameSet = Set<PFrame, Hasher>;
-    using PointSet = Set<PPoint, Hasher>;
+    using FrameSet = Set<PFrame>;
+    using PointSet = Set<PPoint>;
 
     class PrivateData;
 
@@ -1056,6 +1102,8 @@ namespace CML {
         }
 
         Corner(const DistortedVector2d &p) : mX(p.x()), mY(p.y()) {
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
 
         }
 
@@ -1076,22 +1124,30 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE DistortedVector2d point0() const {
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
              return DistortedVector2d(mX, mY);
         }
 
         EIGEN_STRONG_INLINE void scalePoint(scalar_t s) {
             mX *= s;
             mY *= s;
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
         }
 
         EIGEN_STRONG_INLINE void scalePoint(scalar_t sx, scalar_t sy) {
             mX *= sx;
             mY *= sy;
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
         }
 
         EIGEN_STRONG_INLINE void padPoint(scalar_t x, scalar_t y) {
             mX += x;
             mY += y;
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
         }
 
         EIGEN_STRONG_INLINE int level() const {

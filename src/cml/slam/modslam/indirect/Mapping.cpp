@@ -131,10 +131,6 @@ void Hybrid::keyframeCulling() {
             continue;
         }
 
-        if (keyframes[centerframe]->isGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP)) {
-            continue;
-        }
-
         if (!keyframes[centerframe - 1]->isGroup(INDIRECTKEYFRAME)) {
             continue;
         }
@@ -143,7 +139,7 @@ void Hybrid::keyframeCulling() {
             continue;
         }
 
-        int shared = keyframes[centerframe - 1]->sharedIndirect(keyframes[centerframe + 1]);
+        int shared = keyframes[centerframe - 1]->shared(getMap().INDIRECTGROUP, keyframes[centerframe + 1]);
         if (shared > 100) { // todo : check the repartitions of the points
             keyframes[centerframe]->setGroup(INDIRECTKEYFRAME, false);
           //  keyframes[centerframe]->addDeform(keyframes[centerframe - 1], keyframes[centerframe + 1]);
@@ -412,7 +408,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     // Retrieve neighbor keyframes
     int nn=20;
 
-    Set<PFrame, Hasher> covisibleFrames;
+    Set<PFrame> covisibleFrames;
     for(auto pKFi : getMap().processIndirectCovisiblity(currentFrame, nn, INDIRECTKEYFRAME))
     {
         covisibleFrames.insert(pKFi);
@@ -443,7 +439,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     }
 
 
-    Set<PPoint, Hasher> covisibleMapPointsSet;
+    Set<PPoint> covisibleMapPointsSet;
 
     for(auto frame : covisibleFrames) {
         for (auto point : frame->getGroupMapPoints(getMap().INDIRECTGROUP)) {

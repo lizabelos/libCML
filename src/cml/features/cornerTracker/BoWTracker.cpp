@@ -777,11 +777,11 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
     return matchings;
 }
 
-Set<PPoint, Hasher> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints) {
+Set<PPoint> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints) {
 
     auto cornersA = A.frame->getFeaturePoints(A.group);
 
-    Set<PPoint, Hasher> fused;
+    Set<PPoint> fused;
 
     for (auto point : mapPoints) {
 

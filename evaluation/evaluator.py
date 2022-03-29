@@ -163,6 +163,12 @@ class EvoEvaluator:
                                                                              groundtruth_path=context.d.g)
             else:
                 estimate = file_interface.read_tum_trajectory_file(context.outputtum())
+        elif context.d.type() == "stereopolis":
+            if context.d.g is not None:
+                estimate, reference = EvoEvaluator.read_tum_trajectory_file2(file_path=context.outputtum(),
+                                                                             groundtruth_path=context.outputtum().replace(".tum.txt",".gt.tum.txt"))
+            else:
+                estimate = file_interface.read_tum_trajectory_file(context.outputtum())
         elif context.d.type() == "kitti":
             estimate = file_interface.read_kitti_poses_file(context.outputkitti())
             if context.d.g is not None:
@@ -189,14 +195,14 @@ class SysEvoEvaluator:
         self.type = type
 
     def ape_rmse(self):
-        out, err = system("evo_ape %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
+        out, err, tim = system("evo_ape %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
         out = out.replace(" ","").split("\n")
         out = [x for x in out if x.startswith("rmse")][0][4:]
         out = float(out)
         return out
 
     def rpe_rmse(self):
-        out, err = system("evo_rpe %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
+        out, err, tim = system("evo_rpe %s %s %s --align --correct_scale" % (self.type, self.ref, self.est))
         out = out.replace(" ","").split("\n")
         out = [x for x in out if x.startswith("rmse")][0][4:]
         out = float(out)
@@ -220,14 +226,14 @@ def fromslam(context):
     res = None
     try:
         res = EvoEvaluator.fromslam(context)
-        addResultToJson(h, p, res.ape_rmse(), context.d.name(), statistics=context.getStats())
+        addResultToJson(h, p, res.ape_rmse(), context.d.name(), context.getTime(), statistics=context.getStats())
     except:
-        addResultToJson(h, p, context.getError(), context.d.name())
+        addResultToJson(h, p, context.getError(), context.d.name(), context.getTime())
     return res
     #return SysEvoEvaluator.fromslam(context)
 
 def evaluateOn(context, dataset):
-    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name())
+    r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name(), contextToUpdate=context)
     if r is not None:
         return r
     context.run(dataset)

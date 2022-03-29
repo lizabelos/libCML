@@ -254,12 +254,12 @@ namespace CML {
 
                 Exposure initialExposure = frameToTrack->getExposure();
 
-                List<Camera> cameras = constantVelocityMotionModel(lastCamera, prelast);
+                List<Camera> cameras = getMap().multiConstantVelocityMotionModel(frameToTrack);
 
                 size_t i = 0;
                 for (; i < cameras.size(); i++)
                 {
-                    testCamera = frameToTrack->getCamera() * cameras[i];
+                    testCamera = cameras[i];
 
                     {
                         LockGuard lg(mLastCameraMutex);
@@ -308,6 +308,10 @@ namespace CML {
                         break;
                     }
 
+                    if (haveOneGood && i >= 50) {
+                        break;
+                    }
+
                 }
 
                 if(i != 0)
@@ -319,7 +323,7 @@ namespace CML {
                 {
                     if (mFailureMode.i() == 1) {
                         logger.error("Big error ! Hope we can recover... (Mode 1)");
-                        camera = frameToTrack->getCamera() * cameras[0];
+                        camera = cameras[0];
 
                         exposure.setParametersAndExposure(frameToTrack->getExposure());
                         exposure.setParameters(initialExposure);
@@ -330,7 +334,7 @@ namespace CML {
                         haveOneGood = true;
                     } else if (mFailureMode.i() == 2) {
                         logger.error("Big error ! Hope we can recover... (Mode 2)");
-                        camera = frameToTrack->getCamera() * cameras[0];
+                        camera = cameras[0];
 
                         exposure.setParametersAndExposure(frameToTrack->getExposure());
                         exposure.setParameters(initialExposure);
@@ -403,7 +407,7 @@ namespace CML {
                 return rmse;
             }
 
-            void makeCoarseDepthL0(PFrame reference, Set<PPoint, Hasher> points);
+            void makeCoarseDepthL0(PFrame reference, Set<PPoint> points);
 
             void viewOnCapture(DrawBoard &drawBoard, PFrame frame) final;
 
@@ -512,6 +516,8 @@ namespace CML {
 
             Parameter mFailureMode = createParameter("failureMode", 0);
             Parameter mSaturatedRatioThreshold = createParameter("saturatedThreshold", 0.33);
+
+            Parameter mBackupSolver = createParameter("backupSolver", false);
 
         };
 

@@ -26,26 +26,35 @@ namespace CML {
             return table;
         }
 
-        static GrayLookupTable log(float maxValue = 255.0f) {
-            float C = 255.0f / log10f(1.0f + maxValue);
+        static float gammaEncode(float v, scalar_t gamma = 2.2) {
+            return pow((scalar_t)v / 255.0,1.0 / gamma) * 255.0;
+        }
 
+        static float gammaDecode(float v, scalar_t gamma = 2.2) {
+            return pow((scalar_t)v / 255.0,gamma) * 255.0;
+        }
+
+        static double gammaEncode(double v, scalar_t gamma = 2.2) {
+            return pow((scalar_t)v / 255.0,1.0 / gamma) * 255.0;
+        }
+
+        static double gammaDecode(double v, scalar_t gamma = 2.2) {
+            return pow((scalar_t)v / 255.0,gamma) * 255.0;
+        }
+
+        static GrayLookupTable gammaEncode(scalar_t gamma = 2.2) {
             Vectorf<256> values;
             for (int i = 0; i < 256; i++) {
-                values[i] = C * log10f(1 + i);
+                values[i] = pow((scalar_t)i / 255.0,1.0 / gamma) * 255.0;
             }
-
             return GrayLookupTable(values);
         }
 
-        static GrayLookupTable exp(float maxValue = 255.0f, float base = 1.02f) {
-
-            float C = 255.0f / (pow(base, maxValue) - 1);
-
+        static GrayLookupTable gammaDecode(scalar_t gamma = 2.2) {
             Vectorf<256> values;
             for (int i = 0; i < 256; i++) {
-                values[i] = C * (pow(base, i) - 1);
+                values[i] = pow((scalar_t)i / 255.0,gamma) * 255.0;
             }
-
             return GrayLookupTable(values);
         }
 

@@ -22,15 +22,12 @@ Hybrid::Hybrid() : AbstractSlam() {
 
     if (mEnableIndirect.b()) {
         mCornerExtractor = new CornerAndDescriptor(this, 2000);
-        mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
 
         mInitTracker = new Features::BoWTracker(this, 0.9, true);
         mMotionModelTracker = new Features::BoWTracker(this, 0.9, true);
         mReferenceTracker = new Features::BoWTracker(this, 0.7, true);
         mLocalPointsTracker = new Features::BoWTracker(this, 0.8, false);
         mTriangulationTracker = new Features::BoWTracker(this, 0.6, false);
-
-        mRelocalizer = new Features::Relocalization(this, mCornerExtractor->getVocabulary());
 
         mTriangulator = new Hartley2003Triangulation(this);
         mInitializer = new Robust::RobustRaulmurInitializer(this);
@@ -73,12 +70,16 @@ void Hybrid::onReset() {
     mDirectNeedToKetchupMatching = false;
     mFirstTrackingMatchingNumber = -1;
     mBaMode = BADIRECT;
-    mFrameToFree = HashMap<PFrame, int, Hasher>();
-    mLocalKeyFrames = Set<PFrame, Hasher>();
+    mFrameToFree = HashMap<PFrame, int>();
+    mLocalKeyFrames = Set<PFrame>();
     mLastRelocFrame = nullptr;
 }
 
 void Hybrid::run() {
+
+    assertDeterministic("Run");
+    mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
+
 
     mPhotometricBA->setMixedBundleAdjustment(mMixedBundleAdjustment.b());
 
@@ -321,15 +322,8 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
      }*/
 
     if (mEnableDirect.b()) {
-        if (!mTrackingOk) {
-            currentFrame->setGroup(RECOVEREDFRAME, true);
-            mTrackingOk = mPhotometricTracker->trackWithMotionModel(currentFrame, mPhotometricTracker->getLastComputed(), getMap().getLastFrame(1)->getCamera(),getMap().getLastFrame(2)->getCamera(), mLastPhotometricTrackingResidual);
-            if (mTrackingOk) {
-                mTrackedWithDirect = true;
-                mode = mode + 0;
-                modeSum = modeSum + 2;
-            }
-        } else {
+
+        if (mTrackingOk) {
             currentFrame->setGroup(ORBTRACKEDFRAME, true);
             Camera camera = currentFrame->getCamera();
             Exposure exposure = currentFrame->getExposure();
@@ -339,6 +333,10 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 logger.info("Refined with DSO");
                 mode = mode + 0;
                 modeSum = modeSum + 1;
+            } else {
+                if (mCheckPoseEstimationWithDso.b()) {
+                    mTrackingOk = false;
+                }
             }
             if (mLastPhotometricTrackingResidual.isCorrect) {
                 mPhotometricTracker->addStatistic(mLastPhotometricTrackingResidual, exposure);
@@ -346,6 +344,16 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
                 modeSum = modeSum + 1;
                 mTrackedWithDirect = true;
                 currentFrame->setExposureParameters(exposure);
+            }
+        }
+
+        if (!mTrackingOk) {
+            currentFrame->setGroup(RECOVEREDFRAME, true);
+            mTrackingOk = mPhotometricTracker->trackWithMotionModel(currentFrame, mPhotometricTracker->getLastComputed(), getMap().getLastFrame(1)->getCamera(),getMap().getLastFrame(2)->getCamera(), mLastPhotometricTrackingResidual);
+            if (mTrackingOk) {
+                mTrackedWithDirect = true;
+                mode = mode + 0;
+                modeSum = modeSum + 2;
             }
         }
     }
@@ -404,10 +412,13 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
         mLastDirectKeyFrame->setGroup(DIRECTKEYFRAME, true); // Need to do this to save the capture frame
         if (mEnableNeuralNetwork.b()) {
             try {
-                mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>() / 256.0f + 1.0f; // Put the points between 0 and 2
+                mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>(); // Put the points between 0 and 2
                 mHaveValidDepthMap = true;
+                logger.important("Successfully loaded neural network depth map for first frame");
             } catch (...) {
                 mHaveValidDepthMap = false;
+                logger.error("Can't load neural network depth map for first frame");
+                abort();
             }
         }
         return;

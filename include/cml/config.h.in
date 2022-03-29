@@ -3,6 +3,7 @@
 
 #cmakedefine01 CML_HAVE_AVFORMAT
 #cmakedefine01 CML_HAVE_AVCODEC
+
 #cmakedefine01 CML_HAVE_AVUTIL
 #cmakedefine01 CML_HAVE_SWSCALE
 #cmakedefine01 CML_HAVE_LIBZIP
@@ -15,6 +16,7 @@
 #cmakedefine01 CML_ENABLE_GUI
 #cmakedefine01 CML_USE_GOOGLE_HASH
 #cmakedefine01 CML_IS_ANDROID
+#define TEST_DETERMINISITY 0
 
 namespace CML {
 

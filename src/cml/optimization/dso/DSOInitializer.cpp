@@ -51,10 +51,6 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
                     DSOInitializerPoint p;
                     //assert(patternNum==9);
 
-                    assertDeterministic("x", x);
-                    assertDeterministic("y", y);
-
-
                     p.p.x() = x+0.1;
                     p.p.y() = y+0.1;
                     p.idepth = 1;

@@ -59,28 +59,9 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
 
     mPhotometricTracer->traceNewCoarse(currentFrame, mPhotometricBA->ACTIVEKEYFRAME);
     mPhotometricBA->addNewFrame(currentFrame, mPhotometricTracer->IMMATUREPOINT);
-    Set<PPoint, Hasher> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
+    Set<PPoint> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
     logger.info("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
     mPhotometricBA->addPoints(photometricPoints);
-
-    if (mEnableHybridPoint.b()) {
-        mHybridTracer->traceNewCoarse(currentFrame, INDIRECTKEYFRAME);
-        Set<PPoint, Hasher> hybridPoints = mHybridTracer->activatePoints(INDIRECTKEYFRAME, ACTIVEINDIRECTPOINT);
-        for (auto point : hybridPoints) {
-            updatePointDescriptor(point);
-            point->setGroup(ACTIVEINDIRECTPOINT, true);
-            //point->setGroup(IMMATUREINDIRECTPOINT, true);
-            point->setGroup(getMap().INDIRECTGROUP, true);
-            point->setGroup(getMap().DIRECTGROUP, false);
-        }
-        mHybridTracer->makeNewTracesFrom(currentFrame, currentFrameData->featureId);
-
-        if (mIndirectMappingQueue.getCurrentSize() > 1) {
-            timer.stop();
-            mIndirectMappingQueue.notifyPop();
-            return;
-        }
-    }
 
     timer.start();
     bool ok = mPhotometricBA->run(mBaMode != BADIRECT);
@@ -143,13 +124,6 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
             // frameToAddToBA.emplace_back(frame);
        // }
 
-    }
-
-    if (mEnableIndirect.b() && (*getMap().getGroupFrames(mPhotometricBA->ACTIVEKEYFRAME).rbegin())->getId() > 1) {
-        PFrame lastActiveKeyFrame = (*getMap().getGroupFrames(mPhotometricBA->ACTIVEKEYFRAME).rbegin());
-        if (!lastActiveKeyFrame->isGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP)) {
-            lastActiveKeyFrame->setGroup(mRelocalizer->LOOPCLOSUREFRAMEGROUP, true);
-        }
     }
 
     mLastDirectKeyFrame = currentFrame;

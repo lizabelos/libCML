@@ -133,6 +133,10 @@ namespace CML {
             return mMatrix(x, y);
         }
 
+        EIGEN_STRONG_INLINE const T &operator()(int x) {
+            return mData[x];
+        }
+
         EIGEN_STRONG_INLINE T &operator()(const Eigen::Vector2i &pos) {
             return mMatrix(pos.x(), pos.y());
         }
@@ -153,6 +157,10 @@ namespace CML {
             return mData[pos.y() * getWidth() + pos.x()];
         }
 
+        EIGEN_STRONG_INLINE const T &operator()(int x) const {
+            return mData[x];
+        }
+
         EIGEN_STRONG_INLINE T get(int x, int y) const final {
             return mData[y * getWidth() + x];
         }
@@ -169,6 +177,20 @@ namespace CML {
             x = (w - x) - 1;
             y = (h - y) - 1;
             return mData[y * getWidth() + x];
+        }
+
+        EIGEN_STRONG_INLINE bool goodPosition(int xCenter, int yCenter) const {
+
+            for (int y = -8; y <= 8; y++) {
+                for (int x = -8; x <= 8; x++) {
+                    if (!std::isfinite(getBorder(xCenter + x, yCenter + y))) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+
         }
 
         EIGEN_STRONG_INLINE T interpolate(const Vector2f &pos) const override {
@@ -191,6 +213,29 @@ namespace CML {
                    + mData[i1 + 1] * (dx-dxdy)
                    + mData[i2 + 0] * (dy-dxdy)
                    + mData[i2 + 1] * dxdy;
+
+        }
+
+        EIGEN_STRONG_INLINE void interpolate(const Vector2f &pos, T &result) const {
+
+            const float x = pos.x();
+            const float y = pos.y();
+
+            const int ix = (int)x;
+            const int iy = (int)y;
+            const float dx = x - (float)ix;
+            const float dy = y - (float)iy;
+            const float dxdy = dx * dy;
+
+            const int w = getWidth();
+
+            const int i1 = iy * w + ix;
+            const int i2 = i1 + w;
+
+            result.noalias() =   mData[i1 + 0] * (1-dx-dy+dxdy)
+                     + mData[i1 + 1] * (dx-dxdy)
+                     + mData[i2 + 0] * (dy-dxdy)
+                     + mData[i2 + 1] * dxdy;
 
         }
 
@@ -469,6 +514,51 @@ namespace CML {
 
                 }
             }
+        }
+
+        template <typename U> void fasterConvolution(const Array2D<float> &kernel, Array2D<U> &newImage) const {
+
+            assertThrow((intptr_t)mData % 16 == 0, "Input not aligned");
+
+            if (newImage.getWidth() != getWidth() || newImage.getHeight() != getHeight()) {
+                newImage = Array2D<U>(getWidth(), getHeight());
+            }
+
+            assertThrow((intptr_t)newImage.data() % 16 == 0, "Ouput not aligned");
+
+
+            const int res_shiftx = (kernel.getWidth() - 1) / 2;
+            const int res_shifty = (kernel.getHeight() - 1) / 2;
+
+            float tmp[4] __attribute__ ((aligned (16)));
+            __m128 mkernel[kernel.getHeight()][kernel.getWidth()]  __attribute__ ((aligned (16)));
+            for (int ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                for (int ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                    tmp[0] = kernel(ker_x, ker_y);
+                    tmp[1] = tmp[0];
+                    tmp[2] = tmp[0];
+                    tmp[3] = tmp[0];
+                    mkernel[ker_y][ker_x] = _mm_load_ps(tmp);
+                }
+            }
+
+            __m128 accumulation  __attribute__ ((aligned (16)));
+            __m128 datablock  __attribute__ ((aligned (16)));
+            int img_x, ker_y, ker_x;
+
+            for (int img_y = 0; img_y < getHeight() - kernel.getHeight(); img_y++) {
+                for (img_x = 0; img_x < getWidth() - kernel.getWidth(); img_x = img_x + 4) {
+                    accumulation = _mm_setzero_ps();
+                    for (ker_y = 0; ker_y < kernel.getHeight(); ker_y++) {
+                        for (ker_x = 0; ker_x < kernel.getWidth(); ker_x++) {
+                            datablock = _mm_loadu_ps(&mMatrix(img_x + ker_x, img_y + ker_y));
+                            accumulation = _mm_add_ps(_mm_mul_ps(mkernel[ker_y][ker_x], datablock), accumulation);
+                        }
+                    }
+                    _mm_storeu_ps(&newImage(img_x + res_shiftx, img_y + res_shifty), accumulation);
+                }
+            }
+
         }
 
         Array2D<T> blur() const {

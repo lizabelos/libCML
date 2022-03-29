@@ -13,12 +13,12 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::localOptimize(int frame
 
 
     OrderedSet<PFrame, Comparator> frames = getMap().getGroupFrames(frameGroupId);
-    HashMap<PPoint, int, Hasher> pointsCount;
-    HashMap<PFrame, int, Hasher> framesCount;
+    HashMap<PPoint, int> pointsCount;
+    HashMap<PFrame, int> framesCount;
 
 
-    HashMap<PPoint, double*, Hasher> pointsData;
-    HashMap<PFrame, Pair<double*, double*>, Hasher> framesData;
+    HashMap<PPoint, double*> pointsData;
+    HashMap<PFrame, Pair<double*, double*>> framesData;
 
     OptPFrame lastFrame;
     OptPFrame lastLastFrame;
@@ -240,8 +240,8 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::optimizeSinglePoint(CML
 
     ceres::Solver::Options options;
 
-    HashMap<PPoint, double*, Hasher> pointsData;
-    HashMap<PFrame, Pair<double*, double*>, Hasher> framesData;
+    HashMap<PPoint, double*> pointsData;
+    HashMap<PFrame, Pair<double*, double*>> framesData;
 
     OptPFrame lastFrame;
     OptPFrame lastLastFrame;

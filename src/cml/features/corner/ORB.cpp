@@ -2,7 +2,6 @@
 #if CML_HAVE_OPENCV
 #include "cml/features/corner/OpenCV.h"
 #endif
-#include "cml/features/corner/FAST.h"
 
 #include "cml/image/Filter.h"
 #include "ORBPattern.cpp"
@@ -126,9 +125,16 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         return;
     }
 
+    assertDeterministic("Original image", captureImage.getGrayImage(0).eigenMatrix().sum());
+
     captureImage.getGrayImage(0).castToUChar(mImages[0]);
+    assertDeterministic("Image 0", mImages[0].eigenMatrix().sum());
     for (int i = 1; i < nlevels; i++) {
-        mImages[i - 1].resize(fastRound((float)captureImage.getWidth(0) * mvInvScaleFactor[i]), fastRound((float)captureImage.getHeight(0) * mvInvScaleFactor[i]), mImages[i]);
+        int imgWidth = (float)captureImage.getWidth(0) * mvInvScaleFactor[i];
+        imgWidth = imgWidth / 16;
+        imgWidth = imgWidth * 16;
+        mImages[i - 1].resize(imgWidth, captureImage.getHeight(0) * imgWidth / captureImage.getWidth(0), mImages[i]);
+        assertDeterministic("Image", mImages[i].eigenMatrix().sum());
     }
 
     computeKeyPointsOctTree();
@@ -142,8 +148,11 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
 
         // preprocess the resized image
-        mImages[level].convolution(mFilter, mBluredImages[level]);
-
+        if (mBlur.b()) {
+            mImages[level].cast<float>().convolution(mFilter, mBluredImages[level]);
+        } else {
+            mBluredImages[level].copyToThis(mImages[level]);
+        }
 
         // Compute the descriptors
         computeDescriptors(mBluredImages[level], mAllKeypoints[level], desc);
@@ -160,8 +169,10 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
             // And add the keypoints to the output
             for (int j = 0; j < mAllKeypoints[level].size(); j++) {
                 mAllKeypoints[level][j].padPoint(0.5, 0.5);
-                mCorners.emplace_back(mAllKeypoints[level][j]);
-                mDescriptors.emplace_back(desc[j]);
+                if (captureImage.getGrayImage(0).goodPosition(mAllKeypoints[level][j].x(), mAllKeypoints[level][j].y())) {
+                    mCorners.emplace_back(mAllKeypoints[level][j]);
+                    mDescriptors.emplace_back(desc[j]);
+                }
             }
         }
 
@@ -194,6 +205,14 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 
     #pragma omp single
     {
+
+#if CML_USE_OPENMP
+        int ompNumThread = omp_get_num_threads();
+#else
+        int ompNumThread = 1;
+#endif
+        mFast = new FAST[ompNumThread];
+
         for (int i = 0; i < nlevels; i++) {
             mAllKeypoints[i].clear();
         }
@@ -246,12 +265,21 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                     maxX = maxBorderX;
                 }
 
+#if CML_USE_OPENMP
+                int tid = omp_get_thread_num();
+#else
+                int tid = 0;
+#endif
+
                 List<Corner> vKeysCell;
-                FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST, FAST_9, true);
+                mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST);
+
+                assertDeterministic("FAST (try 1)", vKeysCell.size());
 
                 if(vKeysCell.empty())
                 {
-                    FAST::compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST, FAST_9, true);
+                    mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST);
+                    assertDeterministic("FAST (try 2)", vKeysCell.size());
                 }
 
                 #pragma omp ordered
@@ -273,6 +301,8 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
             List<Corner> &keypoints = mAllKeypoints[level];
             distributeOctTree(vToDistributeKeys, keypoints, minBorderX, maxBorderX, minBorderY, maxBorderY,
                               mnFeaturesPerLevel[level], level);
+            assertDeterministic("Final number of keypoints", keypoints.size());
+
 
             const int scaledPatchSize = PATCH_SIZE * mvScaleFactor[level];
 

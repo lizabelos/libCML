@@ -128,6 +128,15 @@ namespace CML {
                 }
             }
         }
+
+        EIGEN_STRONG_INLINE bool haveIndirectApparition(PFrame frame) {
+            LockGuard lg(mApparitionsMutex);
+            if (mApparitions.contains(frame)) {
+                bool isIndirect = (mApparitions[frame] >> 1) & 1U;
+                return isIndirect;
+            }
+            return false;
+        }
 #endif
 
         EIGEN_STRONG_INLINE unsigned short getIndirectApparitionNumber() const {
@@ -290,7 +299,7 @@ namespace CML {
 
         mutable Mutex mApparitionsMutex;
 #if CML_MAPPOINT_STOREINDIRECTFRAME || CML_MAPPOINT_STOREDIRECTFRAME
-        DenseHashMap<OptPFrame, uint8_t, Hasher> mApparitions;
+        DenseHashMap<OptPFrame, uint8_t> mApparitions;
 #endif
         LinkedList<Ptr<Observer, NonNullable>> mObservers;
 #if CML_MAPPOINT_STOREPATCH

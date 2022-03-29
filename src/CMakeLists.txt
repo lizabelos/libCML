@@ -4,7 +4,7 @@ add_library(CML STATIC
 
         ${HEADER_LIST}
 
-        cml/fastmath.cpp
+        cml/types.cpp
 
         cml/base/AbstractSlam.cpp
         cml/base/Statistic.cpp
@@ -70,18 +70,15 @@ add_library(CML STATIC
         cml/features/cornerTracker/BoWTracker.cpp
         cml/features/cornerTracker/VFC.cpp
 
-        fast/fast.c
-        fast/fast_9.c
-        fast/fast_10.c
-        fast/fast_11.c
-        fast/fast_12.c
-        fast/nonmax.c
-
         lodepng/lodepng.cpp
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} TIFF::TIFF TIFF::CXX gdcmjpeg8)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} /usr/include/suitesparse)
+if (WIN32)
+target_link_libraries(CML "-Wl,--stack,10000000")
+endif()
+
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} TIFF::TIFF TIFF::CXX gdcmjpeg8)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/include/suitesparse)
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)

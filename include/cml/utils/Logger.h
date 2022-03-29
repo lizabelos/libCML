@@ -167,6 +167,17 @@ namespace CML {
     };
 
 
+    template <typename A, typename B> void dumpSystem(A a, B b) {
+        std::ofstream outfile;
+
+        outfile.open("systemError.txt", std::ios_base::app); // append instead of overwrite
+        outfile << "H : ";
+        outfile << a;
+        outfile << "J : ";
+        outfile << b;
+        outfile << "====================";
+    }
+
     extern Logger logger;
 
 }

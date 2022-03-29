@@ -98,6 +98,7 @@ class ModSLAM(SLAM):
         super().__init__()
         self.e = 0
         self.d = None
+        self.tim = 99999
         self.modslampath = "../cmake-build-release/modslam"
         if modslampath is not None:
             self.modslampath = modslampath
@@ -122,8 +123,15 @@ class ModSLAM(SLAM):
 
         # print(command)
 
-        out, err = system(command, comment=d.name())
+        out, err, tim = system(command, comment=d.name())
+        self.tim = tim
         self.processLogForStats(out)
+
+    def getTime(self):
+        return self.tim
+
+    def executionTime(self):
+        return self.tim
 
     def outputlog(self):
         return "/dev/null"
