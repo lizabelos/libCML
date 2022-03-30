@@ -952,13 +952,14 @@ void CML::Optimization::DSOInitializer::makeNN() {
     const int nn=10;
 
     // find NN & parents
+    List<NearestNeighbor> nearestNeighbors, nearestNeighbors1;
     for(int lvl = 0; lvl < mNumPyramidLevel;lvl++)
     {
         for(size_t i = 0; i < mPoints[lvl].size(); i++)
         {
             auto &pointData = mPoints[lvl][i];
             Vector2f pt = pointData.p;
-            auto nearestNeighbors = indexes[lvl]->searchInRadiusNum(pt, nn);
+            indexes[lvl]->searchInRadiusNum(pt, nn, nearestNeighbors);
 
             int myidx=0;
             float sumDF = 0;
@@ -978,7 +979,7 @@ void CML::Optimization::DSOInitializer::makeNN() {
             if(lvl < mNumPyramidLevel - 1)
             {
                 pt = pt / SCALEFACTOR;
-                auto nearestNeighbors1 = indexes[lvl+1]->searchInRadiusNum(pt, 1);
+                indexes[lvl+1]->searchInRadiusNum(pt, 1, nearestNeighbors1);
 
                 pointData.parent = nearestNeighbors1[0].index;
                 pointData.parentDist = expf(-nearestNeighbors1[0].distance*NNDistFactor);

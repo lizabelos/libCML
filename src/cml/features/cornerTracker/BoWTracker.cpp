@@ -40,11 +40,11 @@ List<Pair<int, int>> CML::Features::BoWTracker::trackByProjection(const BoWFrame
             r *= th;
         }
 
-        List<NearestNeighbor> unfilteredNearestNeighbor = A.frame->processNearestNeighborsInRadius(A.group, projection, r * pMP->getReferenceCorner().processScaleFactorFromLevel(nPredictedLevel));
+        A.frame->processNearestNeighborsInRadius(A.group, projection, r * pMP->getReferenceCorner().processScaleFactorFromLevel(nPredictedLevel), mUnfilteredNearestNeighbor);
         int minLevel = nPredictedLevel-1, maxLevel = nPredictedLevel;
 
-        List<NearestNeighbor> nearestNeighbor;
-        for (auto nn : unfilteredNearestNeighbor) {
+        mNearestNeighbor.clear();
+        for (auto nn : mUnfilteredNearestNeighbor) {
             auto corner = cornersA[nn.index];
             if(corner.level()<minLevel) {
                 continue;
@@ -52,10 +52,10 @@ List<Pair<int, int>> CML::Features::BoWTracker::trackByProjection(const BoWFrame
             if(corner.level()>maxLevel) {
                 continue;
             }
-            nearestNeighbor.emplace_back(nn);
+            mNearestNeighbor.emplace_back(nn);
         }
 
-        if(nearestNeighbor.empty())
+        if(mNearestNeighbor.empty())
             continue;
 
         int bestDist=256;
@@ -65,7 +65,7 @@ List<Pair<int, int>> CML::Features::BoWTracker::trackByProjection(const BoWFrame
         int bestIdx =-1 ;
 
         // Get best and second matches with near keypoints
-        for(auto nn : nearestNeighbor)
+        for(auto nn : mNearestNeighbor)
         {
             auto corner = cornersA[nn.index];
 
@@ -318,11 +318,11 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
             continue;
         }
 
-        List<NearestNeighbor> unfilteredNearestNeighbor = target.frame->processNearestNeighborsInRadius(target.group, mInitializationLastSeen[iRef].point0(), windowSize);
+        target.frame->processNearestNeighborsInRadius(target.group, mInitializationLastSeen[iRef].point0(), windowSize, mUnfilteredNearestNeighbor);
         int minLevel = kpRef.level(), maxLevel = kpRef.level();
 
-        List<NearestNeighbor> nearestNeighbor;
-        for (auto nn : unfilteredNearestNeighbor) {
+        mNearestNeighbor.clear();
+        for (auto nn : mUnfilteredNearestNeighbor) {
             auto corner = cornersTarget[nn.index];
             if(corner.level()<minLevel) {
                 continue;
@@ -330,10 +330,10 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
             if(corner.level()>maxLevel) {
                 continue;
             }
-            nearestNeighbor.emplace_back(nn);
+            mNearestNeighbor.emplace_back(nn);
         }
 
-        if(nearestNeighbor.empty()) {
+        if(mNearestNeighbor.empty()) {
             continue;
         }
 
@@ -341,7 +341,7 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
         int bestDist2 = INT_MAX;
         int bestIdx2 = -1;
 
-        for (auto nn : nearestNeighbor) {
+        for (auto nn : mNearestNeighbor) {
 
             int iTarget = nn.index;
 
@@ -678,11 +678,11 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
 
 
 
-        List<NearestNeighbor> unfilteredNearestNeighbor = current.frame->processNearestNeighborsInRadius(current.group, Vector2(u,v), radius);
+        current.frame->processNearestNeighborsInRadius(current.group, Vector2(u,v), radius, mUnfilteredNearestNeighbor);
         int minLevel = nLastOctave - 1, maxLevel = nLastOctave + 1;
 
-        List<NearestNeighbor> nearestNeighbor;
-        for (auto nn : unfilteredNearestNeighbor) {
+        mNearestNeighbor.clear();
+        for (auto nn : mUnfilteredNearestNeighbor) {
             auto corner = currentCorners[nn.index];
             if(corner.level()<minLevel) {
                 continue;
@@ -690,10 +690,10 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
             if(corner.level()>maxLevel) {
                 continue;
             }
-            nearestNeighbor.emplace_back(nn);
+            mNearestNeighbor.emplace_back(nn);
         }
 
-        if(nearestNeighbor.empty())
+        if(mNearestNeighbor.empty())
             continue;
 
         int bestDist = 256;
@@ -803,11 +803,11 @@ Set<PPoint> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescri
         // Search in a radius
         const float radius = 3.0 * point->getReferenceCorner().processScaleFactorFromLevel(nPredictedLevel);
 
-        List<NearestNeighbor> unfilteredNearestNeighbor = A.frame->processNearestNeighborsInRadius(A.group, projection, radius);
+        A.frame->processNearestNeighborsInRadius(A.group, projection, radius, mUnfilteredNearestNeighbor);
         int minLevel = nPredictedLevel-1, maxLevel = nPredictedLevel;
 
-        List<NearestNeighbor> nearestNeighbor;
-        for (auto nn : unfilteredNearestNeighbor) {
+        mNearestNeighbor.clear();
+        for (auto nn : mUnfilteredNearestNeighbor) {
             auto corner = cornersA[nn.index];
             if(corner.level()<minLevel) {
                 continue;
@@ -815,15 +815,15 @@ Set<PPoint> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescri
             if(corner.level()>maxLevel) {
                 continue;
             }
-            nearestNeighbor.emplace_back(nn);
+            mNearestNeighbor.emplace_back(nn);
         }
 
-        if(nearestNeighbor.empty())
+        if(mNearestNeighbor.empty())
             continue;
 
         int bestDist = 256;
         int bestIdx = -1;
-        for(auto nn : nearestNeighbor)
+        for(auto nn : mNearestNeighbor)
         {
             auto corner = cornersA[nn.index];
 

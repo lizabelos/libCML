@@ -120,9 +120,9 @@ namespace CML::Features {
         void computeOrientation(const GrayImage & image, List<Corner>& keypoints, const List<int>& umax);
 
     private:
-        Parameter mNumCorner = createParameter("Number of corner", 1024);
-        Parameter mUseCache = createParameter("Use cache", false);
-        Parameter mBlur = createParameter("Blur", false);
+        Parameter mNumCorner = createParameter("num", 1024);
+        Parameter mUseCache = createParameter("useCache", false);
+        Parameter mBlur = createParameter("blur", true);
 
         int nlevels;
         int iniThFAST;
@@ -147,6 +147,7 @@ namespace CML::Features {
 
         List<GrayImage> mImages;
         List<GrayImage> mBluredImages;
+        List<FloatImage> mBluredImagesTmpA, mBluredImagesTmpB, mBluredImagesTmpC, mBluredImagesTmpD, mBluredImagesTmpE;
         List<List<Corner>> mAllKeypoints;
         List<Corner> mCorners;
         List<Corner> vToDistributeKeys;

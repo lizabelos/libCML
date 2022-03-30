@@ -18,13 +18,13 @@ namespace CML {
             }
         }
 
-        template <typename U> List<NearestNeighbor> searchInRadius(const U &point, scalar_t radius) {
+        template <typename U> void searchInRadius(const U &point, scalar_t radius, List<NearestNeighbor> &result) {
             Vector2i center = gridPos(point);
             Vector2i elipseRadius = Vector2i(1 + radius * CML_POINTGRID_WIDTH  / (mMax.x() - mMin.x()), 1 + radius * CML_POINTGRID_HEIGHT / (mMax.y() - mMin.y()));
             Vector2i topLeft = center - elipseRadius;
             Vector2i bottomRight = center + elipseRadius;
 
-            List<NearestNeighbor> result;
+            result.clear();
 
             for (int x = topLeft.x(); x <= bottomRight.x(); x++) {
                 if (x < 0 || x >= CML_POINTGRID_WIDTH) {
@@ -45,13 +45,12 @@ namespace CML {
                 }
             }
 
-            return result;
 
         }
 
-        template <typename U> List<NearestNeighbor> searchInRadiusNum(const U &point, size_t num) {
+        template <typename U> void searchInRadiusNum(const U &point, size_t num, List<NearestNeighbor> &result) {
 
-            List<NearestNeighbor> result;
+            result.clear();
             result.reserve(num * 2);
             Vector2i center = gridPos(point);
             size_t radius = 0;
@@ -113,8 +112,6 @@ namespace CML {
             if (result.size() > num) {
                 result.resize(num);
             }
-
-            return result;
 
         }
 

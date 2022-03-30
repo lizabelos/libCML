@@ -22,6 +22,8 @@ namespace CML::Features {
 
             // float threshold = mThreshold.f() * (float)Descriptor::L * 8.0f;
 
+            List<NearestNeighbor> nearestNeighbor;
+
             auto cornersA = frameA->getFeaturePoints(groupA);
             auto cornersB = frameA->getFeaturePoints(groupB);
 
@@ -63,7 +65,7 @@ namespace CML::Features {
                         r = radius;
                     }*/
 
-                    List<NearestNeighbor> nearestNeighbor = frameA->processNearestNeighborsInRadius(groupA, projection, r);
+                    frameA->processNearestNeighborsInRadius(groupA, projection, r, nearestNeighbor);
 
                     for (NearestNeighbor nn : nearestNeighbor) {
                         matching.set(nn.index, i, descriptorsB[i].distance(descriptorsA[nn.index]));
@@ -100,6 +102,8 @@ namespace CML::Features {
                 camera = frameA->getCamera();
             }
 
+            List<NearestNeighbor> nearestNeighbor;
+
             float threshold = mThreshold.f() * (float)Descriptor::L * 8.0f;
 
             auto cornersA = frameA->getFeaturePoints(groupA);
@@ -120,7 +124,7 @@ namespace CML::Features {
 
                // List<NearestNeighbor> nearestNeighbor = frameA->processNearestNeighborsInRadius(groupA, projection, r);
 
-                List<NearestNeighbor> nearestNeighbor = frameA->processNearestNeighbors(groupA, projection, 5);
+               frameA->processNearestNeighbors(groupA, projection, 5, nearestNeighbor);
 
 
                 for (NearestNeighbor nn : nearestNeighbor) {

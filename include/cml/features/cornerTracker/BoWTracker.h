@@ -181,7 +181,8 @@ namespace CML::Features {
 
     public:
         BoWTracker(Ptr<AbstractFunction, Nullable> parent, float ratio, bool checkOrientation) : AbstractFunction(parent), mRatio(ratio), mCheckOrientation(checkOrientation) {
-
+            mUnfilteredNearestNeighbor.reserve(1024);
+            mNearestNeighbor.reserve(1024);
         }
 
         List<Pair<int, int>> trackByProjection(const BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints, int th = 1);
@@ -259,6 +260,8 @@ namespace CML::Features {
 
         List<Corner> mInitializationLastSeen;
         OptPFrame mInitializationLastReference;
+
+        List<NearestNeighbor> mUnfilteredNearestNeighbor, mNearestNeighbor;
 
     };
 

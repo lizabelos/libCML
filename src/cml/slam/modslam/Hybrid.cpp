@@ -22,6 +22,7 @@ Hybrid::Hybrid() : AbstractSlam() {
 
     if (mEnableIndirect.b()) {
         mCornerExtractor = new CornerAndDescriptor(this, 2000);
+        mCornerExtractor->setAlias("orb");
 
         mInitTracker = new Features::BoWTracker(this, 0.9, true);
         mMotionModelTracker = new Features::BoWTracker(this, 0.9, true);

@@ -122,7 +122,7 @@ void CML::Frame::setCameraWithoutObserver(const Camera &camera) {
     }
 }
 
-CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighbors(int group, Vector2 position, int num) const {
+void CML::Frame::processNearestNeighbors(int group, Vector2 position, int num, List<NearestNeighbor> &result) const {
     std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
     {
@@ -130,10 +130,10 @@ CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighbors(int group, V
         pointKdTree = mFeaturePointTree[group];
     }
 
-    return pointKdTree->searchInRadiusNum(position, num);
+    pointKdTree->searchInRadiusNum(position, num, result);
 }
 
-CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, float distance) const {
+void CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, float distance, List<NearestNeighbor> &result) const {
 
     std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
@@ -142,7 +142,7 @@ CML::List<CML::NearestNeighbor> CML::Frame::processNearestNeighborsInRadius(int 
         pointKdTree = mFeaturePointTree[group];
     }
 
-    return pointKdTree->searchInRadius(position, distance);
+    pointKdTree->searchInRadius(position, distance, result);
 
 }
 

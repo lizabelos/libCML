@@ -19,7 +19,7 @@ AbstractFunction(parent), nlevels(_nlevels), iniThFAST(_iniThFAST), minThFAST(_m
 
     reinitialize();
 
-    mFilter = Filter::gaussian(7, 7, 2, 2);
+    mFilter = Filter::gaussian1d(7, 2);
 
 }
 
@@ -83,6 +83,11 @@ void CML::Features::ORB::reinitialize() {
 
     mImages.resize(nlevels);
     mBluredImages.resize(nlevels);
+    mBluredImagesTmpA.resize(nlevels);
+    mBluredImagesTmpB.resize(nlevels);
+    mBluredImagesTmpC.resize(nlevels);
+    mBluredImagesTmpD.resize(nlevels);
+    mBluredImagesTmpE.resize(nlevels);
 
     mAllKeypoints.resize(nlevels);
     for (int i = 0; i < nlevels; i++) {
@@ -149,7 +154,14 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
         // preprocess the resized image
         if (mBlur.b()) {
-            mImages[level].cast<float>().convolution(mFilter, mBluredImages[level]);
+            mImages[level].cast<float>(mBluredImagesTmpA[level]);
+            mBluredImagesTmpA[level].convolution1D(mFilter, mBluredImagesTmpB[level]);
+            mBluredImagesTmpB[level].transpose(mBluredImagesTmpC[level]);
+            mBluredImagesTmpC[level].convolution1D(mFilter, mBluredImagesTmpD[level]);
+            mBluredImagesTmpD[level].transpose(mBluredImagesTmpE[level]);
+            mBluredImagesTmpE[level].castToUChar<unsigned char>(mBluredImages[level]);
+
+            //mImages[level].cast<float>().convolution(mFilter, mBluredImages[level]);
         } else {
             mBluredImages[level].copyToThis(mImages[level]);
         }

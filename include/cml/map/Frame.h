@@ -245,9 +245,9 @@ namespace CML {
             }
         }
 
-        List<NearestNeighbor> processNearestNeighbors(int group, Vector2 position, int num) const;
+        void processNearestNeighbors(int group, Vector2 position, int num, List<NearestNeighbor> &result) const;
 
-        List<NearestNeighbor> processNearestNeighborsInRadius(int group, Vector2 position, float distance) const;
+        void processNearestNeighborsInRadius(int group, Vector2 position, float distance, List<NearestNeighbor> &result) const;
 
 
 
