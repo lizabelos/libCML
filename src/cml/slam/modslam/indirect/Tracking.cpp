@@ -116,7 +116,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
     }
 
     List<bool> outliers;
-    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, motionToTry, matchings, outliers);
+    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, motionToTry, matchings, outliers, mTrackcondUncertaintyWeight.f() > 0);
     if (!mLastIndirectTrackingResult.isOk) {
         logger.important("Not accepting the tracking with motion model because the optimization failed");
         return false;
@@ -182,7 +182,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
     }
 
     List<bool> outliers;
-    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, mLastFrame->getCamera(), matchings, outliers);
+    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, mLastFrame->getCamera(), matchings, outliers, mTrackcondUncertaintyWeight.f() > 0);
     if (!mLastIndirectTrackingResult.isOk) {
         logger.important("Reference PnP failed");
         return false;
@@ -224,24 +224,54 @@ bool Hybrid::indirectTrackLocalMap(PFrame currentFrame) {
     indirectUpdateLocalPoints(currentFrame);
     indirectSearchLocalPoints(currentFrame);
 
-    List<PPoint> outliers;
-    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, outliers);
+    if (mTrackcondUncertaintyWeight.f() > 0) {
 
-    if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
-        assertDeterministic("Indirect covariance norm", mLastIndirectTrackingResult.covariance.norm());
-        if (mLastIndirectTrackingResult.isOk) {
+        List<PPoint> outliers;
+        mLastIndirectTrackingResult = mPnP->optimize(currentFrame, outliers, mTrackcondUncertaintyWeight.f() > 0);
 
-            int numInliers = currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size() - outliers.size();
-            float inliersRatio = numInliers / (float)currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size();
+        if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
+            assertDeterministic("Indirect covariance norm", mLastIndirectTrackingResult.covariance.norm());
+            if (mLastIndirectTrackingResult.isOk) {
 
-            assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
+                int numInliers = currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size() - outliers.size();
+                float inliersRatio =
+                        numInliers / (float) currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size();
 
-            if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+                assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
-                currentFrame->setCamera(mLastIndirectTrackingResult.camera);
-                assertDeterministic("Refining with ORB");
+                if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+
+                    currentFrame->setCamera(mLastIndirectTrackingResult.camera);
+                    assertDeterministicMsg("Refining with ORB");
+                }
             }
         }
+
+    } else {
+
+
+        if (!mTrackedWithDirect || mLastPhotometricTrackingResidual.saturatedRatio() >= 0.15) {
+            assertDeterministic("Indirect covariance norm", mLastIndirectTrackingResult.covariance.norm());
+            List<PPoint> outliers;
+            mLastIndirectTrackingResult = mPnP->optimize(currentFrame, outliers, mTrackcondUncertaintyWeight.f() > 0);
+
+            if (mLastIndirectTrackingResult.isOk) {
+
+                int numInliers = currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size() - outliers.size();
+                float inliersRatio =
+                        numInliers / (float) currentFrame->getGroupMapPoints(getMap().INDIRECTGROUP).size();
+
+                assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
+
+                if (numInliers >= 10 && inliersRatio > mOrbInlierRatioThreshold.f()) {
+
+                    currentFrame->setCamera(mLastIndirectTrackingResult.camera);
+                    assertDeterministicMsg("Refining with ORB");
+                }
+            }
+        }
+
+
     }
 
     int numTrackedPoints = 0;

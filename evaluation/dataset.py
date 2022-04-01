@@ -5,7 +5,7 @@ import shutil
 
 class Dataset:
 
-    def __init__(self, n, t, f, g=None, lim=None):
+    def __init__(self, n, t, f, g=None, lim=None, reverse=False):
         self.n = n
         self.t = t
         self.f = f
@@ -15,6 +15,7 @@ class Dataset:
         self.nuse = 0
         self.ramdiskfolder = "/ramdisk/" + n
         self.l = lim
+        self.reverse = reverse
 
     def name(self):
         return self.n
@@ -24,6 +25,9 @@ class Dataset:
 
     def lim(self):
         return self.l
+
+    def isReverse(self):
+        return self.reverse
 
     def folder(self):
         if self.useramdisk:
@@ -90,6 +94,11 @@ def KITTI(folder):
         name = "kitti_" + str(i).zfill(2)
         dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
         result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i), lim=lim[i])]
+
+    for i in r:
+        name = "kitti_" + str(i).zfill(2) + "_reverse"
+        dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
+        result = result + [Dataset("KITTI " + str(i).zfill(2) + " Reversed", "kitti", dataset_folder, kittiGroundtruthPath(folder, i), lim=lim[i], reverse=True)]
     # for i in range(11,22):
     #     name = "kitti_" + str(i).zfill(2)
     #     dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))

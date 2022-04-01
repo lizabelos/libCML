@@ -266,8 +266,10 @@ int main(int argc, char *argv[])
             logger.error("Can't load dataset '" + value + "'");
         }
     });
+    program.add_argument("-b", "--reverse").nargs(0).help("Reverse mode").default_value(false).implicit_value(true);
+
 //#if CML_ENABLE_GUI
-    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(true);
+    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(false);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
 //#endif
 #if CML_HAVE_YAML_CPP
@@ -299,6 +301,12 @@ int main(int argc, char *argv[])
 
     if (program["--verbose"] == true) {
         logger.setLogLevel(CML::MORE);
+    }
+
+    if (program["--reverse"] == true) {
+        if (capture.isNotNull()) {
+            capture->revere();
+        }
     }
 
 #if CML_ENABLE_GUI
@@ -376,16 +384,16 @@ int main(int argc, char *argv[])
 
         logger.info("Exporting the results");
         if (resultFormat == "tum") {
-            slam->getMap().exportResults(resultPath, MAP_RESULT_FORMAT_TUM, false);
+            slam->getMap().exportResults(resultPath, MAP_RESULT_FORMAT_TUM, false, capture->isReverse());
         }
         if (resultFormat == "kitti") {
-            slam->getMap().exportResults(resultPath, MAP_RESULT_FORMAT_KITTI, false);
+            slam->getMap().exportResults(resultPath, MAP_RESULT_FORMAT_KITTI, false, capture->isReverse());
         }
         if (resultFormat == "all") {
-            slam->getMap().exportResults(resultPath + ".tum.txt", MAP_RESULT_FORMAT_TUM, false);
-            slam->getMap().exportResults(resultPath + ".kitti.txt", MAP_RESULT_FORMAT_KITTI, false);
-            slam->getMap().exportResults(resultPath + ".gt.tum.txt", MAP_RESULT_FORMAT_TUM, true);
-            slam->getMap().exportResults(resultPath + ".gt.kitti.txt", MAP_RESULT_FORMAT_KITTI, true);
+            slam->getMap().exportResults(resultPath + ".tum.txt", MAP_RESULT_FORMAT_TUM, false, capture->isReverse());
+            slam->getMap().exportResults(resultPath + ".kitti.txt", MAP_RESULT_FORMAT_KITTI, false, capture->isReverse());
+            slam->getMap().exportResults(resultPath + ".gt.tum.txt", MAP_RESULT_FORMAT_TUM, true, capture->isReverse());
+            slam->getMap().exportResults(resultPath + ".gt.kitti.txt", MAP_RESULT_FORMAT_KITTI, true, capture->isReverse());
         }
 
     }

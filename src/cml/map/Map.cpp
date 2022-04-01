@@ -530,7 +530,7 @@ void CML::Map::refreshErrorFromGroundtruth() {
 
 }
 
-void CML::Map::exportResults(std::string path, MapResultFormat format, bool exportGroundtruth) {
+void CML::Map::exportResults(std::string path, MapResultFormat format, bool exportGroundtruth, bool reversed) {
 
     logger.important("Writing the results to " + path);
 
@@ -544,7 +544,9 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
         }
     }
 
-    std::reverse(cameras.begin(), cameras.end());
+    if (!reversed) {
+        std::reverse(cameras.begin(), cameras.end());
+    }
 
     logger.important("Writing " + std::to_string(cameras.size()) + " poses");
 

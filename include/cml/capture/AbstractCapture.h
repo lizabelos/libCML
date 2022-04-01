@@ -35,6 +35,17 @@ namespace CML {
             return false;
         }
 
+        inline void revere() {
+            mReverse = !mReverse;
+        }
+
+        inline bool isReverse() {
+            return mReverse;
+        }
+
+    private:
+        bool mReverse = false;
+
     };
 
     class AbstractFiniteCapture : public AbstractCapture {

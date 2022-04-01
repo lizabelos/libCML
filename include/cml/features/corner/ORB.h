@@ -40,14 +40,15 @@ namespace CML::Features {
                 zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
                 zip_file_t *zipFile = zip_fopen(zipArchive, "ORBvoc.txt", 0);
                 std::stringstream stream;
-                char data[4096];
+                char *data = new char[40000];
                 logger.important("Uncompressing " + filename);
                 while (true) {
-                    size_t n = zip_fread(zipFile, data, 4096);
+                    size_t n = zip_fread(zipFile, data, 40000);
                     if (n == 0) break;
                     stream << std::string(data, n);
                 }
                 zip_fclose(zipFile);
+                delete []data;
                 logger.important("Decoding " + filename);
 
                 mVocabulary = new ORBVocabulary();

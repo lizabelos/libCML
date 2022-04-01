@@ -39,8 +39,7 @@ namespace CML::Optimization {
         float b0;
         float drdA;
 
-        Vector2 shift;
-        Vector2 refcorner_Distorted_center;
+        DistortedVector2d refcorner_Distorted_center;
         Vector2 refcorner_Distorted;
         Vector2 refcorner;
         Vector3 projectedcurp;
@@ -93,7 +92,7 @@ namespace CML::Optimization {
             wJI2_sum = 0;
             energyLeft = 0;
 
-            refcorner_Distorted_center = point->getReferenceCorner().point0();
+            point->getReferenceCorner().point0(refcorner_Distorted_center);
             assertDeterministic("refcorner_Distorted_center", refcorner_Distorted_center.norm());
 
             const Matrix33 &R = precomputed.trialRefToTarget.getRotationMatrix();
@@ -102,15 +101,15 @@ namespace CML::Optimization {
 
             {
 
-                refcorner = self.mPinhole.undistort(refcorner_Distorted_center);
+                self.mPinhole.undistort(refcorner_Distorted_center, refcorner);
 
                 assertDeterministic("R", R.norm());
                 assertDeterministic("refcorner", refcorner.norm());
                 assertDeterministic("t", t.norm());
                 assertDeterministic("pointIdepth", pointIdepth);
 
-                projectedcurp = R * refcorner.homogeneous() + t * pointIdepth;
-                projectedcurp_Distorted = self.mPinhole.distort((Vector2)projectedcurp.hnormalized());
+                projectedcurp.noalias() = R * refcorner.homogeneous() + t * pointIdepth; // todo : malloc here ?
+                self.mPinhole.distort((Vector2)projectedcurp.hnormalized(), projectedcurp_Distorted); // todo : malloc here ?
                 drescale = 1.0 / projectedcurp[2];
 
                 if (!(projectedcurp_Distorted.x() >= 2 && projectedcurp_Distorted.y() >= 2 && projectedcurp_Distorted.x() < self.mWidth - 2 && projectedcurp_Distorted.y() < self.mHeight - 2)) {
@@ -123,13 +122,13 @@ namespace CML::Optimization {
                 v = projectedcurp.y();
                 Ku = projectedcurp_Distorted.x();
                 Kv = projectedcurp_Distorted.y();
-                KliP = refcorner.homogeneous(); // todo : check this
+                KliP.noalias() = refcorner.homogeneous(); // todo : malloc here ?
 
-                K = frameToTrack->getK(0);
+                frameToTrack->getK(0, K);
                 fx = K(0,0);
                 fy = K(1,1);
 
-                pair->setCenterProjectedTo(Vector3(Ku, Kv, new_idepth));
+                pair->setCenterProjectedTo(Ku, Kv, new_idepth);
 
                 assertDeterministic("u", u);
                 assertDeterministic("v", v);
@@ -178,11 +177,11 @@ namespace CML::Optimization {
                 d_xi_y[4] = u*v*fy;
                 d_xi_y[5] = u*fy;
 
-                pair->rJ.Jpdxi[0] = d_xi_x.cast<float>();
-                pair->rJ.Jpdxi[1] = d_xi_y.cast<float>();
+                pair->rJ.Jpdxi[0].noalias() = d_xi_x.cast<float>();
+                pair->rJ.Jpdxi[1].noalias() = d_xi_y.cast<float>();
 
-                pair->rJ.Jpdc[0] = d_C_x.cast<float>();
-                pair->rJ.Jpdc[1] = d_C_y.cast<float>();
+                pair->rJ.Jpdc[0].noalias() = d_C_x.cast<float>();
+                pair->rJ.Jpdc[1].noalias() = d_C_y.cast<float>();
                 assertDeterministic("d_d_x", d_d_x);
                 assertDeterministic("d_d_y", d_d_y);
                 pair->rJ.Jpdd[0] = d_d_x;
@@ -193,11 +192,11 @@ namespace CML::Optimization {
 
             for (int idx = 0; idx < 8; idx++) {
 
-                shift = PredefinedPattern::star8(idx);
+                const Vector2 &shift = PredefinedPattern::star8(idx); //  todo : big malloc here ?
 
                 refcorner_Distorted.noalias() = refcorner_Distorted_center + shift;
                 self.mPinhole.undistort(refcorner_Distorted, refcorner);
-                projectedcurp.noalias()  = R.lazyProduct(refcorner.homogeneous()) + t * pointIdepth;
+                projectedcurp.noalias()  = R * refcorner.homogeneous() + t * pointIdepth;
                 self.mPinhole.distort((Vector2)projectedcurp.hnormalized(), projectedcurp_Distorted);
 
                 // Check that the projection is finite

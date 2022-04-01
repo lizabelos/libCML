@@ -1,7 +1,7 @@
 #include "cml/optimization/g2o/IndirectCameraOptimizer.h"
 #include "cml/optimization/g2o/g2oconfig.h"
 
-CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, const Optional<Camera> &camera, const List<Matching> &matchings, List<bool> &outliers) {
+CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, const Optional<Camera> &camera, const List<Matching> &matchings, List<bool> &outliers, bool computeCovariance) {
 
     IndirectCameraOptimizerResult result;
 
@@ -143,30 +143,37 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
     }
 
+
     // Recover optimized pose and return number of inliers
     g2o::VertexSE3Expmap* vSE3_recov = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(0));
     g2o::SE3Quat SE3quat_recov = vSE3_recov->estimate();
 
-    // Compute covariance
-    g2o::SparseBlockMatrixX spinv;
-    bool computeMarginalsSucceed = optimizer.computeMarginals(spinv,optimizer.vertex(0));
-    if (!computeMarginalsSucceed) {
-        return result;
-    }
-    auto block = spinv.block(0,0);
-    if (block == nullptr) {
-        return result;
+    result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(),SE3quat_recov.rotation().matrix().cast<scalar_t>());
+
+    if (computeCovariance) {
+        // Compute covariance
+        g2o::SparseBlockMatrixX spinv;
+        bool computeMarginalsSucceed = optimizer.computeMarginals(spinv, optimizer.vertex(0));
+        if (!computeMarginalsSucceed) {
+            logger.error("Can't compute marginals");
+            return result;
+        }
+        auto block = spinv.block(0, 0);
+        if (block == nullptr) {
+            logger.error("Can't compute marginals");
+            return result;
+        }
+
+        result.covariance = spinv.block(0, 0)->eval().diagonal().cast<scalar_t>();
     }
 
-    result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(), SE3quat_recov.rotation().matrix().cast<scalar_t>());
-    result.covariance = spinv.block(0,0)->eval().diagonal().cast<scalar_t>();
     result.isOk = true;
 
     return result;
 
 }
 
-CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, List<PPoint> &outliersPoints) {
+CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::IndirectCameraOptimizer::optimize(PFrame frame, List<PPoint> &outliersPoints, bool computeCovariance) {
 
     IndirectCameraOptimizerResult result;
 
@@ -320,19 +327,24 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         }
     }
 
+
+    result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(),SE3quat_recov.rotation().matrix().cast<scalar_t>());
+
     // Compute covariance
-    g2o::SparseBlockMatrixX spinv;
-    bool computeMarginalsSucceed = optimizer.computeMarginals(spinv,optimizer.vertex(0));
-    if (!computeMarginalsSucceed) {
-        return result;
-    }
-    auto block = spinv.block(0,0);
-    if (block == nullptr) {
-        return result;
+    if (computeCovariance) {
+        g2o::SparseBlockMatrixX spinv;
+        bool computeMarginalsSucceed = optimizer.computeMarginals(spinv, optimizer.vertex(0));
+        if (!computeMarginalsSucceed) {
+            return result;
+        }
+        auto block = spinv.block(0, 0);
+        if (block == nullptr) {
+            return result;
+        }
+
+        result.covariance = spinv.block(0, 0)->eval().diagonal().cast<scalar_t>();
     }
 
-    result.camera = Camera(SE3quat_recov.translation().cast<scalar_t>(), SE3quat_recov.rotation().matrix().cast<scalar_t>());
-    result.covariance = spinv.block(0,0)->eval().diagonal().cast<scalar_t>();
     result.isOk = true;
 
     return result;

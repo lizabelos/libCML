@@ -78,7 +78,7 @@ void Hybrid::onReset() {
 
 void Hybrid::run() {
 
-    assertDeterministic("Run");
+    assertDeterministicMsg("Run");
     mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
 
 

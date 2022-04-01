@@ -74,14 +74,17 @@ CML::Array2D<unsigned char> CML::Array2D<unsigned char>::resize(int newWidth, in
 
     CML::Array2D<unsigned char> result(newWidth, newHeight);
 
+    float xFactor = (float)(getWidth() - 0.5f) / (float)newWidth;
+    float yFactor = (float)(getHeight() - 0.5f) / (float)newHeight;
+
 #if CML_USE_OPENMP
 #pragma omp  for collapse(2) schedule(static)
 #endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
             result(x, y) = interpolate(Vector2f(
-                    (float) x / (float) newWidth * ((float) getWidth() - 0.5f),
-                    (float) y / (float) newHeight * ((float) getHeight() - 0.5f)
+                    (float) x * xFactor,
+                    (float) y * yFactor
             ));
         }
     }
@@ -99,14 +102,17 @@ void CML::Array2D<unsigned char>::resize(int newWidth, int newHeight, Array2D<un
         }
     }
 
+    float xFactor = (float)(getWidth() - 0.5f) / (float)newWidth;
+    float yFactor = (float)(getHeight() - 0.5f) / (float)newHeight;
+
 #if CML_USE_OPENMP
 #pragma omp  for collapse(2) schedule(static)
 #endif
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
             result(x, y) = interpolate(Vector2f(
-                    (float) x / (float) newWidth * ((float) getWidth() - 0.5f),
-                    (float) y / (float) newHeight * ((float) getHeight() - 0.5f)
+                    (float) x * xFactor,
+                    (float) y * yFactor
             ));
         }
     }

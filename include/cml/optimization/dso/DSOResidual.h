@@ -100,32 +100,38 @@ namespace CML {
 
             Vectorf<DSOMAXRESPERPOINT> res_toZeroF;
 
-            void setCenterProjectedTo(const Vector3 &centerProjectedTo) {
+            inline void setCenterProjectedTo(const Vector3 &centerProjectedTo) {
                 mCenterProjectedTo = centerProjectedTo;
             }
 
-            Vector3 getCenterProjectedTo() {
+            inline void setCenterProjectedTo(scalar_t x, scalar_t y, scalar_t z) {
+                mCenterProjectedTo.x() = x;
+                mCenterProjectedTo.y() = y;
+                mCenterProjectedTo.z() = z;
+            }
+
+            inline const Vector3 &getCenterProjectedTo() {
                 return mCenterProjectedTo;
             }
 
-            DSOResidualState getState()  {
+            inline DSOResidualState getState()  {
                 return state_state;
             }
 
-            DSOResidualState getNewState() {
+            inline DSOResidualState getNewState() {
                 return state_NewState;
             }
 
-            void applyNewState() {
+            inline void applyNewState() {
                 state_state = state_NewState;
             }
 
-            void setNewState(DSOResidualState state) {
+            inline void setNewState(DSOResidualState state) {
                 if (state == DSORES_IN) abortIfWrongCenterProjectedTo();
                 state_NewState = state;
             }
 
-            void setState(DSOResidualState state) {
+            inline void setState(DSOResidualState state) {
                 if (state == DSORES_IN) abortIfWrongCenterProjectedTo();
                 state_state = state;
             }

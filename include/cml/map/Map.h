@@ -187,7 +187,7 @@ namespace CML {
             return mMapPointsPrivateDataContext;
         }
 
-        void exportResults(std::string path, MapResultFormat format, bool exportGroundtruth = false);
+        void exportResults(std::string path, MapResultFormat format, bool exportGroundtruth = false, bool reversed = false);
 
         bool canMargePoints(PPoint mapPointA, PPoint mapPointB);
 

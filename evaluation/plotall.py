@@ -7,7 +7,7 @@ from statistics import mean
 import copy
 from tqdm.contrib.concurrent import process_map
 
-nodesToIgnore = {"ate","edges","datasetname","stats"}
+nodesToIgnore = {"ate","edges","datasetname","stats","time"}
 
 OUTPUT_DIR = "3_mixed_slam/2_ablation_study/plot/"
 
@@ -745,7 +745,7 @@ def processFile(filename,foldername):
             res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2], doNothing=True)
             if res:
                 toPlot.append(param)
-        if len(toPlot) > 4:
+        if len(toPlot) > 0:
             appendBigTitleToLatex(foldername[0:4] + " " + str(i) + " " + str(numOrbConer))
             for param in toPlot:
                 appendTitleToLatex(param)
@@ -761,10 +761,10 @@ if __name__ == "__main__":
     for filename in filenames:
         processFile(dirname+"/"+filename,filename.split(".")[0])
 
-    dirname = "oldjson"
-    filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
-    for filename in filenames:
-        processFile(dirname+"/"+filename,filename.split(".")[0])
-    endLatexDocument()
+    #dirname = "oldjson"
+    #filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
+    #for filename in filenames:
+    #    processFile(dirname+"/"+filename,filename.split(".")[0])
+    #endLatexDocument()
 
-    os.system("pdflatex -interaction nonstopmode -file-line-error .\output.tex")
+    #os.system("pdflatex -interaction nonstopmode -file-line-error .\output.tex")

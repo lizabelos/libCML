@@ -32,6 +32,9 @@ option(ENABLE_GUI "Enable GUI" ON)
 option(USE_OPENMP "Use OpenMP" ON)
 option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
 
+add_compile_options(-march=native)
+add_link_options(-march=native)
+
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #######################################################################################################################
@@ -267,7 +270,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CML PUBLIC -O2)
+    target_compile_options(CML PUBLIC -O3 -fno-math-errno)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -g)
     target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)

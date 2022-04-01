@@ -19,7 +19,8 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
     for (auto point : getMap().getGroupMapPoints(IMMATUREPOINT)) {
 
         if (!point->getReferenceFrame()->isGroup(frameGroup)) {
-            assertDeterministic("Removing " + std::to_string(point->getId()) + " reference frame does not belong to the group");
+            assertDeterministicMsg(
+                    "Removing " + std::to_string(point->getId()) + " reference frame does not belong to the group");
             toRemove.insert(point);
             continue;
         }
@@ -29,14 +30,14 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
         auto ph = getPrivateData(point);
 
         if (point->getReferenceFrame()->getMapPoint(ph->referenceIndex).isNotNull()) {
-            assertDeterministic("Removing " + std::to_string(point->getId()));
+            assertDeterministicMsg("Removing " + std::to_string(point->getId()));
             toRemove.insert(point);
             continue;
         }
 
         trace(frameToTrace, point);
 
-        assertDeterministic("Point " + std::to_string(point->getId()) + " --> " + toString(ph->lastTraceStatus));
+        assertDeterministicMsg("Point " + std::to_string(point->getId()) + " --> " + toString(ph->lastTraceStatus));
 
         if(ph->lastTraceStatus == IPS_GOOD) trace_good++;
         if(ph->lastTraceStatus == IPS_BADCONDITION) trace_badcondition++;
@@ -598,7 +599,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
     }
 
     if (self->lastTraceStatus == IPS_OOB) {
-        assertDeterministic("OOB because last OOB");
+        assertDeterministicMsg("OOB because last OOB");
         return IPS_OOB;
     }
 
@@ -793,7 +794,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTraceUV = Vector2(-1,-1);
         if(self->lastTraceStatus == IPS_OUTLIER) {
             self->lastTraceStatus = IPS_OOB;
-            assertDeterministic("OOB because two times outliers");
+            assertDeterministicMsg("OOB because two times outliers");
             return IPS_OOB;
         }
         else {

@@ -119,6 +119,8 @@ class ModSLAM(SLAM):
 
         executable = self.modslampath
         args = "-c \"" + config_filename + "\" -t -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
+        if d.isReverse():
+            args = args + " -b"
         command = executable + " " + args
 
         # print(command)

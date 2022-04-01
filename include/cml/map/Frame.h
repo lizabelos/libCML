@@ -299,6 +299,10 @@ namespace CML {
             return mCalibration.getK(level);
         }
 
+        void getK(int level, Matrix33 &K) {
+            return mCalibration.getK(level, K);
+        }
+
         int addFeaturePoints(const List<Corner> &features, Ptr<Features::BoW, Nullable> bow = nullptr);
 
         void setBow(int group, Ptr<Features::BoW, Nullable> bow) {

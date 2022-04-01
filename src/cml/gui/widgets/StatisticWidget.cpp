@@ -23,7 +23,7 @@ CML::StatisticWidget::StatisticWidget(PStatistic statistic, QWidget *parent) : Q
 
     //  connect(mCustomPlot, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(plotClick(QMouseEvent*)));
 
-    //mStatistic->subscribeObserver(this);
+    mStatistic->subscribeObserver(this);
 }
 
 CML::StatisticWidget::~StatisticWidget() {

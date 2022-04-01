@@ -372,7 +372,7 @@ void CML::Features::PixelSelector::compute(const CaptureImage &cp, List<Corner> 
     for (int i = 32; i < cp.getWidth(0) - 32; i++) {
         for (int j = 32; j < cp.getHeight(0) - 32; j++) {
             if (output(i, j) != 0 && cp.getDerivativeImage(0).get(i, j).allFinite()) {
-                assertDeterministic("PS extracted : " + std::to_string(i) + " " + std::to_string(j));
+                assertDeterministicMsg("PS extracted : " + std::to_string(i) + " " + std::to_string(j));
                 corners.emplace_back(DistortedVector2d(i, j));
                 types.emplace_back(output(i, j));
             }

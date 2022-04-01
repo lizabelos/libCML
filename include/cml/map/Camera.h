@@ -622,7 +622,7 @@ namespace CML {
         /**
          * @return Return the absolute 3d position of the point
          */
-        EIGEN_STRONG_INLINE Vector3 absolute() const {
+        EIGEN_STRONG_INLINE const Vector3 &absolute() const {
             return mAbsolute;
         }
 
@@ -652,7 +652,7 @@ namespace CML {
         }
 
     protected:
-        EIGEN_STRONG_INLINE WorldPoint(Vector3 absolute) {
+        EIGEN_STRONG_INLINE WorldPoint(const Vector3 &absolute) {
             assertThrow(absolute.allFinite(), "Trying to create non finite world point !");
             mAbsolute = absolute;
         }

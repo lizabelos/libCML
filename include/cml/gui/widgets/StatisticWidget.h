@@ -5,6 +5,8 @@
 #ifndef CML_STATISTICWIDGET_H
 #define CML_STATISTICWIDGET_H
 
+#ifndef ANDROID
+
 #include <QLabel>
 #include <QBasicTimer>
 #include <QTimerEvent>
@@ -49,7 +51,10 @@ namespace CML {
 
     };
 
+
 }
+
+#endif
 
 
 #endif //CML_STATISTICWIDGET_H

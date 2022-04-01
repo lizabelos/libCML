@@ -94,27 +94,25 @@ def bruteforceFindBest(currentParam):
 
     print(pow10)
 
-    weightAndInv = floatrange(0,1.25,0.25) + [1/x for x in floatrange(0.25,1,0.25)]
+    weightAndInv = floatrange(0,1.05,0.05) + [1/x for x in floatrange(0.05,1,0.05)]
     params = [
-        ["trackingMinimumOrbPoint", intrange(0,525,25)],
-        ["bacondMinimumOrbPoint",  intrange(0,525,25)],
-        ["bacondSaturatedRatio", floatrange(0.0,1.2,0.2)],
-        ["trackcondUncertaintyWeight", weightAndInv],
-        ["trackcondUncertaintyWindow", intrange(1,30,5)],
+        ["trackcondUncertaintyWeight", weightAndInv + [-1]],
+        ["trackingMinimumOrbPoint", intrange(0,305,5)],
+        ["bacondMinimumOrbPoint",  intrange(0,305,5)],
+        ["bacondSaturatedRatio", floatrange(0.0,1.2,0.1)],
+        ["trackcondUncertaintyWindow", intrange(1,20,1)],
         ["bacondScoreWeight", weightAndInv],
-        ["bacondScoreWindow", intrange(1,30,5)],
+        ["bacondScoreWindow", intrange(1,20,1)],
         ["orbInlierRatioThreshold", floatrange(0.0,1.1,0.1)],
-        ["orbUncertaintyThreshold", [-1,0.1,1,10,100,1000,10000]],
-        ["dsoTracker.saturatedThreshold", floatrange(0.0,1.2,0.2)],
         ["orbKeyframeRatio", floatrange(0.70,0.95,0.01)],
-        ["orbInlierNumThreshold", intrange(0,100,10)],
+        ["orbInlierNumThreshold", intrange(0,100,5)],
     ]
 
     dprint("Hello :)\n\n")
     launchPrintStatusThread()
     # currentParam = {'numOrbCorner': 500, 'trackcondUncertaintyWeight': 0.4, 'bacondScoreWeight': 0.02, 'trackcondUncertaintyWindow': 8}
     # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
     currentMin = 99999999
     while True:
         bestParamModif = None
@@ -145,16 +143,20 @@ def bruteforceFindBest(currentParam):
                     context.setconfig(param[0], v)
                     try:
                         ate = evaluateOn(context, datasets[i])
-                        fps = context.getTime() / numFramesOf(datasets[i].name())
+                        fps = numFramesOf(datasets[i].name()) / context.getTime()
                         toprint = toprint + str(float(int(ate * 10) / 10)) + " at " + str(int(fps)) + "\t"
                         currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
                     except KeyboardInterrupt:
                         return 0,0,""
                     except Exception as e:
-                        slamLog = context.getError()
-                        lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
-                        numFrame = re.findall(r'\d+', lastLine)[0]
-                        err = 10000 - int(numFrame)
+                        err = "x"
+                        try:
+                            slamLog = context.getError()
+                            lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
+                            numFrame = re.findall(r'\d+', lastLine)[0]
+                            err = 10000 - int(numFrame)
+                        except:
+                            pass
                         toprint = toprint + str(err) + "\t"
                         currentSum = currentSum + err
                 return currentSum, toprint

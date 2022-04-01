@@ -101,6 +101,14 @@ namespace CML {
             return K;
         }
 
+        EIGEN_STRONG_INLINE void getK(Matrix33 &K) const {
+            K.setIdentity();
+            K(0, 0) = mF.x();
+            K(1, 1) = mF.y();
+            K(0, 2) = mC.x();
+            K(1, 2) = mC.y();
+        }
+
         EIGEN_STRONG_INLINE Vector4 getParameters() const {
             return Vector4(mF.x(), mF.y(), mC.x(), mC.y());
         }
@@ -381,6 +389,12 @@ namespace CML {
             assertThrow(mDefaultParameter == false, "Default Internal Calibration Parameters");
             return mNewPinholeLevels[lvl].getK();
         }
+
+        EIGEN_STRONG_INLINE void getK(int lvl, Matrix33 &K) const {
+            assertThrow(mDefaultParameter == false, "Default Internal Calibration Parameters");
+            mNewPinholeLevels[lvl].getK(K);
+        }
+
 
         EIGEN_STRONG_INLINE PinholeUndistorter getPinhole(int lvl) const {
             assertThrow(mDefaultParameter == false, "Default Internal Calibration Parameters");

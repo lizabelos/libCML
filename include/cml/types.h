@@ -10,6 +10,10 @@
 #include <dirent.h>
 #endif
 
+#ifdef ANDROID
+#include "sse2neon.h"
+#endif
+
 #define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
@@ -190,12 +194,12 @@ namespace CML {
         _assertDeterministic(std::to_string(value) + "  |  " + msg + "\n");
     }
 
-    inline void assertDeterministic(const std::string &msg) {
+    inline void assertDeterministicMsg(const std::string &msg) {
         _assertDeterministic(msg + "\n");
     }
 #else
-    template <typename T> inline void assertDeterministic(const std::string &msg, T value) {}
-    inline void assertDeterministic(const std::string &msg) {}
+#define assertDeterministic(MSG, VALUE)
+#define assertDeterministicMsg(MSG)
 #endif
 
     inline void setThreadName(std::string name) {
@@ -1126,7 +1130,14 @@ namespace CML {
         EIGEN_STRONG_INLINE DistortedVector2d point0() const {
             assertDeterministic("corner x", mX);
             assertDeterministic("corner y", mY);
-             return DistortedVector2d(mX, mY);
+            return DistortedVector2d(mX, mY);
+        }
+
+        EIGEN_STRONG_INLINE void point0(DistortedVector2d &result) const {
+            assertDeterministic("corner x", mX);
+            assertDeterministic("corner y", mY);
+            result.x() = mX;
+            result.y() = mY;
         }
 
         EIGEN_STRONG_INLINE void scalePoint(scalar_t s) {
@@ -1322,21 +1333,21 @@ namespace CML {
     namespace PredefinedPattern {
 
         EIGEN_STRONG_INLINE Pattern single() {
-            const Pattern single = {
+            static const Pattern single = {
                     {0, 0}
             };
             return single;
         }
 
-        EIGEN_STRONG_INLINE Vector2 single(size_t i) {
-            const Pattern single = {
+        EIGEN_STRONG_INLINE const Vector2 &single(size_t i) {
+            static const Pattern single = {
                     {0, 0}
             };
             return single[i];
         }
 
         EIGEN_STRONG_INLINE Pattern star8() {
-            const Pattern star8 = {
+            static const Pattern star8 = {
                     {0,-2},
                     {-1,-1},
                     {1,-1},
@@ -1349,8 +1360,8 @@ namespace CML {
             return star8;
         }
 
-        EIGEN_STRONG_INLINE Vector2 star8(size_t i) {
-            const Pattern star8 = {
+        EIGEN_STRONG_INLINE const Vector2 &star8(size_t i) {
+            static const Pattern star8 = {
                     {0,-2},
                     {-1,-1},
                     {1,-1},
@@ -1364,7 +1375,7 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE Pattern star9() {
-            const Pattern star9 = {
+            static const Pattern star9 = {
                     {0, 0},
                     {0, 2},
                     {2, 0},
@@ -1378,8 +1389,8 @@ namespace CML {
             return star9;
         }
 
-        EIGEN_STRONG_INLINE Vector2 star9(size_t i) {
-            const Pattern star9 = {
+        EIGEN_STRONG_INLINE const Vector2 &star9(size_t i) {
+            static const Pattern star9 = {
                     {0, 0},
                     {0, 2},
                     {2, 0},
@@ -1394,7 +1405,7 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE Pattern fullSpread21() {
-            const Pattern fullSpread21 = {
+            static const Pattern fullSpread21 = {
                     {0,-2},
                     {-1,-1},
                     {1,-1},
@@ -1419,8 +1430,8 @@ namespace CML {
             return fullSpread21;
         }
 
-        EIGEN_STRONG_INLINE Vector2 fullSpread21(size_t i) {
-            const Pattern fullSpread21 = {
+        EIGEN_STRONG_INLINE const Vector2 &fullSpread21(size_t i) {
+            static const Pattern fullSpread21 = {
                     {0,-2},
                     {-1,-1},
                     {1,-1},

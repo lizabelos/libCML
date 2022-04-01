@@ -140,27 +140,31 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::KittyCapture::multithreadNext() 
         return Ptr<CaptureImage, Nullable>();
     }
 
+    int currentImage = mCurrentImage;
+    if (isReverse()) {
+        currentImage = (mImages[0].size() - 1) - currentImage;
+    }
+
     CaptureImageMaker maker = mCaptureImageGenerator->create();
 
     if (mUseColor) {
-        auto images = loadPngImage(mImages[2][mCurrentImage]);
+        auto images = loadPngImage(mImages[2][currentImage]);
         maker.setImage(images.first);
         //maker.setImage(images.second);
     } else {
-        auto images = loadPngImage(mImages[0][mCurrentImage]);
+        auto images = loadPngImage(mImages[0][currentImage]);
         maker.setImage(images.first);
         //maker.setImage(images.second);
-        logger.important("Image " + std::to_string(mCurrentImage) + " : " + std::to_string(images.first.eigenMatrix().sum()));
     }
 
-    maker.setPath(mImages[0][mCurrentImage])
+    maker.setPath(mImages[0][currentImage])
             .setTime(mTimes[mCurrentImage])
             .setCalibration(mCalibration[0])
             .setLut(&mLut)
             .setInverseVignette(mVignette);
 
     if (mPoses.size() > 0) {
-        maker.setGroundtruth(Camera::fromNullspaceMatrix(mPoses[mCurrentImage].transformMatrix));
+        maker.setGroundtruth(Camera::fromNullspaceMatrix(mPoses[currentImage].transformMatrix));
     }
 
     mCurrentImage++;
