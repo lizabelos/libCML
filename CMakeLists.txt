@@ -32,8 +32,10 @@ option(ENABLE_GUI "Enable GUI" ON)
 option(USE_OPENMP "Use OpenMP" ON)
 option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
 
-add_compile_options(-march=native)
-add_link_options(-march=native)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(-march=native -O3)
+    add_link_options(-march=native -O3)
+endif()
 
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -286,6 +288,7 @@ if (ENABLE_ASSERT)
 endif()
 
 file(COPY resources DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
 
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

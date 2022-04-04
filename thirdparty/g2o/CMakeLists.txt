@@ -351,24 +351,13 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fno-math-errno")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fno-math-errno")
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og -fno-math-errno -g")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG=1")
 endif()
 
-#if (NOT ANDROID)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-#endif()
-# activate warnings !!!
-set(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
-set(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
-#add_compile_definitions(DEIGEN_MAX_ALIGN_BYTES=64)
-#add_compile_definitions(DENABLE_SSE=1)
 
-
-
-# C++14 support
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

@@ -502,18 +502,6 @@ else (NOT CMAKE_BUILD_TYPE)
   endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif (NOT CMAKE_BUILD_TYPE)
 
-if (MINGW)
-  # MinGW produces code that segfaults when performing matrix multiplications
-  # in Eigen when compiled with -O3 (see [1]), as such force the use of -O2
-  # which works.
-  #
-  # [1] http://eigen.tuxfamily.org/bz/show_bug.cgi?id=556
-  message("-- MinGW detected, forcing -O2 instead of -O3 in Release for Eigen due "
-          "to a MinGW bug: http://eigen.tuxfamily.org/bz/show_bug.cgi?id=556")
-  string(REPLACE "-O3" "-O2" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-  update_cache_variable(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-endif (MINGW)
-
 # After the tweaks for the compile settings, disable some warnings on MSVC.
 if (MSVC)
   # On MSVC, math constants are not included in <cmath> or <math.h> unless
