@@ -122,7 +122,7 @@ namespace CML::Features {
 
     private:
         Parameter mNumCorner = createParameter("num", 1024);
-        Parameter mUseCache = createParameter("useCache", false);
+        Parameter mUseCache = createParameter("useCache", true);
         Parameter mBlur = createParameter("blur", true);
 
         int nlevels;
