@@ -329,7 +329,13 @@ namespace CML {
             mList.push_front(t);
         }
 
-        T accumulate(size_t s) {
+        T accumulate(int s) {
+            if (s == 0) {
+                s = 1;
+            }
+            if (s < 0) {
+                negAccumulate(-s);
+            }
             while (mList.size() > s) {
                 mList.pop_back();
             }
@@ -346,6 +352,28 @@ namespace CML {
                 }
             }
             return result;
+        }
+
+    protected:
+        T negAccumulate(int s) {
+            if (mList.size() == 1) {
+                return mList.front();
+            }
+            while (mList.size() > s) {
+                mList.pop_back();
+            }
+            T result(0);
+            T firstValue(0);
+            bool isFirst = true;
+            for (const T &t : mList) {
+                if (isFirst) {
+                    firstValue = t;
+                    isFirst = false;
+                } else {
+                    result += t - firstValue;
+                }
+            }
+            return mList.front() + (result / (double)(mList.size() - 1));
         }
 
     private:
