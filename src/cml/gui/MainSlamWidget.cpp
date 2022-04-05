@@ -22,7 +22,9 @@
 CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool renderMode):
     mSLAM(slam),
     mModelWidget(slam.p(), FOLLOW),
+    #ifndef ANDROID
     mFunctionListWidget(slam.p()),
+    #endif
     mGroupsWidget(slam.p()),
     mGarbageCollectorInstance(slam->getMap().getGarbageCollector().newInstance())
 {
@@ -64,11 +66,13 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     mCommandsLayout.addWidget(&mFilterVariance);
     mCommandsLayout.addStretch();
 
+#ifndef ANDROID
     if (!renderMode) {
         mFunctionListWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
     } else {
         mModelWidget.setFixedSize(1280, 720);
     }
+#endif
     mModelWidget.setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     mGroupsWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
 
@@ -96,7 +100,9 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     if (isBigScreen) {
 
         mLayout.addLayout(&mCommandsLayout, 0, 0, 1, 3);
+#ifndef ANDROID
         mLayout.addWidget(&mFunctionListWidget, 1, 0);
+#endif
         mLayout.addWidget(&mModelWidget, 1, 1, 2, 1);
         mLayout.addWidget(&mGroupsWidget, 1, 2);
         mLayout.addLayout(&mCameraViewerLayout, 2, 0, 1, 1);
@@ -108,7 +114,9 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
     } else {
 
+        #ifndef ANDROID
         mTabWidget.addTab(&mFunctionListWidget, "Functions");
+#endif
         mTabWidget.addTab(&mModelWidget, "Model");
         mTabWidget.addTab(&mGroupsWidget, "Groups");
         mTabWidget.addTab(mCameraViewerWidgets[0], "Camera");

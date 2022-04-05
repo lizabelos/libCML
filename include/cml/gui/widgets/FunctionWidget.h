@@ -5,6 +5,8 @@
 #ifndef CML_FUNCTIONWIDGET_H
 #define CML_FUNCTIONWIDGET_H
 
+#ifndef ANDROID
+
 #include <QWidget>
 #include <QGridLayout>
 #include <QLabel>
@@ -67,5 +69,6 @@ namespace CML {
 
 }
 
+#endif
 
 #endif //CML_FUNCTIONWIDGET_H

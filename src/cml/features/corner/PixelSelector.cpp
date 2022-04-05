@@ -73,12 +73,13 @@ void CML::Features::PixelSelector::makeHists(const CaptureImage &cp)
                     int jt = j+32*y;
                     if(it>w-2 || jt>h-2 || it<1 || jt<1) continue;
 
-                    int g = static_cast<int>(sqrtf(cp.getWeightedGradientNorm(0).get(32 * x + i, 32 * y + j)));
+                    float gf = sqrtf(cp.getWeightedGradientNorm(0).get(32 * x + i, 32 * y + j));
+                    int g = static_cast<int>(gf);
                     // int g = sqrtf(map0[i+j*w]);
 
                     if(g>48) g=48;
                     //assertThrow(g >= 0, "Weghted gradient norm is not correct !");
-                    if (g>=0 && std::isfinite(g)) {
+                    if (g>=0 && std::isfinite(gf)) {
                         hist0[g + 1]++;
                         hist0[0]++;
                     }

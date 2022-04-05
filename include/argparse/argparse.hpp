@@ -235,15 +235,6 @@ template <class T> struct parse_number<T> {
   }
 };
 
-namespace {
-
-template <class T> constexpr auto generic_strtod = nullptr;
-template <> constexpr auto generic_strtod<float> = strtof;
-template <> constexpr auto generic_strtod<double> = strtod;
-template <> constexpr auto generic_strtod<long double> = strtold;
-
-} // namespace
-
 template <class T> inline auto do_strtod(std::string const &s) -> T {
   if (isspace(static_cast<unsigned char>(s[0])) || s[0] == '+')
     throw std::invalid_argument{"pattern not found"};
@@ -252,7 +243,7 @@ template <class T> inline auto do_strtod(std::string const &s) -> T {
   char *ptr;
 
   errno = 0;
-  if (auto x = generic_strtod<T>(first, &ptr); errno == 0) {
+  if (auto x = strtod(first, &ptr); errno == 0) {
     if (ptr == last)
       return x;
     else

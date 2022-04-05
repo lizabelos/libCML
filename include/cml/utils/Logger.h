@@ -51,8 +51,6 @@ namespace CML {
 
         Logger();
 
-        void redirect(std::string filename);
-
         void setLogLevel(LoggerLevel level);
 
         void log(LoggerLevel level, const std::string &msg);
@@ -134,15 +132,6 @@ namespace CML {
             return *this;
         }
 
-        inline void filter(pthread_t thread) {
-            mHaveThreadFilter = true;
-            mThreadFilter = thread;
-        }
-
-        inline void filterThisThread() {
-            filter(pthread_self());
-        }
-
         inline void setPrefix(std::string prefix) {
             mPrefixMutex.lock();
             mPrefix = prefix;
@@ -159,7 +148,6 @@ namespace CML {
         std::unordered_set<Observer*> mObservers;
 
         bool mHaveThreadFilter;
-        pthread_t mThreadFilter;
 
         std::mutex mPrefixMutex;
         std::string mPrefix;

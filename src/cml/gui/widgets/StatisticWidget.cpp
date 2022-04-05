@@ -1,6 +1,7 @@
 //
 // Created by tbelos on 23/08/19.
 //
+#ifndef ANDROID
 
 #include "cml/gui/widgets/StatisticWidget.h"
 
@@ -52,3 +53,6 @@ void CML::StatisticWidget::plotClick(QMouseEvent *mouseEvent) {
     mCustomPlot->savePng(filename, 640, 480);
 */
 }
+
+
+#endif

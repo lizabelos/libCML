@@ -14,12 +14,6 @@
 
 #include <vector>
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
 #if CML_HAVE_YAML_CPP
 #include <yaml-cpp/yaml.h>
 #endif

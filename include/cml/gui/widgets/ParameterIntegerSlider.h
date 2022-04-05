@@ -5,6 +5,8 @@
 #ifndef CML_PARAMETERINTEGERSLIDER_H
 #define CML_PARAMETERINTEGERSLIDER_H
 
+#ifndef ANDROID
+
 #include <QSpinBox>
 #include <QMouseEvent>
 #include "cml/base/AbstractFunction.h"
@@ -27,5 +29,7 @@ namespace CML {
     };
 
 }
+
+#endif
 
 #endif //CML_PARAMETERINTEGERSLIDER_H

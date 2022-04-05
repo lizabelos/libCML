@@ -30,17 +30,9 @@ MODSLAM is a mixed ORB-SLAM2 and DSO SLAM system. If you are using this work, pl
 
 ## a. Windows, Linux and Mac
 
-Required packages : 
-```bash
-apt install libsuitesparse-dev
-```
+If you want to build the GUI, you will need Qt6 with Qt Multimedia and Qt Charts. Otherwise, please disable it with the according option (see below).
 
-Optional packages :
-```bash
-apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
-```
-
-We recommend you to use CLion from Jetbrains to build and test.
+We recommend you to use CLion from Jetbrains, or Qt Creator from Nokia, to build and test.
 Otherwise, you can :
 
 ```bash
@@ -62,7 +54,12 @@ This is a list of different option you can pass to cmake :
 ## b. Android and iPhone
 
 We recommend you to use Qt Creator, as it is the most simple way to build ModSLAM on Android and iPhone.
-Note that the code for Android is not maintained for the moment.
+
+1. Download and Install Android Studio
+2. Download and Install JDK 17 (Higher version not supporter for the moment)
+3. Download and Install Qt (with QtCreator, Qt 6 for Android, Qt Multimedia and Qt Charts)
+4. Launch Qt Creator. Go to Android settings. Make sure that all is ok. Download the Android SDK you want.
+5. Open the project with Qt Creator, configure it for Android/Release and simply build it
 
 # 4. Execution
 

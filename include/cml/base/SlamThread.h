@@ -13,7 +13,6 @@ namespace CML {
     public:
         SlamThread(AbstractSlam &slam, std::string name, std::function<void()> function) : mSlam(slam), mFunction(function) {
             mThread = std::thread(&SlamThread::run, this);
-            pthread_setname_np(mThread.native_handle(), name.c_str());
         }
 
         ~SlamThread() {

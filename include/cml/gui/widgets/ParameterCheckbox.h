@@ -5,6 +5,8 @@
 #ifndef CML_PARAMETERCHECKBOX_H
 #define CML_PARAMETERCHECKBOX_H
 
+#ifndef ANDROID
+
 #include <QCheckBox>
 #include "cml/base/AbstractFunction.h"
 
@@ -23,5 +25,7 @@ namespace CML {
     };
 
 }
+
+#endif
 
 #endif //CML_PARAMETERCHECKBOX_H

@@ -2,6 +2,8 @@
 // Created by tbelos on 23/08/19.
 //
 
+#ifndef ANDROID
+
 #include "cml/gui/widgets/ParameterFloatingSlider.h"
 
 
@@ -19,3 +21,5 @@ void CML::ParameterFloatingSlider::valueHasChanged() {
     mParameter.set(text().toFloat());
     //mParameter.set((float)value());
 }
+
+#endif

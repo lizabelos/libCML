@@ -2,12 +2,17 @@
 #define CML_TYPES_H
 
 #include <filesystem>
+#include <vector>
+#include <list>
+#include <atomic>
+#include <mutex>
+#include <set>
+#include <condition_variable>
+#include <numeric>
+#include <thread>
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#include <dirent.h>
+#ifndef M_PI_2
+#define M_PI_2 1.57079632679489661923
 #endif
 
 #ifdef ANDROID
@@ -27,14 +32,6 @@
 #include <sparsehash/dense_hash_set>
 #endif
 
-#include <vector>
-#include <list>
-#include <atomic>
-#include <mutex>
-#include <set>
-#include <condition_variable>
-#include <numeric>
-
 #include "types/Optional.h"
 #include "utils/Logger.h"
 #include "fastmath.h"
@@ -47,24 +44,9 @@
 
 namespace CML {
 
-#ifdef WIN32
-    inline void usleep(__int64 usec)
-    {
-        HANDLE timer;
-        LARGE_INTEGER ft;
-
-        ft.QuadPart = -(10*usec); // Convert to 100 nanosecond interval, negative value indicates relative time
-
-        timer = CreateWaitableTimer(NULL, TRUE, NULL);
-        SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
-        WaitForSingleObject(timer, INFINITE);
-        CloseHandle(timer);
+    inline void usleep(long long usec) {
+        std::this_thread::sleep_for(std::chrono::microseconds(usec));
     }
-#else
-    inline void usleep(__int64_t usec) {
-        ::usleep(usec);
-    }
-#endif
 
     inline float memoryUsage() {
 #ifdef linux
@@ -201,10 +183,6 @@ namespace CML {
 #define assertDeterministic(MSG, VALUE)
 #define assertDeterministicMsg(MSG)
 #endif
-
-    inline void setThreadName(std::string name) {
-        pthread_setname_np(pthread_self(), name.c_str());
-    }
 
     struct Hasher;
     struct Comparator;
@@ -401,8 +379,13 @@ namespace CML {
         return atomicFloat;
     }
 
+#ifdef ANDROID
+#define CML_SCALAR_TYPE float
+#define CML_GL_SCALAR GL_FLOAT
+#else
 #define CML_SCALAR_TYPE double
 #define CML_GL_SCALAR GL_DOUBLE
+#endif
     typedef CML_SCALAR_TYPE scalar_t;
 
     // From : https://github.com/xiezhq-hermann/atan_lookup/blob/master/atan.cpp

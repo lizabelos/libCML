@@ -33,7 +33,6 @@ void CML::AbstractSlam::start(Ptr<AbstractCapture, NonNullable> capture, bool us
         }
         logger.info("End of CML Thread");
     });
-    pthread_setname_np(mThread.native_handle(), getName().c_str());
 }
 
 void CML::AbstractSlam::startSingleThread(Ptr<AbstractCapture, NonNullable> capture) {

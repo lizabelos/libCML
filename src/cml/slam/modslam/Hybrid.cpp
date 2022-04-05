@@ -79,7 +79,11 @@ void Hybrid::onReset() {
 void Hybrid::run() {
 
     assertDeterministicMsg("Run");
+#if CML_HAVE_LIBZIP
     mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
+#else
+    mCornerExtractor->loadVocabulary("resources/ORBvoc.txt");
+#endif
 
 
     mPhotometricBA->setMixedBundleAdjustment(mMixedBundleAdjustment.b());

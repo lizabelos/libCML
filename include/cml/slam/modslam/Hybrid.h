@@ -6,7 +6,6 @@
 #define CML_HYBRID_H
 
 #include <thread>
-#include <unistd.h>
 
 #include <cml/base/AbstractSlam.h>
 

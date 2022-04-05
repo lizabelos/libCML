@@ -5,6 +5,8 @@
 #ifndef CML_PARAMETERFLOATINGSLIDER_H
 #define CML_PARAMETERFLOATINGSLIDER_H
 
+#ifndef ANDROID
+
 #include <QLineEdit>
 #include <QMouseEvent>
 #include "cml/base/AbstractFunction.h"
@@ -28,5 +30,7 @@ namespace CML {
 
 }
 
+
+#endif
 
 #endif //CML_PARAMETERFLOATINGSLIDER_H

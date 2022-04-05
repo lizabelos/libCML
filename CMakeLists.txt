@@ -11,6 +11,7 @@ project(CML
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(ANDROID_PACKAGE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/android CACHE INTERNAL "")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
@@ -29,12 +30,17 @@ cmake_policy(SET CMP0072 NEW)
 #######################################################################################################################
 
 option(ENABLE_GUI "Enable GUI" ON)
-option(USE_OPENMP "Use OpenMP" ON)
+option(USE_OPENMP "Use OpenMP" OFF)
 option(ENABLE_ASSERT "Enable assert on Release mode" OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(-march=native -O3)
-    add_link_options(-march=native -O3)
+    if (ANDROID)
+        add_compile_options(-O3)
+        add_link_options(-O3)
+    else()
+        add_compile_options(-march=native -O3)
+        add_link_options(-march=native -O3)
+    endif()
 endif()
 
 #######################################################################################################################
@@ -202,8 +208,6 @@ else()
     set(COMPILER_FLAG_FPIC "")
 endif()
 
-set(CMAKE_EXE_LINKER_FLAGS "-export-dynamic")
-
 include_directories(${CMAKE_BINARY_DIR})
 
 #######################################################################################################################
@@ -248,7 +252,247 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(CML include)
 include_directories(CML src)
 
-add_subdirectory(src)
+file(GLOB_RECURSE HEADER_LIST CONFIGURE_DEPENDS include/*.h)
+
+add_library(CML STATIC
+
+        ${HEADER_LIST}
+
+        src/cml/types.cpp
+
+        src/cml/base/AbstractSlam.cpp
+        src/cml/base/Statistic.cpp
+
+        src/cml/capture/CaptureImage.cpp
+        src/cml/capture/KittyCapture.cpp
+        src/cml/capture/TUMCapture.cpp
+        src/cml/capture/EurocCapture.cpp
+        src/cml/capture/TartanairCapture.cpp
+        src/cml/capture/Eth3DCapture.cpp
+        src/cml/capture/RobotCarCapture.cpp
+
+        src/cml/features/corner/PixelSelector.cpp
+
+        src/cml/image/Array2D.cpp
+        src/cml/image/Filter.cpp
+
+        src/cml/map/InternalCalibration.cpp
+        src/cml/map/Camera.cpp
+        src/cml/map/Frame.cpp
+        src/cml/map/Hasher.cpp
+        src/cml/map/Map.cpp
+        src/cml/map/MapObject.cpp
+        src/cml/map/Edge.cpp
+
+        src/cml/maths/Rotation.cpp
+
+        src/cml/optimization/Triangulation.cpp
+        src/cml/optimization/dso/DSOTracer.cpp
+        src/cml/optimization/EPnP.cpp
+        src/cml/optimization/dso/DSOTracker.cpp
+        src/cml/optimization/dso/DSOBundleAdjustment.cpp
+        src/cml/optimization/dso/DSOInitializer.cpp
+        src/cml/optimization/IndirectPointOptimizer.cpp
+
+        src/cml/nn/Precomputed.cpp
+
+        src/cml/robust/RobustFundamental8Points.cpp
+        src/cml/robust/RobustHomography.cpp
+        src/cml/robust/CameraChecker.cpp
+        src/cml/robust/RobustPoseLoss.cpp
+        src/cml/robust/RobustRaulmurInitializer.cpp
+
+        src/cml/utils/Logger.cpp
+        src/cml/utils/GarbageCollector.cpp
+
+        src/cml/gui/viewer/ReprojectionViewer.cpp
+        src/cml/gui/viewer/VarianceViewer.cpp
+
+        src/cml/features/bow/BowVector.cpp
+        src/cml/features/bow/FeatureVector.cpp
+        src/cml/features/bow/QueryResults.cpp
+        src/cml/features/bow/ScoringObject.cpp
+        src/cml/features/bow/Relocalization.cpp
+
+        src/cml/features/corner/ORB.cpp
+        src/cml/features/corner/FAST.cpp
+        src/cml/features/corner/BRIEF.cpp
+
+        src/cml/features/cornerTracker/LSHTracker.cpp
+        src/cml/features/cornerTracker/CornerMatcher.cpp
+        src/cml/features/cornerTracker/BoWTracker.cpp
+        src/cml/features/cornerTracker/VFC.cpp
+
+        src/lodepng/lodepng.cpp
+)
+
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/include/suitesparse)
+
+if (USE_OPENMP)
+    target_link_libraries(CML OpenMP::OpenMP_CXX)
+endif()
+
+if (Yaml-cpp_FOUND)
+    target_link_libraries(CML yaml-cpp)
+    target_include_directories(CML PUBLIC ${YAML_CPP_INCLUDE_DIR})
+    else()
+    message(WARNING yaml-cpp not found)
+endif()
+
+if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
+
+    target_include_directories(CML PUBLIC ${AVFORMAT_INCLUDE_DIRS})
+    target_link_directories(CML PUBLIC ${AVFORMAT_LIBRARY_DIRS})
+    target_include_directories(CML PUBLIC ${AVCODEC_INCLUDE_DIRS})
+    target_link_directories(CML PUBLIC ${AVCODEC_LIBRARY_DIRS})
+    target_include_directories(CML PUBLIC ${AVUTIL_INCLUDE_DIRS})
+    target_link_directories(CML PUBLIC ${AVUTIL_LIBRARY_DIRS})
+    target_include_directories(CML PUBLIC ${SWSCALE_INCLUDE_DIRS})
+    target_link_directories(CML PUBLIC ${SWSCALE_LIBRARY_DIRS})
+
+    target_sources(CML PRIVATE cml/capture/VideoCapture.cpp)
+    target_link_libraries(CML ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES} ${SWSCALE_LIBRARIES})
+
+    set(FFMPEG_FOUND 1 PARENT_SCOPE)
+
+else()
+    set(FFMPEG_FOUND 0 PARENT_SCOPE)
+endif()
+
+if (LIBZIP_FOUND)
+    target_link_libraries(CML ${LIBZIP_LIBRARY})
+endif()
+
+if (CHOLMOD_FOUND)
+    target_link_libraries(CML ${CHOLMOD_LIBRARIES})
+    target_include_directories(CML PUBLIC ${CHOLMOD_INCLUDE_DIR})
+endif()
+
+#if (g2o_FOUND)
+    target_sources(CML PRIVATE src/cml/optimization/g2o/IndirectBundleAdjustment.cpp src/cml/optimization/g2o/IndirectCameraOptimizer.cpp)
+target_link_libraries(CML core types_sba types_slam3d)
+target_include_directories(CML PUBLIC thirdparty/g2o)
+target_include_directories(CML PUBLIC ${G2O_INCLUDE_DIRECTORY})
+#    target_link_libraries(CML g2o::stuff g2o::core g2o::g2o_hierarchical_library g2o::g2o_hierarchical_library g2o::types_slam2d g2o::types_slam2d_addons g2o::types_data g2o::types_sclam2d g2o::types_slam3d  g2o::types_slam3d_addons g2o::types_sba g2o::types_icp g2o::types_sim3 g2o::solver_pcg g2o::solver_dense g2o::solver_slam2d_linear g2o::solver_structure_only g2o::solver_csparse g2o::csparse_extension g2o::solver_cholmod g2o::solver_eigen)
+#endif()
+
+if (CERES_FOUND)
+    target_sources(CML PRIVATE src/cml/optimization/ceres/IndirectBundleAdjustment.cpp src/cml/optimization/ceres/PlaneInitializer.cpp src/cml/optimization/ceres/IndirectCameraOptimizer.cpp src/cml/evaluation/Alignment.cpp)
+    target_link_libraries(CML ${CERES_LIBRARIES})
+    target_include_directories(CML PUBLIC ${CERES_INCLUDE_DIR})
+endif()
+
+if (SUITESPARSE_FOUND)
+    target_link_libraries(CML ${SUITESPARSE_LIBRARIES})
+endif()
+
+if (TORCH_FOUND)
+    target_sources(CML PRIVATE src/cml/nn/MonoDepth.cpp src/cml/nn/Midas.cpp)
+    target_link_libraries(CML torch_cpu c10)
+endif()
+
+if (OpenCV_FOUND)
+    target_sources(CML PRIVATE src/cml/features/corner/OpenCV.cpp)
+    target_include_directories(CML PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(CML ${OpenCV_LIBS})
+endif()
+
+if (GLOG_FOUND)
+    target_link_libraries(CML ${GLOG_LIBRARIES})
+endif()
+
+if (ENABLE_GUI)
+    qt6_wrap_cpp(ModelViewerWidgetSRC include/cml/gui/widgets/ModelWidget.h)
+    qt6_wrap_cpp(LoggerWidgetSRC include/cml/gui/widgets/LoggerWidget.h)
+    qt6_wrap_cpp(CameraViewerWidgetSRC include/cml/gui/widgets/CameraViewerWidget.h)
+    qt6_wrap_cpp(WebcamCaptureSRC include/cml/capture/QtWebcamCapture.h)
+    qt6_wrap_cpp(SpoilerSRC include/cml/gui/widgets/Spoiler.h)
+    qt6_wrap_cpp(GroupsWidgetSRC include/cml/gui/widgets/GroupsWidget.h)
+    qt6_wrap_cpp(DesktopMainWindowSRC include/cml/gui/MainSlamWidget.h)
+
+    target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp ${ModelViewerWidgetSRC}
+            src/cml/gui/drawboard/QtDrawBoard.cpp
+            src/cml/gui/widgets/LoggerWidget.cpp ${LoggerWidgetSRC}
+            src/cml/gui/widgets/CameraViewerWidget.cpp ${CameraViewerWidgetSRC}
+            src/cml/gui/widgets/Spoiler.cpp ${SpoilerSRC}
+            src/cml/gui/widgets/GroupsWidget.cpp ${GroupsWidgetSRC}
+            src/cml/gui/drawboard/QtDrawBoardShaders.cpp
+            src/cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
+            src/cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
+            )
+
+
+    if (NOT ANDROID)
+        qt6_wrap_cpp(FunctionWidgetSRC include/cml/gui/widgets/FunctionWidget.h)
+        qt6_wrap_cpp(FunctionListWidgetSRC include/cml/gui/widgets/FunctionListWidget.h)
+        qt6_wrap_cpp(ParameterIntegerSliderSRC include/cml/gui/widgets/ParameterIntegerSlider.h)
+        qt6_wrap_cpp(ParameterFloatingSliderSRC include/cml/gui/widgets/ParameterFloatingSlider.h)
+        qt6_wrap_cpp(ParameterCheckboxSRC include/cml/gui/widgets/ParameterCheckbox.h)
+        qt6_wrap_cpp(StatisticWidgetSRC include/cml/gui/widgets/StatisticWidget.h)
+
+        target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp ${ModelViewerWidgetSRC}
+                src/cml/gui/widgets/FunctionWidget.cpp ${FunctionWidgetSRC}
+                src/cml/gui/widgets/FunctionListWidget.cpp ${FunctionListWidgetSRC}
+                src/cml/gui/widgets/ParameterIntegerSlider.cpp ${ParameterIntegerSliderSRC}
+                src/cml/gui/widgets/ParameterFloatingSlider.cpp ${ParameterFloatingSliderSRC}
+                src/cml/gui/widgets/ParameterCheckbox.cpp ${ParameterCheckboxSRC}
+                src/cml/gui/widgets/StatisticWidget.cpp ${StatisticWidgetSRC}
+
+       )
+    endif()
+
+    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
+
+    if (MINGW)
+        target_link_libraries(CML opengl32 glu32 mingw32)
+    endif()
+
+endif()
+
+
+if (ANDROID)
+    add_library(modslam MODULE
+                src/cml/slam/modslam.cpp
+                src/cml/slam/modslam/Hybrid.cpp
+                src/cml/slam/modslam/Research.cpp
+                src/cml/slam/modslam/Make.cpp
+                src/cml/slam/modslam/indirect/Tracking.cpp
+                src/cml/slam/modslam/indirect/Mapping.cpp
+                src/cml/slam/modslam/direct/Mapping.cpp
+                src/cml/slam/modslam/direct/Tracking.cpp
+                )
+    target_link_libraries(modslam CML)
+    target_include_directories(modslam PUBLIC include/cml/slam/modslam)
+
+
+    qt_android_generate_deployment_settings(modslam)
+    qt_android_add_apk_target(modslam)
+
+
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/android-build/libs/${ANDROID_ABI}/")
+    add_custom_command(
+        TARGET modslam
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+        ARGS -E copy "${CMAKE_CURRENT_BINARY_DIR}/libmodslam.so" "${CMAKE_CURRENT_BINARY_DIR}/android-build/libs/${ANDROID_ABI}/libmodslam_${ANDROID_ABI}.so"
+    )
+
+else()
+    add_executable(modslam
+                src/cml/slam/modslam.cpp
+                src/cml/slam/modslam/Hybrid.cpp
+                src/cml/slam/modslam/Research.cpp
+                src/cml/slam/modslam/Make.cpp
+                src/cml/slam/modslam/indirect/Tracking.cpp
+                src/cml/slam/modslam/indirect/Mapping.cpp
+                src/cml/slam/modslam/direct/Mapping.cpp
+                src/cml/slam/modslam/direct/Tracking.cpp
+                )
+    target_link_libraries(modslam CML)
+    target_include_directories(modslam PUBLIC include/cml/slam/modslam)
+endif()
+
 
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 

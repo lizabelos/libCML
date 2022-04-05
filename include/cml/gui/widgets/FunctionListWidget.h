@@ -5,6 +5,8 @@
 #ifndef CML_FUNCTIONLISTWIDGET_H
 #define CML_FUNCTIONLISTWIDGET_H
 
+#ifndef ANDROID
+
 #include <vector>
 
 #include <QScrollArea>
@@ -36,5 +38,7 @@ namespace CML {
     };
 
 }
+
+#endif
 
 #endif //CML_FUNCTIONLISTWIDGET_H

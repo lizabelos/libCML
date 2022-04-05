@@ -20,8 +20,10 @@
 #include <QSpacerItem>
 #include <QTabWidget>
 #include "cml/gui/widgets/ModelWidget.h"
+#ifndef ANDROID
 #include "cml/gui/widgets/FunctionListWidget.h"
 #include "cml/gui/widgets/LoggerWidget.h"
+#endif
 #include "cml/gui/widgets/CameraViewerWidget.h"
 #include "cml/base/AbstractSlam.h"
 #include "cml/gui/widgets/GroupsWidget.h"
@@ -77,7 +79,9 @@ namespace CML {
         List<CameraViewerWidget*> mCameraViewerWidgets;
         // CML::ModelWidget *mTopCameraWidget;
 
+#ifndef ANDROID
         FunctionListWidget mFunctionListWidget;
+#endif
         GroupsWidget mGroupsWidget;
 
 

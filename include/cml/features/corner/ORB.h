@@ -7,7 +7,9 @@
 #include <cml/features/bow/Bow.h>
 #include <cml/capture/CaptureImage.h>
 #include <cml/features/corner/FAST.h>
+#if CML_HAVE_LIBZIP
 #include <zip.h>
+#endif
 
 namespace CML::Features {
 
@@ -35,6 +37,7 @@ namespace CML::Features {
                     throw std::runtime_error("Can't load vocabulary");
                 }
             } else {
+#if CML_HAVE_LIBZIP
                 int ziperror;
                 logger.important("Opening " + filename);
                 zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
@@ -59,6 +62,9 @@ namespace CML::Features {
 
                 zip_close(zipArchive);
                 logger.important("Done");
+#else
+                assertThrow(false, "Don't have libzip");
+#endif
             }
         }
 

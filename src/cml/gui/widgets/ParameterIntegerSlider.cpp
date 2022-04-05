@@ -2,6 +2,7 @@
 // Created by tbelos on 23/08/19.
 //
 
+#ifndef ANDROID
 #include "cml/gui/widgets/ParameterIntegerSlider.h"
 
 CML::ParameterIntegerSlider::ParameterIntegerSlider(Parameter parameter, QWidget *parent) : QSpinBox(parent), mParameter(parameter) {
@@ -13,3 +14,4 @@ CML::ParameterIntegerSlider::ParameterIntegerSlider(Parameter parameter, QWidget
 void CML::ParameterIntegerSlider::valueHasChanged() {
     mParameter.set((int)value());
 }
+#endif

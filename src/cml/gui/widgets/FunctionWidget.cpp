@@ -2,6 +2,8 @@
 // Created by tbelos on 22/08/19.
 //
 
+#ifndef ANDROID
+
 #include "cml/gui/widgets/FunctionWidget.h"
 
 CML::FunctionWidget::FunctionWidget(Ptr<AbstractFunction, NonNullable> function, int level, QWidget *parent) : mFunction(function), mMainLayout(this) {
@@ -113,3 +115,5 @@ void CML::FunctionWidget::paintEvent(QPaintEvent *) {
     QPainter p(this);
     style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
 }
+
+#endif

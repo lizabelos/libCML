@@ -31,9 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#ifndef _WINDOWS
-#include <sys/time.h>
-#endif
 #define drand48() ((number_t) rand()/(number_t)RAND_MAX)
 
 #ifdef __cplusplus

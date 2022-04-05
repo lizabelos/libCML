@@ -3,7 +3,6 @@
 //
 
 #include "cml/utils/Logger.h"
-#include <unistd.h>
 #include <fcntl.h>
 
 namespace CML {
@@ -12,32 +11,11 @@ namespace CML {
 
 CML::Logger::Logger() : mLevel(MORE) {
 
-    mStdout = dup(STDOUT_FILENO);
-    mStderr = dup(STDOUT_FILENO);
-/*
-#ifdef WIN32
-    int devNull = open("nul", O_WRONLY);
-    dup2(devNull, STDOUT_FILENO);
-    dup2(devNull, STDERR_FILENO);
-#else
-    int devNull = open("/dev/null", O_WRONLY);
-    dup2(devNull, STDOUT_FILENO);
-    dup2(devNull, STDERR_FILENO);
-#endif*/
-}
-
-void CML::Logger::redirect(std::string filename) {
-    mStdout = open(filename.c_str(), O_WRONLY);
-    mStderr = mStdout;
 }
 
 void CML::Logger::log(LoggerLevel level, const std::string &msg) {
 
     if (level < mLevel) {
-        return;
-    }
-
-    if (mHaveThreadFilter && pthread_self() != mThreadFilter) {
         return;
     }
 
@@ -74,16 +52,7 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
     loggerMessage.formatted = loggerMessage.threadname + "(" + mPrefix + ") : [" + levelStr + "] " + msg + "\n";
     mPrefixMutex.unlock();
 
-    //if (level >= mLevel && (!mHaveThreadFilter || pthread_self() == mThreadFilter)) {
-
-        if (level == MORE || level == INFO || level == IMPORTANT) {
-            write(mStdout, loggerMessage.formatted.c_str(), loggerMessage.formatted.size());
-        }
-        else {
-            write(mStderr, loggerMessage.formatted.c_str(), loggerMessage.formatted.size());
-        }
-
-    //}
+    std::cout << loggerMessage.formatted;
 
     for (auto observer : mObservers) {
         observer->onNewMessage(loggerMessage);
@@ -92,7 +61,7 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
 }
 
 void CML::Logger::raw(const std::string &msg) {
-    write(mStdout, msg.c_str(), msg.size());
+    std::cout << msg;
 }
 
 void CML::Logger::debug(const std::string &msg) {

@@ -288,9 +288,6 @@ int main(int argc, char *argv[])
     program.add_argument("-f", "--format").nargs(1).help("Result format").action([&resultFormat](const std::string &value){
         resultFormat = value;
     });
-    program.add_argument("-l", "--log").nargs(1).help("Write the log to a file").action([](const std::string &value) {
-        logger.redirect(value);
-    });
     program.add_argument("-z", "--stats").nargs(0).help("Print the stats to cout").default_value(false).implicit_value(true);
     program.add_argument("-s", "--save").nargs(1).help("Save the images").action([&saveImagePath](const std::string &value) {
         saveImagePath = value;
