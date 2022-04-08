@@ -30,6 +30,9 @@ namespace CML::Features {
         }
 
         void loadVocabulary(const std::string &filename) {
+            if (mVocabulary.isNotNull()) {
+                return;
+            }
             if (hasEnding(filename, ".txt")) {
                 mVocabulary = new ORBVocabulary();
                 mVocabulary->loadFromTextFile(filename);
@@ -128,8 +131,13 @@ namespace CML::Features {
 
     private:
         Parameter mNumCorner = createParameter("num", 1024);
+#if ANDROID
+        Parameter mUseCache = createParameter("useCache", false);
+        Parameter mBlur = createParameter("blur", false);
+#else
         Parameter mUseCache = createParameter("useCache", true);
         Parameter mBlur = createParameter("blur", true);
+#endif
 
         int nlevels;
         int iniThFAST;

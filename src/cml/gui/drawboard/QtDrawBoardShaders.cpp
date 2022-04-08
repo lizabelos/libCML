@@ -70,21 +70,44 @@ const QString glslFsTexture(
         "}"
 );
 
+#if ANDROID
 const QString glslVsPC(
         "in vec3 aVertexPosition;\n"
         "in vec3 aColor;\n"
         "in float aVariance;\n"
-        "in unsigned int aGroups;\n"
+        "in int aGroups;\n"
         "\n"
         "out vec3 vColor;\n"
         "out vec4 vPosition;\n"
         "\n"
         "uniform mat4 uMVPMatrix;\n"
         "uniform float uVarianceFilter;\n"
-        "uniform unsigned int uGroupsFilter;\n"
+        "uniform int uGroupsFilter;\n"
         "\n"
         "void main() {\n"
-        "    unsigned int noGroup = uint(0);\n"
+        "        vec3 invertedVertexPosition = vec3(aVertexPosition.x, -aVertexPosition.y, -aVertexPosition.z);\n"
+        "        gl_Position = (uMVPMatrix * vec4(invertedVertexPosition, 1));\n"
+        "        gl_PointSize = 3.0;\n"
+        "        vColor = aColor;\n"
+        "    vPosition = gl_Position;\n"
+        "}\n"
+);
+#else
+const QString glslVsPC(
+        "in vec3 aVertexPosition;\n"
+        "in vec3 aColor;\n"
+        "in float aVariance;\n"
+        "in int aGroups;\n"
+        "\n"
+        "out vec3 vColor;\n"
+        "out vec4 vPosition;\n"
+        "\n"
+        "uniform mat4 uMVPMatrix;\n"
+        "uniform float uVarianceFilter;\n"
+        "uniform int uGroupsFilter;\n"
+        "\n"
+        "void main() {\n"
+        "    int noGroup = 0;\n"
         "    if ((uGroupsFilter & aGroups) == noGroup || aVariance > uVarianceFilter) {\n"
         "        gl_Position = vec4(-999999, -999999, -999999, 1);\n"
         "        vColor = vec3(0, 0, 0);\n"
@@ -97,6 +120,7 @@ const QString glslVsPC(
         "    vPosition = gl_Position;\n"
         "}\n"
 );
+#endif
 
 const QString glslFsPC(
         "out vec4 fFragColor;\n"
@@ -163,7 +187,7 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
     m2DColorProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs2D);
     m2DColorProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsColor);
     // logger.info("Linking the 2D color shader...");
-    assert(m2DColorProgram.link());
+    m2DColorProgram.link();
 
     std::string msg = m2DColorProgram.log().toStdString();
     if (msg != "") {
@@ -183,7 +207,7 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
     m3DColorProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs3D);
     m3DColorProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsColor);
     // logger.info("Linking the 3D color shader...");
-    assert(m3DColorProgram.link());
+    m3DColorProgram.link();
 
     msg = m3DColorProgram.log().toStdString();
     if (msg != "") {
@@ -203,7 +227,7 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
     mPCProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVsPC);
     mPCProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsPC);
     // logger.info("Linking the PC color shader...");
-    assert(mPCProgram.link());
+    mPCProgram.link();
 
     msg = mPCProgram.log().toStdString();
     if (msg != "") {
@@ -228,7 +252,7 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
     mPathProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVsPath);
     mPathProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsPath);
     // logger.info("Linking the PC color shader...");
-    assert(mPathProgram.link());
+    mPathProgram.link();
 
     msg = mPathProgram.log().toStdString();
     if (msg != "") {
@@ -247,7 +271,7 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
     m2DTextureProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs2D);
     m2DTextureProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsTexture);
     // logger.info("Linking the 2D texture shader...");
-    assert(m2DTextureProgram.link());
+    m2DTextureProgram.link();
 
     msg = m2DTextureProgram.log().toStdString();
     if (msg != "") {

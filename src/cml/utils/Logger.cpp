@@ -5,6 +5,10 @@
 #include "cml/utils/Logger.h"
 #include <fcntl.h>
 
+#if ANDROID
+#include <QDebug>
+#endif
+
 namespace CML {
     CML::Logger logger;
 }
@@ -52,7 +56,11 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
     loggerMessage.formatted = loggerMessage.threadname + "(" + mPrefix + ") : [" + levelStr + "] " + msg + "\n";
     mPrefixMutex.unlock();
 
+#if ANDROID
+    qDebug() << QString::fromStdString(loggerMessage.formatted);
+#else
     std::cout << loggerMessage.formatted;
+#endif
 
     for (auto observer : mObservers) {
         observer->onNewMessage(loggerMessage);
@@ -61,7 +69,11 @@ void CML::Logger::log(LoggerLevel level, const std::string &msg) {
 }
 
 void CML::Logger::raw(const std::string &msg) {
+#if ANDROID
+    qDebug() << QString::fromStdString(msg);
+#else
     std::cout << msg;
+#endif
 }
 
 void CML::Logger::debug(const std::string &msg) {

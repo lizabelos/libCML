@@ -317,7 +317,7 @@ void CML::QtDrawBoard::pointCloud(scalar_t *coords, scalar_t *colors, unsigned i
     // mPCProgram.setAttributeArray(mPCColorLocation, (const GLfloat*)colors, 3, 0);
 
     mPCProgram.enableAttributeArray(mPCGroupsLocation);
-    mFunctions->glVertexAttribIPointer(mPCGroupsLocation, 1, GL_UNSIGNED_INT, 0, (const GLuint *)groups);
+    mFunctions->glVertexAttribIPointer(mPCGroupsLocation, 1, GL_INT, 0, (const GLint *)groups);
 
     mPCProgram.enableAttributeArray(mPCVarianceLocation);
     mFunctions->glVertexAttribPointer(mPCVarianceLocation, 1, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)variance);

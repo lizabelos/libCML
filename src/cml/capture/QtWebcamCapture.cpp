@@ -7,6 +7,8 @@
 
 #if CML_ENABLE_GUI
 
+#include <QMediaDevices>
+
 #include "cml/utils/Logger.h"
 #include "cml/image/Array2D.h"
 #include "cml/map/InternalCalibration.h"
@@ -14,13 +16,52 @@
 
 QtWebcamCapture::QtWebcamCapture(size_t poolSize, QObject *parent) : QVideoSink(parent)
 {
-    mMediaCaptureSession = new QMediaCaptureSession();
-    mCamera = new QCamera(QCameraDevice::BackFace);
 
+    connect(this, &QVideoSink::videoFrameChanged, this, &QtWebcamCapture::hvideoFrameChanged);
+
+    const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
+    qDebug() << "Found " << cameras.size() << " cameras";
+    for (const QCameraDevice &cameraDevice : cameras) {
+        qDebug() << cameraDevice.description();
+    }
+
+    qDebug() << "new QMediaCaptureSession";
+    mMediaCaptureSession = new QMediaCaptureSession();
+
+    qDebug() << "new QCamera";
+    mCamera = new QCamera(cameras[0]);
+
+    int settingsIndex = 0;
+    const auto settings = mCamera->cameraDevice().videoFormats();
+    for (int i = 0; i < settings.size(); i++) {
+        auto setting = settings[i];
+        qDebug() << "Format : " << setting.resolution() << " at " << setting.minFrameRate() << "-" << setting.maxFrameRate();
+        if (settingsIndex == 0 && setting.resolution().width() == 640 && setting.resolution().height() == 480) {
+            settingsIndex = i;
+            qDebug() << "Choosing this one !";
+        }
+    }
+
+    const auto s = settings.at( settingsIndex );
+
+    //QVideoFrame frame(QVideoFrameFormat(s.resolution(), s.pixelFormat()));
+    //mSink->setVideoFrame(frame);
+
+    mCamera->setFocusMode( QCamera::FocusModeAuto );
+    mCamera->setCameraFormat( s );
+
+
+
+    qDebug() << "mMediaCaptureSession->setCamera";
     mMediaCaptureSession->setCamera(mCamera);
+
+    qDebug() << "mMediaCaptureSession->setVideoOutput";
     mMediaCaptureSession->setVideoSink(this);
 
+    qDebug() << "mCamera->start";
     mCamera->start();
+
+    qDebug() << "Camera started !";
 }
 
 QtWebcamCapture::~QtWebcamCapture() {
@@ -39,18 +80,49 @@ void QtWebcamCapture::stop() {
 
 }
 
-inline int QtWebcamCapture::remaining() {
+int QtWebcamCapture::remaining() {
     return -1;
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> QtWebcamCapture::next() {
-    QVideoFrame frame;
-    while (!frame.isValid() || frame.width() == 0 || frame.height() == 0) {
-        frame = videoFrame();
-    }
-    if (frame.isValid()) {
+    CML::Ptr<CML::CaptureImage, CML::Nullable> nextFrame = *nextFrames.getPopElement();
+    nextFrames.notifyPop();
+    return nextFrame;
+}
 
-        frame.map(QVideoFrame::ReadOnly);
+void QtWebcamCapture::setExposure(float exposure) {
+    mCamera->setManualExposureTime(exposure);
+}
+
+float QtWebcamCapture::getMinimumExposure() {
+    return mCamera->minimumExposureTime();
+}
+
+float QtWebcamCapture::getMaximumExposure() {
+    return mCamera->maximumExposureTime();
+}
+
+void QtWebcamCapture::setAutoExposure(bool value) {
+    if (value) {
+        mCamera->setExposureMode(QCamera::ExposureMode::ExposureAuto);
+    } else {
+        mCamera->setExposureMode(QCamera::ExposureMode::ExposureManual);
+    }
+}
+
+bool QtWebcamCapture::isAutoExposure() {
+    return mCamera->exposureMode() == QCamera::ExposureMode::ExposureAuto;
+}
+
+void QtWebcamCapture::hvideoFrameChanged(const QVideoFrame &frame) {
+    //frame.map(QVideoFrame::ReadOnly);
+
+    if (nextFrames.getCurrentSize() == 1) {
+        return;
+    }
+
+    if (frame.isValid()) {
+        qDebug() << "Valid next frame";
 
         CML::logger.important("Webcam new frame : " + std::to_string(frame.width()) + "x" + std::to_string(frame.height()));
 
@@ -83,35 +155,9 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> QtWebcamCapture::next() {
                 .setExposure(mCamera->exposureTime())
                 .generate();
 
-        return nextFrame;
-
-    } else {
-        return nullptr;
+        *nextFrames.getPushElement() = nextFrame;
+        nextFrames.notifyPush();
     }
-}
-
-void QtWebcamCapture::setExposure(float exposure) {
-    mCamera->setManualExposureTime(exposure);
-}
-
-float QtWebcamCapture::getMinimumExposure() {
-    return mCamera->minimumExposureTime();
-}
-
-float QtWebcamCapture::getMaximumExposure() {
-    return mCamera->maximumExposureTime();
-}
-
-void QtWebcamCapture::setAutoExposure(bool value) {
-    if (value) {
-        mCamera->setExposureMode(QCamera::ExposureMode::ExposureAuto);
-    } else {
-        mCamera->setExposureMode(QCamera::ExposureMode::ExposureManual);
-    }
-}
-
-bool QtWebcamCapture::isAutoExposure() {
-    return mCamera->exposureMode() == QCamera::ExposureMode::ExposureAuto;
 }
 
 #endif

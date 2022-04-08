@@ -15,10 +15,6 @@
 #define M_PI_2 1.57079632679489661923
 #endif
 
-#ifdef ANDROID
-#include "sse2neon.h"
-#endif
-
 #define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
@@ -451,8 +447,12 @@ namespace CML {
     inline scalar_t atan_fast(scalar_t v) { return atan_single(v); }
 
     inline int32_t fastRound(float v) {
+#if ANDROID
+        return std::round(v);
+#else
         __m128d t = _mm_set_sd( v );
         return _mm_cvtsd_si32(t);
+#endif
     }
 
     template <typename T> int sign(T val) {

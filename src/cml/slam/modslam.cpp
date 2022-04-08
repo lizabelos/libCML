@@ -178,18 +178,15 @@ class StatisticPrinter : public CML::Statistic::Observer {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    Q_INIT_RESOURCE(resources);
 
-    QFile f("style.css");
-    if (f.open(QFile::ReadOnly | QFile::Text)) {
-        QString css = QTextStream(&f).readAll();
-        a.setStyleSheet(css);
-    }
+    CML::initCML();
+    logger.setLogLevel(CML::IMPORTANT);
 
     Ptr<AbstractSlam, Nullable> slam = new Hybrid();
-    MainSlamWidget w(slam);
 
+    MainSlamWidget w(slam);
     w.show();
-    slam->start(new QtWebcamCapture());
     a.exec();
 }
 #else
@@ -352,6 +349,7 @@ int main(int argc, char *argv[])
 #if CML_ENABLE_GUI
     else if (executionMode == GUI) {
         QApplication a(argc, argv);
+        Q_INIT_RESOURCE(resources);
 
         QFile f("style.css");
         if (f.open(QFile::ReadOnly | QFile::Text)) {

@@ -19,6 +19,10 @@
 #include <QHBoxLayout>
 #include <QSpacerItem>
 #include <QTabWidget>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+
 #include "cml/gui/widgets/ModelWidget.h"
 #ifndef ANDROID
 #include "cml/gui/widgets/FunctionListWidget.h"
@@ -44,6 +48,12 @@ namespace CML {
             return mModelWidget.saveImagesTo(path);
         }
 
+    private slots:
+        void fileDownloaded(QNetworkReply* pReply);
+
+    private:
+        QNetworkAccessManager m_WebCtrl;
+
     public slots:
 
         void onVarianceFilterChange(double value);
@@ -64,8 +74,6 @@ namespace CML {
 
         QGridLayout mLayout;
 
-        QTabWidget mTabWidget;
-
 
         Ptr<AbstractSlam, NonNullable> mSLAM;
 
@@ -75,14 +83,13 @@ namespace CML {
 
         ModelWidget mModelWidget;
 
-        QHBoxLayout mCameraViewerLayout;
-        List<CameraViewerWidget*> mCameraViewerWidgets;
+        CameraViewerWidget mCameraViewerWidgets;
         // CML::ModelWidget *mTopCameraWidget;
 
 #ifndef ANDROID
         FunctionListWidget mFunctionListWidget;
-#endif
         GroupsWidget mGroupsWidget;
+#endif
 
 
         QPushButton mButtonPlay;

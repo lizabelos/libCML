@@ -19,8 +19,10 @@
 #include "cml/capture/AbstractCapture.h"
 #include "cml/image/LookupTable.h"
 
-class QtWebcamCapture : public CML::AbstractRealtimeCapture, public QVideoSink {
+class QtWebcamCapture : public QVideoSink, public CML::AbstractRealtimeCapture {
 
+
+    Q_OBJECT
 
 public:
     explicit QtWebcamCapture(size_t poolSize = 10, QObject *parent = 0);
@@ -33,7 +35,7 @@ public:
 
     void stop();
 
-    inline int remaining();
+    int remaining();
 
     CML::Ptr<CML::CaptureImage, CML::Nullable> next();
 
@@ -47,7 +49,11 @@ public:
 
     bool isAutoExposure() final;
 
+public slots:
+    void hvideoFrameChanged(const QVideoFrame &frame);
+
 private:
+
     QMediaCaptureSession *mMediaCaptureSession;
     QCamera *mCamera;
 
@@ -60,6 +66,8 @@ private:
     CML::GrayLookupTable mLookupTable;
 
     CML::Array2D<float> mVignette;
+
+    CML::Queue<CML::Ptr<CML::CaptureImage, CML::Nullable>, 1> nextFrames;
 
 };
 

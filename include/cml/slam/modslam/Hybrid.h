@@ -73,9 +73,8 @@ public:
 
     void viewOnReconstruction(DrawBoard &drawBoard) final {
 
-        mPhotometricTracker->viewOnReconstruction(drawBoard);
 
-   /*     for (auto frame : getMap().getGroupFrames(ORBTRACKEDFRAME)) {
+        for (auto frame : getMap().getGroupFrames(ORBTRACKEDFRAME)) {
             drawBoard.color(0, 1, 0);
             drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
@@ -92,7 +91,7 @@ public:
             drawBoard.lineWidth(5);
             drawBoard.paintCamera(frame->getCamera());
         }
-*/
+
         /*for (auto point : getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT)) {
             drawBoard.color(0, 0, 1);
             drawBoard.pointSize(2);
@@ -294,7 +293,11 @@ private:
     Parameter mLinearizeDirect = createParameter("linearizeDirect", true);
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", false);
+#if ANDROID
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
+#else
+    Parameter mNumOrbCorner = createParameter("numOrbCorner", 500);
+#endif
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);
     Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);

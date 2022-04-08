@@ -12,9 +12,10 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(ANDROID_PACKAGE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/android CACHE INTERNAL "")
+set(CMAKE_AUTORCC ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
+set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 0)
 
 cmake_policy(SET CMP0072 NEW)
 
@@ -175,7 +176,7 @@ if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
     # https://bugreports.qt.io/browse/QTCREATORBUG-25793
     #find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
-    find_package(Qt6 CONFIG REQUIRED Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
+    find_package(Qt6 CONFIG REQUIRED Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia Charts Network)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
@@ -420,6 +421,7 @@ if (ENABLE_GUI)
             src/cml/gui/drawboard/QtDrawBoardShaders.cpp
             src/cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
             src/cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
+            resources.qrc
             )
 
 
@@ -438,11 +440,12 @@ if (ENABLE_GUI)
                 src/cml/gui/widgets/ParameterFloatingSlider.cpp ${ParameterFloatingSliderSRC}
                 src/cml/gui/widgets/ParameterCheckbox.cpp ${ParameterCheckboxSRC}
                 src/cml/gui/widgets/StatisticWidget.cpp ${StatisticWidgetSRC}
+                resources.qrc
 
        )
     endif()
 
-    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts ${OPENGL_LIBRARIES})
+    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts Qt6::Network ${OPENGL_LIBRARIES})
 
     if (MINGW)
         target_link_libraries(CML opengl32 glu32 mingw32)
@@ -465,6 +468,9 @@ if (ANDROID)
     target_link_libraries(modslam CML)
     target_include_directories(modslam PUBLIC include/cml/slam/modslam)
 
+    set_target_properties(modslam PROPERTIES
+                QT_ANDROID_PACKAGE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/android"
+            )
 
     qt_android_generate_deployment_settings(modslam)
     qt_android_add_apk_target(modslam)

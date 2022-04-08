@@ -129,6 +129,10 @@ CML::Ptr<CML::AbstractCapture, CML::Nullable> CML::AbstractSlam::getCapture() {
 
 CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
 
+#if CML_ENABLE_GUI
+    usleep(100);
+#endif
+
     mMap.getGarbageCollector().collect(mGarbageCollectorInstance);
 
     // todo : use condition variable

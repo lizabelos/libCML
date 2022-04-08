@@ -13,19 +13,21 @@
 #include "cml/capture/KittyCapture.h"
 #include "cml/utils/Logger.h"
 #include "cml/base/AbstractSlam.h"
-// #include "cml/gui/capture/QtWebcamCapture.h"
+#include "cml/capture/QtWebcamCapture.h"
 
 #include <QSettings>
 #include <QScreen>
 #include <QStyleFactory>
+#include <QDir>
 
 CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool renderMode):
     mSLAM(slam),
     mModelWidget(slam.p(), FOLLOW),
+    mCameraViewerWidgets(slam.p(), -1),
     #ifndef ANDROID
     mFunctionListWidget(slam.p()),
-    #endif
     mGroupsWidget(slam.p()),
+    #endif
     mGarbageCollectorInstance(slam->getMap().getGarbageCollector().newInstance())
 {
 
@@ -52,10 +54,36 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     isBigScreen = true;
 #endif
 
+       if(!QFileInfo::exists("resources/ORBvoc.zip")) {
+           if (!QDir().exists("resources")) {
+               if (!QDir().mkdir("resources")) {
+                   qDebug() << "Can't create directory resources";
+               }
+           }
+           if (!QFile::copy(":/resources/ORBvoc.zip", "resources/ORBvoc.zip")) {
+               qDebug() << "Can't copy ORBvoc.zip";
+               abort();
+           }
+       }
 
-    mButtonPlay.setText("Play");
-    mButtonPlay.setCheckable(true);
-    mButtonPlay.setChecked(!slam->isPaused());
+  //  mButtonPlay.setText("Downloading data...");
+ //   if(QFileInfo::exists("ORBvoc.zip")) {
+      //  qDebug() << "Found ORBvoc.zip";
+        mButtonPlay.setText("Play");
+        mButtonPlay.setCheckable(true);
+        mButtonPlay.setChecked(!slam->isPaused());
+   /* } else {
+        qDebug() << "Downloading ORBvoc.zip...";
+        mButtonPlay.setEnabled(false);
+        connect(
+                &m_WebCtrl, SIGNAL (finished(QNetworkReply*)),
+                this, SLOT (fileDownloaded(QNetworkReply*))
+        );
+
+        QNetworkRequest request(QUrl("https://github.com/belosthomas/libCML/raw/main/resources/ORBvoc.zip"));
+        m_WebCtrl.get(request);
+    }*/
+
     mCommandsLayout.addWidget(&mButtonPlay);
     mButtonNext.setText("Next");
     mCommandsLayout.addWidget(&mButtonNext);
@@ -72,21 +100,9 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     } else {
         mModelWidget.setFixedSize(1280, 720);
     }
+    mGroupsWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
 #endif
     mModelWidget.setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
-    mGroupsWidget.setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
-
-   // if (isBigScreen) {
-    //    for (int i = 0; i < 7; i++) {
-    //        mCameraViewerWidgets.emplace_back(new CameraViewerWidget(slam.p(), i - 1));
-    //        mCameraViewerWidgets[i]->setMinimumHeight(200.0f / 96.0f * QDesktopWidget().logicalDpiX());
-    //        mCameraViewerLayout.addWidget(mCameraViewerWidgets[i]);
-    //    }
-    //} else {
-        mCameraViewerWidgets.emplace_back(new CameraViewerWidget(slam.p(), -1));
-    mCameraViewerWidgets[0]->setMinimumHeight(200.0f / 96.0f * logicalDpiX());
-    mCameraViewerLayout.addWidget(mCameraViewerWidgets[0]);
-    //}
 
     mInformationsLayout.addWidget(&mRamUsageLabel);
     mInformationsLayout.addWidget(&mGarbageLabel);
@@ -98,14 +114,17 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
     mInformationsLayout.addStretch();
 
     if (isBigScreen) {
+        mCameraViewerWidgets.setMinimumHeight(200.0f / 96.0f * logicalDpiX());
 
         mLayout.addLayout(&mCommandsLayout, 0, 0, 1, 3);
 #ifndef ANDROID
         mLayout.addWidget(&mFunctionListWidget, 1, 0);
 #endif
         mLayout.addWidget(&mModelWidget, 1, 1, 2, 1);
+#ifndef ANDROID
         mLayout.addWidget(&mGroupsWidget, 1, 2);
-        mLayout.addLayout(&mCameraViewerLayout, 2, 0, 1, 1);
+#endif
+        mLayout.addWidget(&mCameraViewerWidgets, 2, 0, 1, 1);
         mLayout.addLayout(&mInformationsLayout, 3, 0, 1, 3);
 
         setLayout(&mLayout);
@@ -113,40 +132,43 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
         resize(screen()->availableGeometry().size() * 0.95);
 
     } else {
-
-        #ifndef ANDROID
-        mTabWidget.addTab(&mFunctionListWidget, "Functions");
-#endif
-        mTabWidget.addTab(&mModelWidget, "Model");
-        mTabWidget.addTab(&mGroupsWidget, "Groups");
-        mTabWidget.addTab(mCameraViewerWidgets[0], "Camera");
-        mTabWidget.setCurrentIndex(1);
-
-        mLayout.addLayout(&mCommandsLayout, 0, 0);
-        mLayout.addWidget(&mTabWidget, 1, 0);
+        mCameraViewerWidgets.setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+        
+        mLayout.addLayout(&mCommandsLayout, 0, 0, 1, 2);
+        mLayout.addWidget(&mModelWidget, 1, 0);
+        mLayout.addWidget(&mCameraViewerWidgets, 1, 1);
         setLayout(&mLayout);
 
     }
 
     connect(&mFilterVariance, SIGNAL(valueChanged(double)), this, SLOT(onVarianceFilterChange(double)));
+#ifndef ANDROID
     connect(&mGroupsWidget, SIGNAL(onGroupsChanged(unsigned int)), &mModelWidget, SLOT(updateGroupsFilter(unsigned int)));
+#endif
     connect(&mButtonPlay, SIGNAL(clicked()), this, SLOT(play()));
 
     mModelWidget.setVarianceFilter(mFilterVariance.value());
+#ifndef ANDROID
     mGroupsWidget.updateGroups();
+#endif
 
     mTimer.start(1000 / 5, this);
 
 }
 
 CML::MainSlamWidget::~MainSlamWidget() {
-    for (auto widget : mCameraViewerWidgets) {
-        delete widget;
-    }
+
 }
 
 void CML::MainSlamWidget::play() {
-    mSLAM->setPaused(!mSLAM->isPaused());
+
+    if (mSLAM->isStopped()) {
+        Ptr<AbstractCapture, Nullable> capture = new QtWebcamCapture();
+        capture->play();
+        mSLAM->start(capture);
+    } else {
+        mSLAM->setPaused(!mSLAM->isPaused());
+    }
     mButtonPlay.setChecked(!mSLAM->isPaused());
 }
 
@@ -200,4 +222,19 @@ void CML::MainSlamWidget::paintEvent(QPaintEvent *e) {
 
 void CML::MainSlamWidget::onVarianceFilterChange(double value) {
     mModelWidget.setVarianceFilter(value);
+}
+
+void CML::MainSlamWidget::fileDownloaded(QNetworkReply *pReply) {
+    qDebug() << "Downloaded ORBvoc.zip";
+
+    QByteArray data = pReply->readAll();
+    QFile file("ORBvoc.zip");
+    file.open(QIODevice::WriteOnly);
+    file.write(data);
+    file.close();
+
+    mButtonPlay.setText("Play");
+    mButtonPlay.setCheckable(true);
+    mButtonPlay.setChecked(!mSLAM->isPaused());
+    mButtonPlay.setEnabled(true);
 }

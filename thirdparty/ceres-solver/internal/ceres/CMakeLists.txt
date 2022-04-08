@@ -275,7 +275,6 @@ else()
   # for downstream clients.
   set(REQUIRED_PUBLIC_CXX_FEATURES cxx_std_${CMAKE_CXX_STANDARD})
 endif()
-target_compile_features(ceres PUBLIC ${REQUIRED_PUBLIC_CXX_FEATURES})
 
 include(AppendTargetProperty)
 # Always build position-independent code (PIC), even when building Ceres as a

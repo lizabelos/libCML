@@ -10,7 +10,7 @@
 namespace CML {
 
     typedef enum {
-        INTEGER, FLOATING, BOOLEAN
+        PARAM_INTEGER, PARAM_FLOATING, PARAM_BOOLEAN
     } ParameterType;
 
     using ParameterFloatingType = scalar_t;
@@ -38,22 +38,22 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE ParameterFloatingType f() {
-            assertThrow(mType == FLOATING, "The type of the parameter is not floating");
+            assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
             return get<ParameterFloatingType>();
         }
 
         EIGEN_STRONG_INLINE int i() {
-            assertThrow(mType == INTEGER, "The type of the parameter is not integer");
+            assertThrow(mType == PARAM_INTEGER, "The type of the parameter is not integer");
             return get<int>();
         }
 
         EIGEN_STRONG_INLINE bool b() {
-            assertThrow(mType == BOOLEAN, "The type of the parameter is not boolean");
+            assertThrow(mType == PARAM_BOOLEAN, "The type of the parameter is not boolean");
             return get<bool>();
         }
 
         void set(float v) {
-            assertThrow(mType == FLOATING, "The type of the parameter is not floating");
+            assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<ParameterFloatingType>() = v;
             for (auto observer : mObservers) {
@@ -62,7 +62,7 @@ namespace CML {
         }
 
         void set(double v) {
-            assertThrow(mType == FLOATING, "The type of the parameter is not floating");
+            assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<ParameterFloatingType>() = v;
             for (auto observer : mObservers) {
@@ -71,7 +71,7 @@ namespace CML {
         }
 
         void set(int v) {
-            assertThrow(mType == INTEGER, "The type of the parameter is not integer");
+            assertThrow(mType == PARAM_INTEGER, "The type of the parameter is not integer");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<int>() = v;
             for (auto observer : mObservers) {
@@ -80,7 +80,7 @@ namespace CML {
         }
 
         void set(bool v) {
-            assertThrow(mType == BOOLEAN, "The type of the parameter is not boolean");
+            assertThrow(mType == PARAM_BOOLEAN, "The type of the parameter is not boolean");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<bool>() = v;
             for (auto observer : mObservers) {
@@ -117,7 +117,7 @@ namespace CML {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
             mName = name;
-            mType = FLOATING;
+            mType = PARAM_FLOATING;
             mData = (void*)new ParameterFloatingType[1];
             ((ParameterFloatingType*)mData)[0] = value;
             mObserversMutex = new Mutex;
@@ -127,7 +127,7 @@ namespace CML {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
             mName = name;
-            mType = FLOATING;
+            mType = PARAM_FLOATING;
             mData = (void*)new ParameterFloatingType[1];
             ((ParameterFloatingType*)mData)[0] = value;
             mObserversMutex = new Mutex;
@@ -137,7 +137,7 @@ namespace CML {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
             mName = name;
-            mType = INTEGER;
+            mType = PARAM_INTEGER;
             mData = (void*)new int[1];
             ((int*)mData)[0] = value;
             mObserversMutex = new Mutex;
@@ -147,7 +147,7 @@ namespace CML {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
             mName = name;
-            mType = BOOLEAN;
+            mType = PARAM_BOOLEAN;
             mData = new bool[1];
             ((bool*)mData)[0] = value;
             mObserversMutex = new Mutex;

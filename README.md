@@ -168,3 +168,14 @@ python3 plotall.py
 All the result are stored in a `result` folder. This is the kind of result you can except with a few experiences :
 
 <img src="documentation/images/plot.png" width="600" alt=""/>
+
+# Known bugs
+
+## The camera won't open on Android
+
+This is a bug of Qt. Please use at least Qt 6.3.0.
+
+## MSVC / CLang, LLVM Out of memory
+
+This can be cause when you use the 32 bits of the compiler instead of the 64.
+Please read https://cmake.org/cmake/help/git-stage/guide/user-interaction/index.html for more details.

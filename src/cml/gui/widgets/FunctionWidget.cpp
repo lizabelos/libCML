@@ -38,7 +38,7 @@ CML::FunctionWidget::FunctionWidget(Ptr<AbstractFunction, NonNullable> function,
 
         switch (parameter.type()) {
 
-            case INTEGER: {
+            case PARAM_INTEGER: {
                 QLabel *label = new QLabel(QString::fromStdString(parameter.name()));
                 mParametersLayout.addWidget(label, line, 0);
 
@@ -46,7 +46,7 @@ CML::FunctionWidget::FunctionWidget(Ptr<AbstractFunction, NonNullable> function,
                 mParametersLayout.addWidget(integerSlider, line, 1);
                 break;
             }
-            case FLOATING: {
+            case PARAM_FLOATING: {
                 QLabel *label = new QLabel(QString::fromStdString(parameter.name()));
                 mParametersLayout.addWidget(label, line, 0);
 
@@ -54,7 +54,7 @@ CML::FunctionWidget::FunctionWidget(Ptr<AbstractFunction, NonNullable> function,
                 mParametersLayout.addWidget(floatingSlider, line, 1);
                 break;
             }
-            case BOOLEAN: {
+            case PARAM_BOOLEAN: {
                 QLabel *label = new QLabel(QString::fromStdString(parameter.name()));
                 mParametersLayout.addWidget(label, line, 0);
 

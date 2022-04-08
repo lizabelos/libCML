@@ -102,15 +102,15 @@ namespace CML {
             }
             try {
                 switch (parameter.type()) {
-                    case INTEGER:
+                    case PARAM_INTEGER:
                         parameter.set(getConfiguration()[name].as<int>());
                         mUnusedParameters.erase(name);
                         break;
-                    case FLOATING:
+                    case PARAM_FLOATING:
                         parameter.set(getConfiguration()[name].as<float>());
                         mUnusedParameters.erase(name);
                         break;
-                    case BOOLEAN:
+                    case PARAM_BOOLEAN:
                         parameter.set(getConfiguration()[name].as<bool>());
                         mUnusedParameters.erase(name);
                         break;
