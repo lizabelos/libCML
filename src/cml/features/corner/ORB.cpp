@@ -10,52 +10,48 @@ const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
 
-CML::Features::ORB::ORB(Ptr<AbstractFunction, Nullable> parent, int nfeatures, int _nlevels, int _iniThFAST, int _minThFAST) :
-AbstractFunction(parent), nlevels(_nlevels), iniThFAST(_iniThFAST), minThFAST(_minThFAST)
+CML::Features::ORB::ORB(Ptr<AbstractFunction, Nullable> parent) :
+AbstractFunction(parent)
 {
-    mScaleFactor = 1.2;
-
-    mNumCorner.set(nfeatures);
+    mFilter = Filter::gaussian1d(7, 2);
 
     reinitialize();
 
-    mFilter = Filter::gaussian1d(7, 2);
 
 }
 
 void CML::Features::ORB::reinitialize() {
-    mScaleFactor = 1.2;
 
-    mvScaleFactor.resize(nlevels);
-    mvLevelSigma2.resize(nlevels);
+    mvScaleFactor.resize(mNLevels.i());
+    mvLevelSigma2.resize(mNLevels.i());
     mvScaleFactor[0]=1.0f;
     mvLevelSigma2[0]=1.0f;
-    for(int i=1; i<nlevels; i++)
+    for(int i=1; i<mNLevels.i(); i++)
     {
-        mvScaleFactor[i]=mvScaleFactor[i-1]*mScaleFactor;
+        mvScaleFactor[i]=mvScaleFactor[i-1]*mScaleFactor.f();
         mvLevelSigma2[i]=mvScaleFactor[i]*mvScaleFactor[i];
     }
 
-    mvInvScaleFactor.resize(nlevels);
-    mvInvLevelSigma2.resize(nlevels);
-    for(int i=0; i<nlevels; i++)
+    mvInvScaleFactor.resize(mNLevels.i());
+    mvInvLevelSigma2.resize(mNLevels.i());
+    for(int i=0; i<mNLevels.i(); i++)
     {
         mvInvScaleFactor[i]=1.0f/mvScaleFactor[i];
         mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
     }
 
-    mnFeaturesPerLevel.resize(nlevels);
-    float factor = 1.0f / mScaleFactor;
-    float nDesiredFeaturesPerScale = mNumCorner.i()*(1 - factor)/(1 - (float)pow((double)factor, (double)nlevels));
+    mnFeaturesPerLevel.resize(mNLevels.i());
+    float factor = 1.0f / mScaleFactor.f();
+    float nDesiredFeaturesPerScale = mNumCorner.i()*(1 - factor)/(1 - (float)pow((double)factor, (double)mNLevels.i()));
 
     int sumFeatures = 0;
-    for( int level = 0; level < nlevels-1; level++ )
+    for( int level = 0; level < mNLevels.i()-1; level++ )
     {
         mnFeaturesPerLevel[level] = fastRound(nDesiredFeaturesPerScale);
         sumFeatures += mnFeaturesPerLevel[level];
         nDesiredFeaturesPerScale *= factor;
     }
-    mnFeaturesPerLevel[nlevels-1] = std::max(mNumCorner.i() - sumFeatures, 0);
+    mnFeaturesPerLevel[mNLevels.i()-1] = std::max(mNumCorner.i() - sumFeatures, 0);
 
     //const int npoints = 512;
     //const Point* pattern0 = (const Point*)bit_pattern_31_;
@@ -81,16 +77,16 @@ void CML::Features::ORB::reinitialize() {
     }
 
 
-    mImages.resize(nlevels);
-    mBluredImages.resize(nlevels);
-    mBluredImagesTmpA.resize(nlevels);
-    mBluredImagesTmpB.resize(nlevels);
-    mBluredImagesTmpC.resize(nlevels);
-    mBluredImagesTmpD.resize(nlevels);
-    mBluredImagesTmpE.resize(nlevels);
+    mImages.resize(mNLevels.i());
+    mBluredImages.resize(mNLevels.i());
+    mBluredImagesTmpA.resize(mNLevels.i());
+    mBluredImagesTmpB.resize(mNLevels.i());
+    mBluredImagesTmpC.resize(mNLevels.i());
+    mBluredImagesTmpD.resize(mNLevels.i());
+    mBluredImagesTmpE.resize(mNLevels.i());
 
-    mAllKeypoints.resize(nlevels);
-    for (int i = 0; i < nlevels; i++) {
+    mAllKeypoints.resize(mNLevels.i());
+    for (int i = 0; i < mNLevels.i(); i++) {
         mAllKeypoints[i].reserve(mNumCorner.i());
     }
 
@@ -134,7 +130,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
     captureImage.getGrayImage(0).castToUChar(mImages[0]);
     assertDeterministic("Image 0", mImages[0].eigenMatrix().sum());
-    for (int i = 1; i < nlevels; i++) {
+    for (int i = 1; i < mNLevels.i(); i++) {
         int imgWidth = (float)captureImage.getWidth(0) * mvInvScaleFactor[i];
         imgWidth = imgWidth / 16;
         imgWidth = imgWidth * 16;
@@ -144,7 +140,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
 
     computeKeyPointsOctTree();
 
-    for (int level = 0; level < nlevels; ++level)
+    for (int level = 0; level < mNLevels.i(); ++level)
     {
         int nkeypointsLevel = (int)mAllKeypoints[level].size();
 
@@ -225,14 +221,14 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 #endif
         mFast = new FAST[ompNumThread];
 
-        for (int i = 0; i < nlevels; i++) {
+        for (int i = 0; i < mNLevels.i(); i++) {
             mAllKeypoints[i].clear();
         }
     }
 
     const float W = 30;
 
-    for (int level = 0; level < nlevels; level++)
+    for (int level = 0; level < mNLevels.i(); level++)
     {
         const int minBorderX = EDGE_THRESHOLD-3;
         const int minBorderY = minBorderX;
@@ -284,13 +280,13 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 #endif
 
                 List<Corner> vKeysCell;
-                mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, iniThFAST);
+                mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, mIniThFAST.i());
 
                 assertDeterministic("FAST (try 1)", vKeysCell.size());
 
-                if(vKeysCell.empty())
+                if(vKeysCell.empty() && mIncreaseThreshold.b())
                 {
-                    mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, minThFAST);
+                    mFast[tid].compute(mImages[level].crop(iniX, iniY, maxX - iniX, maxY - iniY), vKeysCell, mMinThFAST.i());
                     assertDeterministic("FAST (try 2)", vKeysCell.size());
                 }
 
@@ -323,7 +319,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
             for (int i = 0; i < nkps; i++) {
                 keypoints[i].padPoint(minBorderX, minBorderY);
                 keypoints[i].setLevel(level);
-                keypoints[i].setScaleFactor(mScaleFactor);
+                keypoints[i].setScaleFactor(mScaleFactor.f());
                 keypoints[i].setSize(scaledPatchSize);
             }
             logger.debug("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
@@ -333,7 +329,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
 
     // compute orientations
     #pragma omp for
-    for (int level = 0; level < nlevels; ++level) {
+    for (int level = 0; level < mNLevels.i(); ++level) {
         computeOrientation(mImages[level], mAllKeypoints[level], umax);
     }
 }

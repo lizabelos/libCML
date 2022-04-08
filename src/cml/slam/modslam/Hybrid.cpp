@@ -21,14 +21,19 @@ Hybrid::Hybrid() : AbstractSlam() {
     //mReprojectionViewer->setViewable(true);
 
     if (mEnableIndirect.b()) {
-        mCornerExtractor = new CornerAndDescriptor(this, 2000);
+        mCornerExtractor = new CornerAndDescriptor(this);
         mCornerExtractor->setAlias("orb");
 
         mInitTracker = new Features::BoWTracker(this, 0.9, true);
+        mInitTracker->setAlias("initTracker");
         mMotionModelTracker = new Features::BoWTracker(this, 0.9, true);
+        mMotionModelTracker->setAlias("motionModelTracker");
         mReferenceTracker = new Features::BoWTracker(this, 0.7, true);
+        mReferenceTracker->setAlias("referenceTracker");
         mLocalPointsTracker = new Features::BoWTracker(this, 0.8, false);
+        mLocalPointsTracker->setAlias("localPointsTracker");
         mTriangulationTracker = new Features::BoWTracker(this, 0.6, false);
+        mTriangulationTracker->setAlias("triangulationTracker");
 
         mTriangulator = new Hartley2003Triangulation(this);
         mInitializer = new Robust::RobustRaulmurInitializer(this);
@@ -172,10 +177,12 @@ void Hybrid::processFrame(PFrame currentFrame) {
             if (mShouldPreferDso) {
                 logger.info("Should Prefer Dso");
                 mTrackingOk = false;
+                mStatTrackDec->addValue(0);
                 trackWithDso(currentFrame);
             } else {
                 logger.info("Using Orb with Dso Refinement");
                 mTrackingOk = false;
+                mStatTrackDec->addValue(1);
                 trackWithOrbAndDsoRefinement(currentFrame);
             }
 
@@ -214,10 +221,12 @@ void Hybrid::processFrame(PFrame currentFrame) {
                     mBaMode = bundleAdjustmentDecision(needIndirectKF, needDirectKF);
 
                     if (mBaMode == BADIRECT) {
+                        mStatBADec->addValue(0);
                         logger.important("Ba mode Direct");
                         directPostprocess(currentFrame, needDirectKF);
                         indirectPostprocess(currentFrame, needIndirectKF);
                     } else {
+                        mStatBADec->addValue(1);
                         logger.important("Ba mode Indirect");
                         indirectPostprocess(currentFrame, needIndirectKF);
                         directPostprocess(currentFrame, needDirectKF);

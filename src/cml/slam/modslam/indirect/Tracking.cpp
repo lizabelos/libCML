@@ -10,7 +10,7 @@ void Hybrid::extractOrb(PFrame currentFrame) {
     }
 
     if (mLastNumTrackedPoints < 15 || mState == NOT_INITIALIZED) {
-        mCornerExtractor->setNumFeatures(mNumOrbCorner.i() * 2);
+        mCornerExtractor->setNumFeatures(mNumOrbCorner.i() * mNumOrbMultiplier.f());
     } else {
         mCornerExtractor->setNumFeatures(mNumOrbCorner.i());
     }

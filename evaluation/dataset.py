@@ -85,7 +85,7 @@ def kittiGroundtruthPath(kittiFolder, i):
     return kittiFolder + "/poses/%s.txt" % i
 
 
-def KITTI(folder):
+def KITTI(folder, enableReverse=False):
     lim=[77,20,41,1,1,40,49,16,51,58,15]
     r=[4,3,1,6,7,10,9,5,8,0,2]
     result = []
@@ -94,6 +94,9 @@ def KITTI(folder):
         name = "kitti_" + str(i).zfill(2)
         dataset_folder = os.path.join(folder, "sequences/" + str(i).zfill(2))
         result = result + [Dataset("KITTI " + str(i).zfill(2), "kitti", dataset_folder, kittiGroundtruthPath(folder, i), lim=lim[i])]
+
+    if not enableReverse:
+        return result
 
     for i in r:
         name = "kitti_" + str(i).zfill(2) + "_reverse"

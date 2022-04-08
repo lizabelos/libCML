@@ -457,7 +457,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
 
     cols = 3
-    rows = 4
+    rows = 4 * 2
 
     if len(values) < 5:
         return False

@@ -6,6 +6,7 @@ import time
 from utils import system
 import yaml
 import hashlib
+import statistics
 
 def sha256sum(filename):
     h  = hashlib.sha256()
@@ -68,7 +69,7 @@ class SLAM(ABC):
     def getError(self):
         return self.error
 
-    def processLogForStats(self, log, fullError = True):
+    def processLogForStats(self, log, fullError = False):
 
         if fullError:
             self.error = "\n".join(log)
@@ -86,6 +87,8 @@ class SLAM(ABC):
             if not name in stats:
                 stats[name] = []
             stats[name].append(float(y))
+        for stat in stats:
+            stats[stat] = statistics.mean(stats[stat])
         self.stats = stats
 
     def getStats(self):
@@ -118,7 +121,7 @@ class ModSLAM(SLAM):
         # print("Configuration file : " + config_filename)
 
         executable = self.modslampath
-        args = "-c \"" + config_filename + "\" -t -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
+        args = "-c \"" + config_filename + "\" -t -z -d \"" + d.folder() + "\" -r \"" + os.path.join(output,"result") + "\""
         if d.isReverse():
             args = args + " -b"
         command = executable + " " + args

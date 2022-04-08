@@ -303,14 +303,14 @@ private:
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);
     Parameter mScoreWeight = createParameter("bacondScoreWeight", 0.0125);
     Parameter mScoreWindow = createParameter("bacondScoreWindow", 1);
-    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.75);
-    Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 7);
+    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.7);
+    Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 1);
     Parameter mBacondUncertaintyWeight = createParameter("bacondUncertaintyWeight", -1.0);
     Parameter mBacondUncertaintyWindow = createParameter("bacondUncertaintyWindow", 1);
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
     Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 190);
-    Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 0);
+    Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 50);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
     Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.51f);
     Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 10);
@@ -331,13 +331,16 @@ private:
     Parameter mOrbKeyframeMinimumPoints = createParameter("orbKeyframeMinimumPoints", -1);
 
     Parameter mCheckPoseEstimationWithDso = createParameter("checkPoseEstimationWithDso", false);
-    Parameter mDsoUrgentlyNeedNewPointsKFRatio = createParameter("dsoUrgentlyNeedNewPointsKFRatio", 0.5f);
+    Parameter mDsoUrgentlyNeedNewPointsKFRatio = createParameter("dsoUrgentlyNeedNewPointsKFRatio", 1.0f);
+
+    Parameter mNumOrbMultiplier = createParameter("numOrbMultiplier", 1.0f);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
     Ptr<Statistic, NonNullable> mStatBAORBNum = createStatistic("BA ORB Num");
     Ptr<Statistic, NonNullable> mStatBADSONum = createStatistic("BA DSO Num");
-
+    Ptr<Statistic, NonNullable> mStatTrackDec = createStatistic("Tracking Decision");
+    Ptr<Statistic, NonNullable> mStatBADec = createStatistic("Bundle Adjustment Decision");
 
 
 };

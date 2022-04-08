@@ -23,7 +23,7 @@ namespace CML::Features {
     public:
         using Descriptor = Binary256Descriptor;
 
-        explicit ORB(Ptr<AbstractFunction, Nullable> parent, int nfeatures = 1024, int nlevels = 8, int iniThFAST = 20, int minThFAST = 7);
+        explicit ORB(Ptr<AbstractFunction, Nullable> parent);
 
         inline std::string getName() final {
             return "ORB";
@@ -135,13 +135,14 @@ namespace CML::Features {
         Parameter mUseCache = createParameter("useCache", false);
         Parameter mBlur = createParameter("blur", false);
 #else
-        Parameter mUseCache = createParameter("useCache", true);
+        Parameter mUseCache = createParameter("useCache", false);
         Parameter mBlur = createParameter("blur", true);
 #endif
-
-        int nlevels;
-        int iniThFAST;
-        int minThFAST;
+        Parameter mIncreaseThreshold = createParameter("increaseThreshold", true);
+        Parameter mIniThFAST = createParameter("iniThFAST", 20);
+        Parameter mMinThFAST = createParameter("minThFAST", 7);
+        Parameter mNLevels = createParameter("nLevels", 1);
+        Parameter mScaleFactor = createParameter("scaleFactor", 1.2f);
 
         List<int> mnFeaturesPerLevel;
 
@@ -158,7 +159,6 @@ namespace CML::Features {
 
 
         Ptr<ORBVocabulary, Nullable> mVocabulary;
-        scalar_t mScaleFactor;
 
         List<GrayImage> mImages;
         List<GrayImage> mBluredImages;

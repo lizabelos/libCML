@@ -91,9 +91,9 @@ List<Pair<int, int>> CML::Features::BoWTracker::trackByProjection(const BoWFrame
         }
 
         // Apply ratio to second match (only if best and second are in the same scale level)
-        if(bestDist<=TH_HIGH)
+        if(bestDist<=mThHigh.i())
         {
-            if(bestLevel == bestLevel2 && bestDist > mRatio * bestDist2)
+            if(bestLevel == bestLevel2 && bestDist > mRatio.f() * bestDist2)
                 continue;
 
             result.emplace_back(bestIdx, iMP);
@@ -121,11 +121,11 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
     List<int> vpMapPointMatches = List<int>(cornersTarget.size(),-1);
 
-    List<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++) {
+    List<int> rotHist[mHistoLenght.i()];
+    for(int i=0;i<mHistoLenght.i();i++) {
         rotHist[i].reserve(500);
     }
-    const float factor = 1.0f / (float)HISTO_LENGTH;
+    const float factor = 1.0f / (float)mHistoLenght.i();
 
     // We perform the matching over ORB that belong to the same vocabulary node (at a certain level)
     auto KFit = bowReference->featVec.begin();
@@ -190,22 +190,22 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
                     }
                 }
 
-                if(bestDist1 <= TH_LOW)
+                if(bestDist1 <= mThLow.i())
                 {
-                    if(static_cast<float>(bestDist1) < mRatio*static_cast<float>(bestDist2))
+                    if(static_cast<float>(bestDist1) < mRatio.f()*static_cast<float>(bestDist2))
                     {
                         vpMapPointMatches[bestIdxF] = realIdxKF;
 
-                        if(mCheckOrientation)
+                        if(mCheckOrientation.b())
                         {
                             float rot = cornersReference[realIdxKF].angle() - cornersTarget[bestIdxF].angle();
                             if(rot<0.0) {
                                 rot += 360.0f;
                             }
                             int bin = round(rot*factor);
-                            if(bin==HISTO_LENGTH)
+                            if(bin==mHistoLenght.i())
                                 bin=0;
-                            assert(bin>=0 && bin<HISTO_LENGTH);
+                            assert(bin>=0 && bin<mHistoLenght.i());
                             rotHist[bin].push_back(bestIdxF);
                         }
                         nmatches++;
@@ -233,15 +233,15 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
 
     int removeBecauseOrientation = 0;
-    if(mCheckOrientation)
+    if(mCheckOrientation.b())
     {
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
 
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+        ComputeThreeMaxima(rotHist,mHistoLenght.i(),ind1,ind2,ind3);
 
-        for(int i=0; i<HISTO_LENGTH; i++)
+        for(int i=0; i<mHistoLenght.i(); i++)
         {
             if(i==ind1 || i==ind2 || i==ind3)
                 continue;
@@ -300,11 +300,11 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
         mInitializationLastReference = reference.frame;
     }
 
-    List<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++) {
+    List<int> rotHist[mHistoLenght.i()];
+    for(int i=0;i<mHistoLenght.i();i++) {
         rotHist[i].reserve(500);
     }
-    const float factor = 1.0f / (float)HISTO_LENGTH;
+    const float factor = 1.0f / (float)mHistoLenght.i();
 
     List<int> matchesTargToRefDist(cornersTarget.size(), INT_MAX);
     List<int> matchesTargToRef(cornersTarget.size(), -1);
@@ -364,9 +364,9 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
 
         }
 
-        if(bestDist<=TH_LOW)
+        if(bestDist<=mThLow.i())
         {
-            if(bestDist<(float)bestDist2*mRatio)
+            if(bestDist<(float)bestDist2*mRatio.f())
             {
                 if(matchesTargToRef[bestIdx2] >= 0)
                 {
@@ -376,30 +376,30 @@ List<Matching> CML::Features::BoWTracker::trackForInitialization(const BoWFrameA
                 matchesTargToRef[bestIdx2]=iRef;
                 matchesTargToRefDist[bestIdx2]=bestDist;
 
-                if(mCheckOrientation)
+                if(mCheckOrientation.b())
                 {
                     float rot = cornersReference[iRef].angle() - cornersTarget[bestIdx2].angle();
                     if(rot<0.0)
                         rot+=360.0f;
                     int bin = round(rot*factor);
-                    if(bin==HISTO_LENGTH)
+                    if(bin==mHistoLenght.i())
                         bin=0;
-                    assert(bin>=0 && bin<HISTO_LENGTH);
+                    assert(bin>=0 && bin<mHistoLenght.i());
                     rotHist[bin].push_back(iRef);
                 }
             }
         }
     }
 
-    if(mCheckOrientation)
+    if(mCheckOrientation.b())
     {
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
 
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+        ComputeThreeMaxima(rotHist,mHistoLenght.i(),ind1,ind2,ind3);
 
-        for(int i=0; i<HISTO_LENGTH; i++)
+        for(int i=0; i<mHistoLenght.i(); i++)
         {
             if(i==ind1 || i==ind2 || i==ind3)
                 continue;
@@ -480,11 +480,11 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
     List<bool> vbMatched2(cornersB.size(),false);
     List<int> vMatches12(cornersA.size(),-1);
 
-    List<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++)
+    List<int> rotHist[mHistoLenght.i()];
+    for(int i=0;i<mHistoLenght.i();i++)
         rotHist[i].reserve(500);
 
-    const float factor = 1.0f/HISTO_LENGTH;
+    const float factor = 1.0f/mHistoLenght.i();
 
     CML::Features::FeatureVector::const_iterator f1it = vFeatVec1.begin();
     CML::Features::FeatureVector::const_iterator f2it = vFeatVec2.begin();
@@ -510,7 +510,7 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
 
                 const Binary256Descriptor &d1 = A.descriptors[idx1];
 
-                int bestDist = TH_LOW;
+                int bestDist = mThLow.i();
                 int bestIdx2 = -1;
 
                 for(size_t i2=0, iend2=f2it->second.size(); i2<iend2; i2++)
@@ -527,7 +527,7 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
 
                     const int dist = d1.distance(d2);
 
-                    if(dist>TH_LOW || dist>bestDist)
+                    if(dist>mThLow.i() || dist>bestDist)
                         continue;
 
                     const Corner &kp2 = cornersB[idx2];
@@ -554,15 +554,15 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
                     vMatches12[idx1]=bestIdx2;
                     nmatches++;
 
-                    if(mCheckOrientation)
+                    if(mCheckOrientation.b())
                     {
                         float rot = kp1.angle() - kp2.angle();
                         if(rot<0.0)
                             rot+=360.0f;
                         int bin = round(rot*factor);
-                        if(bin==HISTO_LENGTH)
+                        if(bin==mHistoLenght.i())
                             bin=0;
-                        assert(bin>=0 && bin<HISTO_LENGTH);
+                        assert(bin>=0 && bin<mHistoLenght.i());
                         rotHist[bin].push_back(idx1);
                     }
                 }
@@ -581,15 +581,15 @@ List<Matching> CML::Features::BoWTracker::trackForTriangulation(const BoWFrameAn
         }
     }
 
-    if(mCheckOrientation)
+    if(mCheckOrientation.b())
     {
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
 
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+        ComputeThreeMaxima(rotHist,mHistoLenght.i(),ind1,ind2,ind3);
 
-        for(int i=0; i<HISTO_LENGTH; i++)
+        for(int i=0; i<mHistoLenght.i(); i++)
         {
             if(i==ind1 || i==ind2 || i==ind3)
                 continue;
@@ -631,10 +631,10 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
     scalar_t cy = K(1, 2);
 
     // Rotation Histogram (to check rotation consistency)
-    List<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++)
+    List<int> rotHist[mHistoLenght.i()];
+    for(int i=0;i<mHistoLenght.i();i++)
         rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
+    const float factor = 1.0f/mHistoLenght.i();
 
     Matrix33 Rcw = current.camera.getRotationMatrix();
     Vector3 tcw = current.camera.getTranslation();
@@ -720,20 +720,20 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
             }
         }
 
-        if(bestDist<=TH_HIGH)
+        if(bestDist<=mThHigh.i())
         {
             matches[bestIdx2] = i;
             nmatches++;
 
-            if(mCheckOrientation)
+            if(mCheckOrientation.b())
             {
                 float rot = lastCorners[i].angle() - currentCorners[bestIdx2].angle();
                 if(rot<0.0)
                     rot+=360.0f;
                 int bin = round(rot*factor);
-                if(bin==HISTO_LENGTH)
+                if(bin==mHistoLenght.i())
                     bin=0;
-                assert(bin>=0 && bin<HISTO_LENGTH);
+                assert(bin>=0 && bin<mHistoLenght.i());
                 rotHist[bin].push_back(bestIdx2);
             }
         }
@@ -741,15 +741,15 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
     }
 
     //Apply rotation consistency
-    if(mCheckOrientation)
+    if(mCheckOrientation.b())
     {
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
 
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+        ComputeThreeMaxima(rotHist,mHistoLenght.i(),ind1,ind2,ind3);
 
-        for(int i=0; i<HISTO_LENGTH; i++)
+        for(int i=0; i<mHistoLenght.i(); i++)
         {
             if(i!=ind1 && i!=ind2 && i!=ind3)
             {
@@ -842,7 +842,7 @@ Set<PPoint> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescri
         }
 
         // If there is already a MapPoint replace otherwise add new measurement
-        if(bestDist<=TH_LOW)
+        if(bestDist<=mThLow.i())
         {
             OptPPoint pointInFrame = A.frame->getMapPoint(FeatureIndex(A.group, bestIdx));
             if(pointInFrame.isNotNull()) // If we found the point in A

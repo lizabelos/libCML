@@ -51,6 +51,7 @@ void CML::AbstractSlam::startSingleThread(Ptr<AbstractCapture, NonNullable> capt
         mNeedToRestart = false;
         getTimer().start();
         run();
+        break; // todo : don't allow to restart during evaluation
     }
 
     logger.info("SLAM have finished");

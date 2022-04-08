@@ -96,23 +96,42 @@ def bruteforceFindBest(currentParam):
 
     weightAndInv = floatrange(0,1.05,0.05) + [1/x for x in floatrange(0.05,1,0.05)]
     params = [
-        ["trackcondUncertaintyWeight", weightAndInv + [-1]],
+    #    ["orb.iniThFAST", intrange(10, 30, 1)],
+        ["orb.nLevels", intrange(1, 9, 1)],
+    #    ["orb.scaleFactor", floatrange(1.1, 1.6, 0.1)]
+    ]
+    #for t in ["motionModelTracker", "referenceTracker", "localPointsTracker", "triangulationTracker"]:
+    #    params = params + [
+    #        [t + ".thHigh", intrange(10, 100, 10)],
+    #        [t + ".thLow", intrange(10, 100, 10)],
+    #        [t + ".ratio", floatrange(0.1,1.1,0.1)],
+    #        [t + ".checkOrientation", ["true", "false"]]
+    #    ]
+
+    params = params + [
+        #["dsoInitializer.densityFactor", floatrange(0.1,1.1,0.1)],
+        #["dsoInitializer.regularizationWeight", floatrange(0.0,1.1,0.1)],
         ["trackingMinimumOrbPoint", intrange(0,305,5)],
+        ["trackcondUncertaintyWeight", weightAndInv + [-1]],
         ["bacondMinimumOrbPoint",  intrange(0,305,5)],
-        ["bacondSaturatedRatio", floatrange(0.0,1.2,0.1)],
-        ["trackcondUncertaintyWindow", intrange(1,20,1)],
+        ["numOrbMultiplier", floatrange(1.0,2.2,0.2)],
+        ["bacondSaturatedRatio", floatrange(0.0,1.1,0.1)],
+        ["trackcondUncertaintyWindow", [1, -2]],
         ["bacondScoreWeight", weightAndInv],
-        ["bacondScoreWindow", intrange(1,20,1)],
+        #["bacondScoreWindow", intrange(1,20,1)],
         ["orbInlierRatioThreshold", floatrange(0.0,1.1,0.1)],
         ["orbKeyframeRatio", floatrange(0.70,0.95,0.01)],
         ["orbInlierNumThreshold", intrange(0,100,5)],
     ]
 
+    seedParamName = "dsoInitializer.regularizationWeight"
+    seedParamValues = [0.5,0.6,0.7,0.8,0.9]
+
     dprint("Hello :)\n\n")
     launchPrintStatusThread()
     # currentParam = {'numOrbCorner': 500, 'trackcondUncertaintyWeight': 0.4, 'bacondScoreWeight': 0.02, 'trackcondUncertaintyWindow': 8}
     # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
     currentMin = 99999999
     while True:
         bestParamModif = None
@@ -124,7 +143,8 @@ def bruteforceFindBest(currentParam):
             progress_tot = 0
             headerLine = param[0]
             for i in range(0, len(datasets)):
-                headerLine = headerLine + "\t" + datasets[i].name()
+                for seed in seedParamValues:
+                    headerLine = headerLine + "\t" + datasets[i].name()
             dprint(currentParam)
             dprint(headerLine)
 
@@ -134,31 +154,33 @@ def bruteforceFindBest(currentParam):
                 currentSum = 0
 
                 for i in range(0, len(datasets)):
+                    for seed in seedParamValues:
 
-                    s = slams[0]
-                    name = slams_names[0]
-                    context = s[0](s[1], "modslam2.yaml")
-                    for p in currentParam:
-                        context.setconfig(p, currentParam[p])
-                    context.setconfig(param[0], v)
-                    try:
-                        ate = evaluateOn(context, datasets[i])
-                        fps = numFramesOf(datasets[i].name()) / context.getTime()
-                        toprint = toprint + str(float(int(ate * 10) / 10)) + " at " + str(int(fps)) + "\t"
-                        currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
-                    except KeyboardInterrupt:
-                        return 0,0,""
-                    except Exception as e:
-                        err = "x"
+                        s = slams[0]
+                        name = slams_names[0]
+                        context = s[0](s[1], "modslam2.yaml")
+                        for p in currentParam:
+                            context.setconfig(p, currentParam[p])
+                        context.setconfig(param[0], v)
+                        context.setconfig(seedParamName, seed)
                         try:
-                            slamLog = context.getError()
-                            lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
-                            numFrame = re.findall(r'\d+', lastLine)[0]
-                            err = 10000 - int(numFrame)
-                        except:
-                            pass
-                        toprint = toprint + str(err) + "\t"
-                        currentSum = currentSum + err
+                            ate = evaluateOn(context, datasets[i])
+                            fps = numFramesOf(datasets[i].name()) / context.getTime()
+                            toprint = toprint + str(float(int(ate * 10) / 10)) + " at " + str(int(fps)) + "\t"
+                            currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
+                        except KeyboardInterrupt:
+                            return 0,0,""
+                        except Exception as e:
+                            err = "x"
+                            try:
+                                slamLog = context.getError()
+                                lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
+                                numFrame = re.findall(r'\d+', lastLine)[0]
+                                err = 10000 - int(numFrame)
+                            except:
+                                pass
+                            toprint = toprint + str(err) + "\t"
+                            currentSum = currentSum + err
                 return currentSum, toprint
 
             for v in param[1]:
@@ -183,7 +205,7 @@ def bruteforceFindBest(currentParam):
 
             if currentMinI is not None:
                 bestParamModif = [param[0],param[1][currentMinI]]
-                # currentParam[param[0]] = param[1][currentMinI]
+                currentParam[param[0]] = param[1][currentMinI]
 
             #dprint("=========================")
             #dprint(currentParam)

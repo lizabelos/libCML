@@ -180,7 +180,9 @@ namespace CML::Features {
     class BoWTracker : public AbstractFunction {
 
     public:
-        BoWTracker(Ptr<AbstractFunction, Nullable> parent, float ratio, bool checkOrientation) : AbstractFunction(parent), mRatio(ratio), mCheckOrientation(checkOrientation) {
+        BoWTracker(Ptr<AbstractFunction, Nullable> parent, float ratio, bool checkOrientation) : AbstractFunction(parent) {
+            mRatio.set(ratio);
+            mCheckOrientation.set(checkOrientation);
             mUnfilteredNearestNeighbor.reserve(1024);
             mNearestNeighbor.reserve(1024);
         }
@@ -245,12 +247,12 @@ namespace CML::Features {
 
 
     private:
-        const float mRatio;
-        const bool mCheckOrientation;
+        Parameter mRatio = createParameter("ratio", 0.6f);
+        Parameter mCheckOrientation = createParameter("checkOrientation", true);
 
-        const int TH_HIGH = 100;
-        const int TH_LOW = 50;
-        const int HISTO_LENGTH = 30;
+        Parameter mThHigh = createParameter("thHigh", 100);
+        Parameter mThLow = createParameter("thLow", 50);
+        Parameter mHistoLenght = createParameter("histoLength", 30);
 
         Mutex mLastMatchingMutex;
         List<Matching> mLastMatching;

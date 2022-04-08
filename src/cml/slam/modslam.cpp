@@ -166,11 +166,18 @@ void test3() {
 
 class StatisticPrinter : public CML::Statistic::Observer {
 
-    virtual void onNewValue(Statistic *statistic, scalar_t x, scalar_t y) {
-        std::string name = statistic->getName();
+public:
+    StatisticPrinter(std::string name) {
         std::replace( name.begin(), name.end(), ' ', '_');
-        logger.raw("STAT " + name + " " + std::to_string(x) + " " + std::to_string(y) + "\n");
+        mName = name;
     }
+
+    virtual void onNewValue(Statistic *statistic, scalar_t x, scalar_t y) {
+        logger.raw("STAT " + mName + " " + std::to_string(x) + " " + std::to_string(y) + "\n");
+    }
+
+private:
+    std::string mName;
 
 };
 
@@ -316,9 +323,18 @@ int main(int argc, char *argv[])
 
     if (program["--stats"] == true) {
 
-        StatisticPrinter *sp = new StatisticPrinter;
-        for (auto fn: slam->getStatistics()) {
-            fn->subscribeObserver(sp);
+        for (auto stat: slam->getStatistics()) {
+            StatisticPrinter *sp = new StatisticPrinter("main." + stat->getName());
+            stat->subscribeObserver(sp);
+        }
+        for (auto fn: slam->getChildFunctions()) {
+            if (fn->getAlias() == "") {
+                continue;
+            }
+            for (auto stat: fn->getStatistics()) {
+                StatisticPrinter *sp = new StatisticPrinter(fn->getAlias() + "." + stat->getName());
+                stat->subscribeObserver(sp);
+            }
         }
     }
 

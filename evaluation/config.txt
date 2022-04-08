@@ -1,2 +1,2 @@
-ModSLAM "C:/temp/modslam-release/modslam.exe"
-KITTI "E:/KITTI"
+ModSLAM "../build/modslam"
+KITTI "/home/belosth/Datasets/KITTI"
