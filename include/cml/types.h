@@ -123,7 +123,9 @@ namespace CML {
 
         // Decompose statement
         while( pos != std::string::npos ) {
-            strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+            if (pos - initialPos > 0) {
+                strs.push_back(txt.substr(initialPos, pos - initialPos));
+            }
             initialPos = pos + 1;
 
             pos = txt.find( ch, initialPos );
@@ -471,10 +473,10 @@ namespace CML {
 
     inline int32_t fastRound(float v) {
 #if ANDROID
-        return std::round(v);
+        return (int)(value + (value >= 0 ? 0.5f : -0.5f));
 #else
-        __m128d t = _mm_set_sd( v );
-        return _mm_cvtsd_si32(t);
+        __m128 t = _mm_set_ss( v );
+        return _mm_cvtss_si32(t);
 #endif
     }
 
