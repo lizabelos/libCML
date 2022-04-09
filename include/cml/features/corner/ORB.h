@@ -41,30 +41,11 @@ namespace CML::Features {
                 }
             } else {
 #if CML_HAVE_LIBZIP
-                int ziperror;
-                logger.important("Opening " + filename);
-                zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
-                zip_file_t *zipFile = zip_fopen(zipArchive, "ORBvoc.txt", 0);
-                std::stringstream stream;
-                char *data = new char[40000];
-                logger.important("Uncompressing " + filename);
-                while (true) {
-                    size_t n = zip_fread(zipFile, data, 40000);
-                    if (n == 0) break;
-                    stream << std::string(data, n);
-                }
-                zip_fclose(zipFile);
-                delete []data;
-                logger.important("Decoding " + filename);
-
                 mVocabulary = new ORBVocabulary();
-                mVocabulary->loadFromTextFile(stream);
+                mVocabulary->loadFromText(readWholeZipFile(filename, "ORBvoc.txt"));
                 if (mVocabulary->empty()) {
                     throw std::runtime_error("Can't load vocabulary");
                 }
-
-                zip_close(zipArchive);
-                logger.important("Done");
 #else
                 assertThrow(false, "Don't have libzip");
 #endif

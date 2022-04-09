@@ -10,6 +10,9 @@
 #include <condition_variable>
 #include <numeric>
 #include <thread>
+#if CML_HAVE_LIBZIP
+#include <zip.h>
+#endif
 
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
@@ -83,14 +86,34 @@ namespace CML {
         }
     }
 
-    inline double my_stod (std::string const& s) {
-        std::istringstream iss (s);
-        iss.imbue (std::locale("C"));
-        double d;
-        iss >> d;
-        // insert error checking.
-        return d;
+    inline std::string readWholeBinaryFile(const std::string &filename) {
+        std::ifstream file(filename, std::ios::in | std::ios::binary);
+        file.seekg(0, std::ios::end);
+        size_t size = file.tellg();
+        file.seekg(0, std::ios::beg);
+        std::vector<char> buffer(size);
+        file.read(buffer.data(), size);
+        file.close();
+        return std::string(buffer.begin(), buffer.end());
     }
+
+#if CML_HAVE_LIBZIP
+    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry) {
+        int ziperror;
+        zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
+        zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
+        std::stringstream stream;
+        char *data = new char[40000];
+        while (true) {
+            size_t n = zip_fread(zipFile, data, 40000);
+            if (n == 0) break;
+            stream << std::string(data, n);
+        }
+        zip_fclose(zipFile);
+        delete []data;
+        return stream.str();
+    }
+#endif
 
     inline size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
     {

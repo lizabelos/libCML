@@ -50,7 +50,7 @@ namespace CML {
                     std::vector<std::string> values;
                     split(line, values, ' ');
 
-                    mTimes.emplace_back(my_stod(values[1]));
+                    mTimes.emplace_back(std::stod(values[1].c_str()));
 
                 }
 
@@ -69,10 +69,10 @@ namespace CML {
                     split(line, values, ' ');
 
                     StereopolisPose pose;
-                    pose.time = my_stod(values[0]);
+                    pose.time = std::stod(values[0].c_str());
                     pose.transformMatrix = Matrix44::Identity();
                     for (size_t i = 1; i< values.size(); i++) {
-                        pose.transformMatrix((i - 1) / 4, (i - 1) % 4) = my_stod(values[i]);
+                        pose.transformMatrix((i - 1) / 4, (i - 1) % 4) = std::stod(values[i].c_str());
                     }
 
                     mPoses.emplace_back(pose);

@@ -48,7 +48,7 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
             KittyPose pose;
             pose.transformMatrix = Matrix44::Identity();
             for (size_t i = 0; i< values.size(); i++) {
-                pose.transformMatrix(i / 4, i % 4) = my_stod(values[i]);
+                pose.transformMatrix(i / 4, i % 4) = std::stod(values[i].c_str());
             }
 
             mPoses.emplace_back(pose);

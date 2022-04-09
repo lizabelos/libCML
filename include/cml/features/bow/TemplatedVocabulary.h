@@ -233,12 +233,16 @@ public:
    */
   void setScoringType(ScoringType type);
 
+
+  inline bool loadFromTextFile(const std::string &filename) {
+      return loadFromText(readWholeBinaryFile(filename));
+  }
+
   /**
    * Loads the vocabulary from a text file
    * @param filename
    */
-  bool loadFromTextFile(std::stringstream &f);
-  bool loadFromTextFile(const std::string &filename);
+  bool loadFromText(std::string filename);
 
   /**
    * Saves the vocabulary into a text file
@@ -1311,24 +1315,32 @@ int TemplatedVocabulary<TDescriptor>::stopWords(double minWeight)
 // --------------------------------------------------------------------------
 
     template<class TDescriptor>
-    bool TemplatedVocabulary<TDescriptor>::loadFromTextFile(std::stringstream &f)
+    bool TemplatedVocabulary<TDescriptor>::loadFromText(std::string content)
     {
 
-        if(f.eof())
+        std::replace(content.begin(), content.end(), '\n', ' ');
+
+        std::vector<std::string> values;
+        values.reserve(64000000);
+        split(content, values, ' ');
+
+        if (values.size() < 5)
+        {
+            std::cerr << "Vocabulary loading failure: This is not a correct text file!" << std::endl;
             return false;
+        }
+
 
         m_words.clear();
         m_nodes.clear();
 
-        std::string s;
-        getline(f,s);
-        std::stringstream ss;
-        ss << s;
-        ss >> m_k;
-        ss >> m_L;
+        int i = 0;
         int n1, n2;
-        ss >> n1;
-        ss >> n2;
+
+        m_k = atoi(values[i++].c_str());
+        m_L = atoi(values[i++].c_str());
+        n1 = atoi(values[i++].c_str());
+        n2 = atoi(values[i++].c_str());
 
         if(m_k<0 || m_k>20 || m_L<1 || m_L>10 || n1<0 || n1>5 || n2<0 || n2>3)
         {
@@ -1349,132 +1361,26 @@ int TemplatedVocabulary<TDescriptor>::stopWords(double minWeight)
 
         m_nodes.resize(1);
         m_nodes[0].id = 0;
-        while(!f.eof())
+        while(i < values.size())
         {
-            std::string snode;
-            getline(f,snode);
-            if (snode.empty()) {
-                break;
-            }
-            std::stringstream ssnode;
-            ssnode << snode;
-
             int nid = m_nodes.size();
             m_nodes.resize(m_nodes.size()+1);
             m_nodes[nid].id = nid;
 
-            int pid ;
-            ssnode >> pid;
+            int pid = atoi(values[i++].c_str());
             m_nodes[nid].parent = pid;
             m_nodes[pid].children.push_back(nid);
 
-            int nIsLeaf;
-            ssnode >> nIsLeaf;
+            int nIsLeaf = atoi(values[i++].c_str());
 
-            std::stringstream ssd;
+            m_nodes[nid].descriptor = TDescriptor();
+
             for(int iD=0;iD<TDescriptor::L;iD++)
             {
-                std::string sElement;
-                ssnode >> sElement;
-                ssd << sElement << " ";
+                m_nodes[nid].descriptor.data()[iD] = atoi(values[i++].c_str());
             }
-            std::string descriptor = ssd.str();
-            m_nodes[nid].descriptor = TDescriptor(descriptor);
 
-            ssnode >> m_nodes[nid].weight;
-
-            if(nIsLeaf>0)
-            {
-                int wid = m_words.size();
-                m_words.resize(wid+1);
-
-                m_nodes[nid].word_id = wid;
-                m_words[wid] = &m_nodes[nid];
-            }
-            else
-            {
-                m_nodes[nid].children.reserve(m_k);
-            }
-        }
-
-        return true;
-
-    }
-
-    template<class TDescriptor>
-    bool TemplatedVocabulary<TDescriptor>::loadFromTextFile(const std::string &filename)
-    {
-        std::ifstream f;
-        f.open(filename.c_str());
-
-        if(f.eof())
-            return false;
-
-        m_words.clear();
-        m_nodes.clear();
-
-        std::string s;
-        getline(f,s);
-        std::stringstream ss;
-        ss << s;
-        ss >> m_k;
-        ss >> m_L;
-        int n1, n2;
-        ss >> n1;
-        ss >> n2;
-
-        if(m_k<0 || m_k>20 || m_L<1 || m_L>10 || n1<0 || n1>5 || n2<0 || n2>3)
-        {
-            std::cerr << "Vocabulary loading failure: This is not a correct text file!" << std::endl;
-            return false;
-        }
-
-        m_scoring = (ScoringType)n1;
-        m_weighting = (WeightingType)n2;
-        createScoringObject();
-
-        // nodes
-        int expected_nodes =
-                (int)((pow((double)m_k, (double)m_L + 1) - 1)/(m_k - 1));
-        m_nodes.reserve(expected_nodes);
-
-        m_words.reserve(pow((double)m_k, (double)m_L + 1));
-
-        m_nodes.resize(1);
-        m_nodes[0].id = 0;
-        while(!f.eof())
-        {
-            std::string snode;
-            getline(f,snode);
-            if (snode.empty()) {
-                break;
-            }
-            std::stringstream ssnode;
-            ssnode << snode;
-
-            int nid = m_nodes.size();
-            m_nodes.resize(m_nodes.size()+1);
-            m_nodes[nid].id = nid;
-
-            int pid ;
-            ssnode >> pid;
-            m_nodes[nid].parent = pid;
-            m_nodes[pid].children.push_back(nid);
-
-            int nIsLeaf;
-            ssnode >> nIsLeaf;
-
-            std::stringstream ssd;
-            for(int iD=0;iD<TDescriptor::L;iD++)
-            {
-                std::string sElement;
-                ssnode >> sElement;
-                ssd << sElement << " ";
-            }
-            std::string descriptor = ssd.str();
-            m_nodes[nid].descriptor = TDescriptor(descriptor);
-
-            ssnode >> m_nodes[nid].weight;
+            m_nodes[nid].weight = atof(values[i++].c_str());
 
             if(nIsLeaf>0)
             {
