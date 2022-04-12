@@ -84,33 +84,14 @@ void Hybrid::indirectMap(PFrame currentFrame) {
 }
 
 void Hybrid::indirectLocalOptimize(PFrame currentFrame) {
-    if (mBaMode == BAINDIRECT) {
-        mIndirectStopFlag = false;
-        bool result = mIndirectG2OBundleAdjustment->localOptimize(currentFrame, INDIRECTKEYFRAME, &mIndirectStopFlag);
-        if (result) {
-            mIndirectG2OBundleAdjustment->apply();
-        }
-    }
-    else {
-     /*   mIndirectStopFlag = false;
-        bool result = mIndirectG2OBundleAdjustment->localOptimize(currentFrame, INDIRECTKEYFRAME, &mIndirectStopFlag, true);
-        if (result) {
-            mIndirectG2OBundleAdjustment->apply();
-        }
-       */ List<PPoint> points = getMap().getGroupMapPointsAsList(ACTIVEINDIRECTPOINT);
 
-      /*  for (size_t i = 0; i < points.size(); i++) {
-            List<PFrame> frames;
-            frames.reserve(50);
-            for (auto frame : points[i]->getIndirectApparitions()) {
-                if (frame->isGroup(INDIRECTKEYFRAME)) {
-                    frames.emplace_back(frame);
-                }
-            }
-            mIndirectCeresBundleAdjustment->optimizeSinglePoint(points[i], frames, false);
-        } */
-
+    mIndirectStopFlag = false;
+    bool result = mIndirectG2OBundleAdjustment->localOptimize(currentFrame, INDIRECTKEYFRAME, &mIndirectStopFlag, mBaMode != BAINDIRECT);
+    if (result) {
+        mIndirectG2OBundleAdjustment->apply();
     }
+
+
 }
 
 void Hybrid::keyframeCulling() {

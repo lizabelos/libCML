@@ -294,9 +294,9 @@ private:
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", false);
 #if ANDROID
-    Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
-#else
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 500);
+#else
+    Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
 #endif
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);
     Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);
@@ -309,7 +309,7 @@ private:
     Parameter mBacondUncertaintyWindow = createParameter("bacondUncertaintyWindow", 1);
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
-    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 190);
+    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 100);
     Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 50);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
     Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.51f);

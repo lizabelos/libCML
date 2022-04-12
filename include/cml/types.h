@@ -473,7 +473,7 @@ namespace CML {
 
     inline int32_t fastRound(float v) {
 #if ANDROID
-        return (int)(value + (value >= 0 ? 0.5f : -0.5f));
+        return (int)(v + (v >= 0 ? 0.5f : -0.5f));
 #else
         __m128 t = _mm_set_ss( v );
         return _mm_cvtss_si32(t);
@@ -572,7 +572,14 @@ namespace CML {
     }
 
     template <int r, int c> bool almostEqual(const Matrix<r, c> &a, const Matrix<r, c> &b) {
-        return (a - b).norm() < (scalar_t)0.001;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (!almostEqual(a(i, j), b(i, j))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 
