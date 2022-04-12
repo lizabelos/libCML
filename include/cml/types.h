@@ -88,6 +88,9 @@ namespace CML {
 
     inline std::string readWholeBinaryFile(const std::string &filename) {
         std::ifstream file(filename, std::ios::in | std::ios::binary);
+        if (!file.is_open()) {
+            throw std::runtime_error("Could not open file: " + filename);
+        }
         file.seekg(0, std::ios::end);
         size_t size = file.tellg();
         file.seekg(0, std::ios::beg);
@@ -102,6 +105,9 @@ namespace CML {
         int ziperror;
         zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
         zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
+        if (!zipFile) {
+            throw std::runtime_error("Could not open file: " + entry);
+        }
         std::stringstream stream;
         char *data = new char[40000];
         while (true) {
