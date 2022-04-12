@@ -1361,7 +1361,7 @@ int TemplatedVocabulary<TDescriptor>::stopWords(double minWeight)
 
         m_nodes.resize(1);
         m_nodes[0].id = 0;
-        while(i < values.size())
+        while(i < values.size() - 3)
         {
             int nid = m_nodes.size();
             m_nodes.resize(m_nodes.size()+1);
