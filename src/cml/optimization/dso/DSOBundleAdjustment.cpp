@@ -436,7 +436,7 @@ void CML::Optimization::DSOBundleAdjustment::addNewFrame(PFrame frame, int immat
     get(frame)->ab_exposure = frame->getCaptureFrame().getExposureTime();
 
     //assert(mMarginalizedHessian.cols() == 8*getFrames().size()+CPARS-8);
-	mMarginalizedB.conservativeResize(8*getFrames().size()+CPARS);
+    mMarginalizedB.conservativeResize(8*getFrames().size()+CPARS);
     mMarginalizedHessian.conservativeResize(8*getFrames().size()+CPARS,8*getFrames().size()+CPARS);
     mMarginalizedB.tail<8>().setZero();
     mMarginalizedHessian.rightCols<8>().setZero();
@@ -770,6 +770,11 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
             assertDeterministic("Active residual push back", r->elements.mapPoint->getReferenceInverseDepth());
             mActiveResiduals.push_back(r);
             r->resetOOB();
+        } else if (mAddLinearizedPoints.b()) {
+            assertDeterministic("Active residual lin push back", r->elements.mapPoint->getReferenceInverseDepth());
+            mActiveResiduals.push_back(r);
+            r->resetOOB();
+            r->isLinearized = false;
         }
     }
 
@@ -858,7 +863,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         {
             if (!std::isfinite(newTotalEnergy)) {
                 logger.error("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
-                            ". Last Total Energy = " + std::to_string(lastTotalEnergy));
+                             ". Last Total Energy = " + std::to_string(lastTotalEnergy));
             } else {
                 logger.info("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
                             ". Last Total Energy = " + std::to_string(lastTotalEnergy));
@@ -871,7 +876,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         }
 
 
-         if(canbreak && it >= 1) break;
+        if(canbreak && it >= 1) break;
 
     }
 
@@ -1106,7 +1111,7 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
             int idx = h + t * getFrames().size();
 
             mAdHTdeltaF[idx] = selfHost->get_state_minus_stateZero().head<8>().transpose() * mAdHost[idx]
-            + selfTarget->get_state_minus_stateZero().head<8>().transpose() * mAdTarget[idx];
+                               + selfTarget->get_state_minus_stateZero().head<8>().transpose() * mAdTarget[idx];
         }
     }
 
@@ -1165,8 +1170,8 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
         }
 
         selfHost->delta = selfHost->get_state_minus_stateZero().head<8>();
-     //   assertThrow(selfHost->get_state()(0) < 0.01, "WTF");
-     //   assertThrow(selfHost->delta.norm() < 0.03, "Delta too large");
+        //   assertThrow(selfHost->get_state()(0) < 0.01, "WTF");
+        //   assertThrow(selfHost->delta.norm() < 0.03, "Delta too large");
         selfHost->delta_prior = (selfHost->get_state() - selfHost->prior_zero).head<8>();
 
     }
@@ -1182,7 +1187,7 @@ void CML::Optimization::DSOBundleAdjustment::computeDelta() {
     Vector<Dynamic> delta = Vector<Dynamic>(4 + getFrames().size() * 8);
     delta.head<4>() = mCDeltaF.cast<scalar_t>();
     for(size_t h = 0; h < getFrames().size(); h++) delta.segment<8>(4 + 8 * h) = get(getFrames()[h])->delta;
-   // assertThrow(delta.norm() < 0.03, "Delta too big inside computeDelta" + std::to_string(delta.norm()));
+    // assertThrow(delta.norm() < 0.03, "Delta too big inside computeDelta" + std::to_string(delta.norm()));
 
 
     mDeltaValid = true;
@@ -1277,15 +1282,15 @@ void CML::Optimization::DSOBundleAdjustment::setZero() {
 }
 
 CML::Vector<CML::Dynamic> CML::Optimization::DSOBundleAdjustment::solveLevenbergMarquardt(const Matrix<Dynamic, Dynamic> &HL_top,
-                                                                                                         const Matrix<Dynamic, Dynamic> &HA_top,
-                                                                                                         const Matrix<Dynamic, Dynamic> &HM_top,
-                                                                                                         const Matrix<Dynamic, Dynamic> &H_sc,
-                                                                                                         const Vector<Dynamic> &bL_top,
-                                                                                                         const Vector<Dynamic> &bA_top,
-                                                                                                         const Vector<Dynamic> &bM_top,
-                                                                                                         const Vector<Dynamic> &b_sc,
-                                                                                                         double lambda,
-                                                                                                         bool mustOrthogonalize) {
+                                                                                          const Matrix<Dynamic, Dynamic> &HA_top,
+                                                                                          const Matrix<Dynamic, Dynamic> &HM_top,
+                                                                                          const Matrix<Dynamic, Dynamic> &H_sc,
+                                                                                          const Vector<Dynamic> &bL_top,
+                                                                                          const Vector<Dynamic> &bA_top,
+                                                                                          const Vector<Dynamic> &bM_top,
+                                                                                          const Vector<Dynamic> &b_sc,
+                                                                                          double lambda,
+                                                                                          bool mustOrthogonalize) {
 
     // Compute final hessian
     Matrix<Dynamic, Dynamic> HFinal_top;
@@ -1359,21 +1364,21 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
     //#pragma omp parallel
     {
 
-        #pragma omp for
+#pragma omp for
         for (int i = 0; i < points.size(); i++) {
             addToHessianTop(points[i].first, points[i].second, DSORES_ACTIVE);
         }
         stitchDoubleTop(mAccumulatorActive, HA_top, bA_top, false);
 
         // accumulateLF_MT
-        #pragma omp for
+#pragma omp for
         for (int i = 0; i < points.size(); i++) {
             addToHessianTop(points[i].first, points[i].second, DSORES_LINEARIZED);
         }
         stitchDoubleTop(mAccumulatorLinearized, HL_top, bL_top, true);
 
         // accumulateSCF_MT
-        #pragma omp for
+#pragma omp for
         for (int i = 0; i < points.size(); i++) {
             addToHessianSC(points[i].first, points[i].second, true);
         }
@@ -1387,6 +1392,11 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
         d.segment<8>(CPARS+8*h) = get(getFrames()[h])->delta.cast<scalar_t>();
     }
 
+    if (mDisableMarginalization.b()) {
+        mMarginalizedHessian.setZero();
+        mMarginalizedB.setZero();
+    }
+
     // Compute bM_top
     bM_top = (mMarginalizedB + mMarginalizedHessian * d);
 
@@ -1394,11 +1404,11 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
     Vector<Dynamic> x = solveLevenbergMarquardt(HL_top, HA_top, mMarginalizedHessian, H_sc, bL_top, bA_top, bM_top, b_sc, lambda, iteration >= 2).cast<scalar_t>();
 
     // Vector<Dynamic> xWithoutA = solveLevenbergMarquardt(HL_top, H_zero, mMarginalizedHessian, H_sc, bL_top, b_zero, bM_top, b_sc, lambda, iteration >= 2);
-   // Vector<Dynamic> xWithoutL = solveLevenbergMarquardt(H_zero, HA_top, mMarginalizedHessian, H_sc, b_zero, bA_top, bM_top, b_sc, lambda, iteration >= 2);
-   // Vector<Dynamic> xWithoutM = solveLevenbergMarquardt(HL_top, HA_top, H_zero, H_sc, bL_top, bA_top, b_zero, b_sc, lambda, iteration >= 2);
+    // Vector<Dynamic> xWithoutL = solveLevenbergMarquardt(H_zero, HA_top, mMarginalizedHessian, H_sc, b_zero, bA_top, bM_top, b_sc, lambda, iteration >= 2);
+    // Vector<Dynamic> xWithoutM = solveLevenbergMarquardt(HL_top, HA_top, H_zero, H_sc, bL_top, bA_top, b_zero, b_sc, lambda, iteration >= 2);
 
 
-   // std::cout << "NORM : x / A / L / M : " << x.norm() << " " << xWithoutA.norm() << " " << xWithoutL.norm() << " " << xWithoutM.norm() << std::endl;
+    // std::cout << "NORM : x / A / L / M : " << x.norm() << " " << xWithoutA.norm() << " " << xWithoutL.norm() << " " << xWithoutM.norm() << std::endl;
 
 
     // Make statistics
@@ -1519,21 +1529,21 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 #if CML_USE_OPENMP
 #pragma omp single
 #endif
-{
-        logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
+        {
+            logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
 #if CML_USE_OPENMP
-        int ompNumThread = omp_get_num_threads();
+            int ompNumThread = omp_get_num_threads();
 #else
-        int ompNumThread = 1;
+            int ompNumThread = 1;
 #endif
-        if (mLinearizationContextSize != ompNumThread) {
-            if (mLinearizationContext) {
-                delete[] mLinearizationContext;
+            if (mLinearizationContextSize != ompNumThread) {
+                if (mLinearizationContext) {
+                    delete[] mLinearizationContext;
+                }
+                mLinearizationContext = new DSOBundleAdjustmentLinearizationContext[ompNumThread];
+                mLinearizationContextSize = ompNumThread;
             }
-            mLinearizationContext = new DSOBundleAdjustmentLinearizationContext[ompNumThread];
-            mLinearizationContextSize = ompNumThread;
         }
-}
 
 #if CML_USE_OPENMP
 #pragma omp for
@@ -1770,12 +1780,12 @@ int CML::Optimization::DSOBundleAdjustment::addToHessianTop(PPoint point, Ptr<DS
 
 void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::AccumulatorApprox> &acc, Matrix<Dynamic, Dynamic> &fH, Vector<Dynamic> &fb, bool usePrior) {
 
-    #if CML_USE_OPENMP && OPENMP_UNSTABLE
-        int ompNumThread = omp_get_num_threads();
-    #else
-        int ompNumThread = 1;
-    #endif
-    #pragma omp single
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+    int ompNumThread = omp_get_num_threads();
+#else
+    int ompNumThread = 1;
+#endif
+#pragma omp single
     {
         fH = Matrix<Dynamic, Dynamic>::Zero(getFrames().size() * 8 + 4, getFrames().size() * 8 + 4);
         fb = Vector<Dynamic>::Zero(getFrames().size() * 8 + 4);
@@ -1789,9 +1799,9 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleTop(List<dso::Accumulat
         }
     }
 
-    #if CML_USE_OPENMP && OPENMP_UNSTABLE
-    #pragma omp for
-    #endif
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+#pragma omp for
+#endif
     for(size_t h=0;h<getFrames().size();h++) {
         for (size_t t = 0; t < getFrames().size(); t++) {
 
@@ -1944,9 +1954,9 @@ void CML::Optimization::DSOBundleAdjustment::stitchDoubleSC(Matrix<Dynamic, Dyna
     List<Matrix<Dynamic, Dynamic>> tHall(ompNumThread, Matrix<Dynamic, Dynamic>::Zero(getFrames().size()*8+4, getFrames().size()*8+4));
     List<Vector<Dynamic>> tball(ompNumThread, Vector<Dynamic>::Zero(getFrames().size()*8+4));
 
-    #if CML_USE_OPENMP && OPENMP_UNSTABLE
-    #pragma omp for collapse(2)
-    #endif
+#if CML_USE_OPENMP && OPENMP_UNSTABLE
+#pragma omp for collapse(2)
+#endif
     for(size_t i=0;i<getFrames().size();i++) {
         for (size_t j = 0; j < getFrames().size(); j++) {
 
@@ -2503,8 +2513,8 @@ void CML::Optimization::DSOBundleAdjustment::marginalizePointsF()
 }
 
 bool CML::Optimization::DSOBundleAdjustment::isOOB(PPoint p,
-                                                        const List<PFrame> &toKeep,
-                                                        const List<PFrame> &toMarg) {
+                                                   const List<PFrame> &toKeep,
+                                                   const List<PFrame> &toMarg) {
 
 
     int   setting_minGoodActiveResForMarg=3;
@@ -2552,11 +2562,11 @@ void CML::Optimization::DSOBundleAdjustment::onValueChange(const Parameter &para
     if (parameter == mScaledVarTH || parameter == mAbsVarTH || parameter == mMinRelBS) {
         for (auto point : getPoints()) {
             get(point)->updatePointUncertainty(point, mScaledVarTH.f(), mAbsVarTH.f(),
-                                                        mMinRelBS.f());
+                                               mMinRelBS.f());
         }
         for (auto point : getMap().getGroupMapPoints(DSOMARGINALIZED)) {
             get(point)->updatePointUncertainty(point, mScaledVarTH.f(), mAbsVarTH.f(),
-                                                        mMinRelBS.f());
+                                               mMinRelBS.f());
         }
     }
 }

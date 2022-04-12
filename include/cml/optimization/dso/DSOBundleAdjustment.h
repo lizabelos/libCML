@@ -277,6 +277,10 @@ namespace CML {
 
             Parameter mMixedBundleAdjustment = createParameter("mixedBundleAdjustment", false);
             Parameter mMixedBundleAdjustmentWeight = createParameter("mixedBundleAdjustmentWeight", 1.0f);
+
+            Parameter mAddLinearizedPoints = createParameter("alwaysResetLinearized", false);
+            Parameter mDisableMarginalization = createParameter("disableMarginalization", false);
+
             Set<PPoint> mIndirectPointToOptimizeSet;
 
             bool mAbortBAOnFailture = false;
