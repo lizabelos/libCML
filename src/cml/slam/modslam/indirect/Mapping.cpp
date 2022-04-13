@@ -96,6 +96,10 @@ void Hybrid::indirectLocalOptimize(PFrame currentFrame) {
 
 void Hybrid::keyframeCulling() {
 
+    if (!mEnableIndirectCulling.b()) {
+        return;
+    }
+
     int numKeyframes = 3;
     int numframes = 0;
     int centerframe = 1;

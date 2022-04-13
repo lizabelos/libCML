@@ -334,6 +334,7 @@ private:
     Parameter mDsoUrgentlyNeedNewPointsKFRatio = createParameter("dsoUrgentlyNeedNewPointsKFRatio", 1.0f);
 
     Parameter mNumOrbMultiplier = createParameter("numOrbMultiplier", 1.0f);
+    Parameter mEnableIndirectCulling = createParameter("enableIndirectCulling", false);
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");
