@@ -1506,6 +1506,61 @@ namespace CML {
         }
 
     };
-}
+
+
+    typedef enum GroupFilterType {
+        GF_SUB,
+        GF_ADD,
+        GF_INV
+    } GroupFilterType;
+
+    class GroupFilter {
+
+    public:
+        inline GroupFilter() {
+        }
+
+        inline GroupFilter(int groupId) {
+            add(groupId);
+        }
+
+        inline GroupFilter sub(int groupId) {
+            mFilters.emplace_back(GF_SUB, groupId);
+            return *this;
+        }
+
+        inline GroupFilter add(int groupId) {
+            mFilters.emplace_back(GF_ADD, groupId);
+            return *this;
+        }
+
+        inline GroupFilter inv() {
+            mFilters.emplace_back(GF_INV, 0);
+            return *this;
+        }
+
+        inline bool test(int groupId) {
+            bool result = false;
+            for (auto &filter : mFilters) {
+                switch (filter.first) {
+                    case GF_SUB:
+                        result = result && (groupId != filter.second);
+                        break;
+                    case GF_ADD:
+                        result = result || (groupId == filter.second);
+                        break;
+                    case GF_INV:
+                        result = !result;
+                        break;
+                }
+            }
+            return result;
+        }
+
+    private:
+        List<Pair<GroupFilterType, int>> mFilters;
+    };
+
+};
 
 #endif
