@@ -176,7 +176,6 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
         }
     }
 
-    mOptimizer->setVerbose(true);
     if (!mOptimizer->initializeOptimization()) {
         logger.error("G2O Initialize optimization failed");
         return false;
