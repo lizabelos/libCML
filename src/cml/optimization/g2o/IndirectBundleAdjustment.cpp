@@ -280,6 +280,23 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::apply() {
         return;
     }
 
+    HashMap<PPoint, List<Pair<PFrame, Vector3>>> pointsCoordinates;
+    if (mAdjustDirectPoints.b()) {
+        for (auto pKF : lLocalKeyFrames) {
+            for (auto pPoint : pKF->getMapPointsApparitions()) {
+                if (pPoint->isGroup(getMap().DIRECTGROUP)) {
+                    pointsCoordinates[pPoint] = List<Pair<PFrame, Vector3>>();
+                    // pointsCoordinates[pPoint].emplace_back(pPoint->getWorldCoordinate().absolute());
+                }
+            }
+        }
+        for (auto &[pPoint, coordinates] : pointsCoordinates) {
+            for (auto frame : pPoint->getDirectApparitions()) {
+                coordinates.emplace_back(frame, pPoint->getWorldCoordinate().relative(frame->getCamera()));
+            }
+        }
+    }
+
     //Keyframes
     for (auto pKF : lLocalKeyFrames) {
         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(mOptimizer->vertex(pKF->getId() + idOffset));
@@ -311,6 +328,22 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::apply() {
             if(mRemoveEdge.b() && point->getReferenceFrame() != frame) {
                 frame->removeMapPoint(point);
             }
+        }
+
+    }
+
+    if (mAdjustDirectPoints.b()) {
+
+        for (auto [pPoint, coordinates] : pointsCoordinates) {
+            if (coordinates.size() == 0) {
+                continue;
+            }
+            Vector3 mean = Vector3::Zero();
+            for (auto [frame, coordinate] : coordinates) {
+                mean += WorldPoint::fromRelativeCoordinates(coordinate, frame->getCamera()).absolute();
+            }
+            mean /= coordinates.size();
+            pPoint->setWorldCoordinate(WorldPoint::fromAbsolute(mean));
         }
 
     }
