@@ -376,21 +376,26 @@ int CML::Frame::shared(int groupId, PFrame other) {
 }
 
 CML::scalar_t CML::Frame::computeMedianDepth(bool useDirect, bool useIndirect) {
-    List<scalar_t> allDepths;
-    allDepths.reserve(10000);
+    MedianComputer<scalar_t> medianComputer;
 
     if (useDirect) {
-        for (auto point : getMapPointsApparitions()) {
-            allDepths.emplace_back(point->getWorldCoordinate().relative(getCamera()).z());
+        LockGuard lg(mMapPointsApparitionsMutex);
+        for (auto point : mMapPointsApparitions) {
+            medianComputer.addValue(point->getWorldCoordinate().relative(getCamera()).z());
         }
     }
     if (useIndirect) {
-        for (auto[index, point] : getMapPoints()) {
-            allDepths.emplace_back(point->getWorldCoordinate().relative(getCamera()).z());
+        LockGuard lg(mMapPointsMutex);
+        for (size_t groupId = 0; groupId < mMapPoints.size(); groupId++) {
+            for (size_t index = 0; index < mMapPoints[groupId].size(); index++) {
+                if (mMapPoints[groupId][index].isNotNull()) {
+                    medianComputer.addValue(mMapPoints[groupId][index]->getWorldCoordinate().relative(getCamera()).z());
+                }
+            }
         }
     }
-    if (allDepths.empty()) {
+    if (!medianComputer.isInitialized()) {
         return 0;
     }
-    return median(allDepths);
+    return medianComputer.getMedian();
 }

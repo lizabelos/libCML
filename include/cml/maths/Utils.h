@@ -72,28 +72,20 @@ namespace CML {
 
     }
 
-    // https://www.geeksforgeeks.org/median-of-stream-of-running-integers-using-stl/
-    template <typename T> T median(const List<T> &list) {
-        assertThrow(list.size() > 0, "Empty list for median");
-        // max heap to store the smaller half elements
-        std::priority_queue<T> s;
+    template <typename T> class MedianComputer {
 
-        // min heap to store the greater half elements
-        std::priority_queue<T,std::vector<T>,std::greater<T>> g;
+    public:
+        void initialize(const T &x) {
+            s.push(x);
+            med = x;
+        }
 
-        double med = list[0];
-        s.push(list[0]);
-
-        // reading elements of stream one by one
-        /*  At any time we try to make heaps balanced and
-            their sizes differ by at-most 1. If heaps are
-            balanced,then we declare median as average of
-            min_heap_right.top() and max_heap_left.top()
-            If heaps are unbalanced,then median is defined
-            as the top element of heap of larger size  */
-        for (size_t i = 1; i < list.size(); i++)
-        {
-            double x = list[i];
+        void addValue(const T &x) {
+            if (!isInit) {
+                initialize(x);
+                isInit = true;
+                return;
+            }
 
             // case1(left side heap has more elements)
             if (s.size() > g.size())
@@ -116,12 +108,98 @@ namespace CML {
                 if (x < med)
                 {
                     s.push(x);
-                    med = (double)s.top();
+                    med = (T)s.top();
                 }
                 else
                 {
                     g.push(x);
-                    med = (double)g.top();
+                    med = (T)g.top();
+                }
+            }
+
+                // case3(right side heap has more elements)
+            else
+            {
+                if (x > med)
+                {
+                    s.push(g.top());
+                    g.pop();
+                    g.push(x);
+                }
+                else
+                    s.push(x);
+
+                med = (s.top() + g.top())/2.0;
+            }
+
+        }
+
+        T getMedian() {
+            return med;
+        }
+
+        bool isInitialized() {
+            return isInit;
+        }
+
+    private:
+        bool isInit = false;
+        std::priority_queue<T> s;
+        std::priority_queue<T,std::vector<T>,std::greater<T>> g;
+        T med;
+
+    };
+
+    // https://www.geeksforgeeks.org/median-of-stream-of-running-integers-using-stl/
+    template <typename T> T median(const List<T> &list) {
+        assertThrow(list.size() > 0, "Empty list for median");
+        // max heap to store the smaller half elements
+        std::priority_queue<T> s;
+
+        // min heap to store the greater half elements
+        std::priority_queue<T,std::vector<T>,std::greater<T>> g;
+
+        T med = list[0];
+        s.push(list[0]);
+
+        // reading elements of stream one by one
+        /*  At any time we try to make heaps balanced and
+            their sizes differ by at-most 1. If heaps are
+            balanced,then we declare median as average of
+            min_heap_right.top() and max_heap_left.top()
+            If heaps are unbalanced,then median is defined
+            as the top element of heap of larger size  */
+        for (size_t i = 1; i < list.size(); i++)
+        {
+            T x = list[i];
+
+            // case1(left side heap has more elements)
+            if (s.size() > g.size())
+            {
+                if (x < med)
+                {
+                    g.push(s.top());
+                    s.pop();
+                    s.push(x);
+                }
+                else
+                    g.push(x);
+
+                med = (s.top() + g.top())/2.0;
+            }
+
+                // case2(both heaps are balanced)
+            else if (s.size()==g.size())
+            {
+                if (x < med)
+                {
+                    s.push(x);
+                    med = (T)s.top();
+                }
+                else
+                {
+                    g.push(x);
+                    med = (T)g.top();
                 }
             }
 
