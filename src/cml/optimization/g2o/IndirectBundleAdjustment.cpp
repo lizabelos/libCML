@@ -50,7 +50,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     mOptimizer = new g2o::SparseOptimizer;
     
     g2o::OptimizationAlgorithm* solver;
-    if (fixFrames) {
+    if (!fixFrames) {
         solver = new g2o::OptimizationAlgorithmLevenberg(
                 g2o::make_unique<g2o::BlockSolver_6_3>(
                         g2o::make_unique<DefaultG2OSolverForSpeed<g2o::BlockSolver_6_3::PoseMatrixType>>())
