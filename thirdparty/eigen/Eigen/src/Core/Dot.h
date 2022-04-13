@@ -10,8 +10,6 @@
 #ifndef EIGEN_DOT_H
 #define EIGEN_DOT_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 namespace internal {

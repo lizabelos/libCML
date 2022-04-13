@@ -10,8 +10,6 @@
 #ifndef EIGEN_TRIANGULARMATRIXVECTOR_H
 #define EIGEN_TRIANGULARMATRIXVECTOR_H
 
-#include "../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {

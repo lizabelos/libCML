@@ -10,8 +10,6 @@
 #ifndef EIGEN_CXX11_THREADPOOL_EVENTCOUNT_H_
 #define EIGEN_CXX11_THREADPOOL_EVENTCOUNT_H_
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 // EventCount allows to wait for arbitrary predicates in non-blocking
@@ -87,7 +85,7 @@ class EventCount {
       CheckState(state, true);
       uint64_t newstate;
       if ((state & kSignalMask) != 0) {
-        // Consume the signal and return immediately.
+        // Consume the signal and return immidiately.
         newstate = state - kWaiterInc - kSignalInc;
       } else {
         // Remove this thread from pre-wait counter and add to the waiter stack.
@@ -114,7 +112,7 @@ class EventCount {
       CheckState(state, true);
       uint64_t newstate = state - kWaiterInc;
       // We don't know if the thread was also notified or not,
-      // so we should not consume a signal unconditionally.
+      // so we should not consume a signal unconditionaly.
       // Only if number of waiters is equal to number of signals,
       // we know that the thread was notified and we must take away the signal.
       if (((state & kWaiterMask) >> kWaiterShift) ==

@@ -11,8 +11,6 @@
 #ifndef EIGEN_JACOBISVD_H
 #define EIGEN_JACOBISVD_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 namespace internal {
@@ -425,11 +423,11 @@ struct svd_precondition_2x2_block_to_be_real<MatrixType, QRPreconditioner, true>
   }
 };
 
-template<typename MatrixType_, int QRPreconditioner>
-struct traits<JacobiSVD<MatrixType_,QRPreconditioner> >
-        : traits<MatrixType_>
+template<typename _MatrixType, int QRPreconditioner> 
+struct traits<JacobiSVD<_MatrixType,QRPreconditioner> >
+        : traits<_MatrixType>
 {
-  typedef MatrixType_ MatrixType;
+  typedef _MatrixType MatrixType;
 };
 
 } // end namespace internal
@@ -441,7 +439,7 @@ struct traits<JacobiSVD<MatrixType_,QRPreconditioner> >
   *
   * \brief Two-sided Jacobi SVD decomposition of a rectangular matrix
   *
-  * \tparam MatrixType_ the type of the matrix of which we are computing the SVD decomposition
+  * \tparam _MatrixType the type of the matrix of which we are computing the SVD decomposition
   * \tparam QRPreconditioner this optional parameter allows to specify the type of QR decomposition that will be used internally
   *                        for the R-SVD step for non-square matrices. See discussion of possible values below.
   *
@@ -487,13 +485,13 @@ struct traits<JacobiSVD<MatrixType_,QRPreconditioner> >
   *
   * \sa MatrixBase::jacobiSvd()
   */
-template<typename MatrixType_, int QRPreconditioner> class JacobiSVD
- : public SVDBase<JacobiSVD<MatrixType_,QRPreconditioner> >
+template<typename _MatrixType, int QRPreconditioner> class JacobiSVD
+ : public SVDBase<JacobiSVD<_MatrixType,QRPreconditioner> >
 {
     typedef SVDBase<JacobiSVD> Base;
   public:
 
-    typedef MatrixType_ MatrixType;
+    typedef _MatrixType MatrixType;
     typedef typename MatrixType::Scalar Scalar;
     typedef typename NumTraits<typename MatrixType::Scalar>::Real RealScalar;
     enum {
@@ -603,9 +601,9 @@ template<typename MatrixType_, int QRPreconditioner> class JacobiSVD
     using Base::m_prescribedThreshold;
     WorkMatrixType m_workMatrix;
 
-    template<typename MatrixType__, int QRPreconditioner_, bool IsComplex_>
+    template<typename __MatrixType, int _QRPreconditioner, bool _IsComplex>
     friend struct internal::svd_precondition_2x2_block_to_be_real;
-    template<typename MatrixType__, int QRPreconditioner_, int Case_, bool DoAnything_>
+    template<typename __MatrixType, int _QRPreconditioner, int _Case, bool _DoAnything>
     friend struct internal::qr_preconditioner_impl;
 
     internal::qr_preconditioner_impl<MatrixType, QRPreconditioner, internal::PreconditionIfMoreColsThanRows> m_qr_precond_morecols;

@@ -10,8 +10,6 @@
 #ifndef EIGEN_SKYLINEUTIL_H
 #define EIGEN_SKYLINEUTIL_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 #ifdef NDEBUG
@@ -63,10 +61,10 @@ EIGEN_STRONG_INLINE Derived& operator Op(const Other& scalar) \
   _EIGEN_SKYLINE_GENERIC_PUBLIC_INTERFACE(Derived, Eigen::SkylineMatrixBase<Derived>)
 
 template<typename Derived> class SkylineMatrixBase;
-template<typename Scalar_, int _Flags = 0> class SkylineMatrix;
-template<typename Scalar_, int _Flags = 0> class DynamicSkylineMatrix;
-template<typename Scalar_, int _Flags = 0> class SkylineVector;
-template<typename Scalar_, int _Flags = 0> class MappedSkylineMatrix;
+template<typename _Scalar, int _Flags = 0> class SkylineMatrix;
+template<typename _Scalar, int _Flags = 0> class DynamicSkylineMatrix;
+template<typename _Scalar, int _Flags = 0> class SkylineVector;
+template<typename _Scalar, int _Flags = 0> class MappedSkylineMatrix;
 
 namespace internal {
 
@@ -75,13 +73,13 @@ template<typename Lhs, typename Rhs, int ProductMode = skyline_product_mode<Lhs,
 
 template<typename T> class eval<T,IsSkyline>
 {
-    typedef typename traits<T>::Scalar Scalar_;
+    typedef typename traits<T>::Scalar _Scalar;
     enum {
           _Flags = traits<T>::Flags
     };
 
   public:
-    typedef SkylineMatrix<Scalar_, _Flags> type;
+    typedef SkylineMatrix<_Scalar, _Flags> type;
 };
 
 } // end namespace internal

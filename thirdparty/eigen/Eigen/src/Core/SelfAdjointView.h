@@ -10,8 +10,6 @@
 #ifndef EIGEN_SELFADJOINTMATRIX_H
 #define EIGEN_SELFADJOINTMATRIX_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class SelfAdjointView
@@ -48,13 +46,12 @@ struct traits<SelfAdjointView<MatrixType, UpLo> > : traits<MatrixType>
 }
 
 
-template<typename MatrixType_, unsigned int UpLo> class SelfAdjointView
-  : public TriangularBase<SelfAdjointView<MatrixType_, UpLo> >
+template<typename _MatrixType, unsigned int UpLo> class SelfAdjointView
+  : public TriangularBase<SelfAdjointView<_MatrixType, UpLo> >
 {
   public:
-    EIGEN_STATIC_ASSERT(UpLo==Lower || UpLo==Upper,SELFADJOINTVIEW_ACCEPTS_UPPER_AND_LOWER_MODE_ONLY)
 
-    typedef MatrixType_ MatrixType;
+    typedef _MatrixType MatrixType;
     typedef TriangularBase<SelfAdjointView> Base;
     typedef typename internal::traits<SelfAdjointView>::MatrixTypeNested MatrixTypeNested;
     typedef typename internal::traits<SelfAdjointView>::MatrixTypeNestedCleaned MatrixTypeNestedCleaned;
@@ -74,7 +71,10 @@ template<typename MatrixType_, unsigned int UpLo> class SelfAdjointView
     typedef typename MatrixType::PlainObject PlainObject;
 
     EIGEN_DEVICE_FUNC
-    explicit inline SelfAdjointView(MatrixType& matrix) : m_matrix(matrix) { }
+    explicit inline SelfAdjointView(MatrixType& matrix) : m_matrix(matrix)
+    {
+      EIGEN_STATIC_ASSERT(UpLo==Lower || UpLo==Upper,SELFADJOINTVIEW_ACCEPTS_UPPER_AND_LOWER_MODE_ONLY);
+    }
 
     EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
     inline Index rows() const EIGEN_NOEXCEPT { return m_matrix.rows(); }

@@ -17,8 +17,6 @@
 #define EIGEN_LOG2E 1.442695040888963407359924681001892137426645954152985934135449406931109219L
 #define EIGEN_LN2   0.693147180559945309417232121458176568075500134360255254120680009493393621L
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 // On WINCE, std::abs is defined for int only, so let's defined our own overloads:
@@ -471,11 +469,10 @@ inline NewType cast(const OldType& x)
 template<typename Scalar>
 struct round_impl
 {
-  EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
-
   EIGEN_DEVICE_FUNC
   static inline Scalar run(const Scalar& x)
   {
+    EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
 #if EIGEN_HAS_CXX11_MATH
     EIGEN_USING_STD(round);
 #endif
@@ -498,11 +495,10 @@ struct round_impl<float> {
 template<typename Scalar>
 struct round_using_floor_ceil_impl
 {
-  EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
-
   EIGEN_DEVICE_FUNC
   static inline Scalar run(const Scalar& x)
   {
+    EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
     // Without C99 round/roundf, resort to floor/ceil.
     EIGEN_USING_STD(floor);
     EIGEN_USING_STD(ceil);
@@ -536,11 +532,10 @@ struct round_retval
 
 template<typename Scalar>
 struct rint_impl {
-  EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
-
   EIGEN_DEVICE_FUNC
   static inline Scalar run(const Scalar& x)
   {
+    EIGEN_STATIC_ASSERT((!NumTraits<Scalar>::IsComplex), NUMERIC_TYPE_MUST_BE_REAL)
 #if EIGEN_HAS_CXX11_MATH
       EIGEN_USING_STD(rint);
 #endif
@@ -741,10 +736,9 @@ namespace std_fallback {
 
 template<typename Scalar>
 struct log1p_impl {
-  EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
-
   EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& x)
   {
+    EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
     #if EIGEN_HAS_CXX11_MATH
     using std::log1p;
     #else
@@ -757,10 +751,9 @@ struct log1p_impl {
 // Specialization for complex types that are not supported by std::log1p.
 template <typename RealScalar>
 struct log1p_impl<std::complex<RealScalar> > {
-  EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
-
   EIGEN_DEVICE_FUNC static inline std::complex<RealScalar> run(
       const std::complex<RealScalar>& x) {
+    EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
     return std_fallback::log1p(x);
   }
 };
@@ -2013,10 +2006,9 @@ namespace internal {
 // Specialization for complex types that are not supported by std::expm1.
 template <typename RealScalar>
 struct expm1_impl<std::complex<RealScalar> > {
-  EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
-
   EIGEN_DEVICE_FUNC static inline std::complex<RealScalar> run(
       const std::complex<RealScalar>& x) {
+    EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
     RealScalar xr = x.real();
     RealScalar xi = x.imag();
     // expm1(z) = exp(z) - 1

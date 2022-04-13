@@ -11,8 +11,6 @@
 #ifndef EIGEN_TRIANGULARMATRIX_H
 #define EIGEN_TRIANGULARMATRIX_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -168,8 +166,8 @@ template<typename Derived> class TriangularBase : public EigenBase<Derived>
   * \sa MatrixBase::triangularView()
   */
 namespace internal {
-template<typename MatrixType, unsigned int Mode_>
-struct traits<TriangularView<MatrixType, Mode_> > : traits<MatrixType>
+template<typename MatrixType, unsigned int _Mode>
+struct traits<TriangularView<MatrixType, _Mode> > : traits<MatrixType>
 {
   typedef typename ref_selector<MatrixType>::non_const_type MatrixTypeNested;
   typedef typename remove_reference<MatrixTypeNested>::type MatrixTypeNestedNonRef;
@@ -177,30 +175,30 @@ struct traits<TriangularView<MatrixType, Mode_> > : traits<MatrixType>
   typedef typename MatrixType::PlainObject FullMatrixType;
   typedef MatrixType ExpressionType;
   enum {
-    Mode = Mode_,
+    Mode = _Mode,
     FlagsLvalueBit = is_lvalue<MatrixType>::value ? LvalueBit : 0,
     Flags = (MatrixTypeNestedCleaned::Flags & (HereditaryBits | FlagsLvalueBit) & (~(PacketAccessBit | DirectAccessBit | LinearAccessBit)))
   };
 };
 }
 
-template<typename MatrixType_, unsigned int Mode_, typename StorageKind> class TriangularViewImpl;
+template<typename _MatrixType, unsigned int _Mode, typename StorageKind> class TriangularViewImpl;
 
-template<typename MatrixType_, unsigned int Mode_> class TriangularView
-  : public TriangularViewImpl<MatrixType_, Mode_, typename internal::traits<MatrixType_>::StorageKind >
+template<typename _MatrixType, unsigned int _Mode> class TriangularView
+  : public TriangularViewImpl<_MatrixType, _Mode, typename internal::traits<_MatrixType>::StorageKind >
 {
   public:
 
-    typedef TriangularViewImpl<MatrixType_, Mode_, typename internal::traits<MatrixType_>::StorageKind > Base;
+    typedef TriangularViewImpl<_MatrixType, _Mode, typename internal::traits<_MatrixType>::StorageKind > Base;
     typedef typename internal::traits<TriangularView>::Scalar Scalar;
-    typedef MatrixType_ MatrixType;
+    typedef _MatrixType MatrixType;
 
   protected:
     typedef typename internal::traits<TriangularView>::MatrixTypeNested MatrixTypeNested;
     typedef typename internal::traits<TriangularView>::MatrixTypeNestedNonRef MatrixTypeNestedNonRef;
 
     typedef typename internal::remove_all<typename MatrixType::ConjugateReturnType>::type MatrixConjugateReturnType;
-    typedef TriangularView<typename internal::add_const<MatrixType>::type, Mode_> ConstTriangularView;
+    typedef TriangularView<typename internal::add_const<MatrixType>::type, _Mode> ConstTriangularView;
 
   public:
 
@@ -208,7 +206,7 @@ template<typename MatrixType_, unsigned int Mode_> class TriangularView
     typedef typename internal::traits<TriangularView>::MatrixTypeNestedCleaned NestedExpression;
 
     enum {
-      Mode = Mode_,
+      Mode = _Mode,
       Flags = internal::traits<TriangularView>::Flags,
       TransposeMode = (Mode & Upper ? Lower : 0)
                     | (Mode & Lower ? Upper : 0)
@@ -344,17 +342,16 @@ template<typename MatrixType_, unsigned int Mode_> class TriangularView
   *
   * \sa class TriangularView, MatrixBase::triangularView()
   */
-template<typename MatrixType_, unsigned int Mode_> class TriangularViewImpl<MatrixType_,Mode_,Dense>
-  : public TriangularBase<TriangularView<MatrixType_, Mode_> >
+template<typename _MatrixType, unsigned int _Mode> class TriangularViewImpl<_MatrixType,_Mode,Dense>
+  : public TriangularBase<TriangularView<_MatrixType, _Mode> >
 {
   public:
 
-    typedef TriangularView<MatrixType_, Mode_> TriangularViewType;
-
+    typedef TriangularView<_MatrixType, _Mode> TriangularViewType;
     typedef TriangularBase<TriangularViewType> Base;
     typedef typename internal::traits<TriangularViewType>::Scalar Scalar;
 
-    typedef MatrixType_ MatrixType;
+    typedef _MatrixType MatrixType;
     typedef typename MatrixType::PlainObject DenseMatrixType;
     typedef DenseMatrixType PlainObject;
 
@@ -365,7 +362,7 @@ template<typename MatrixType_, unsigned int Mode_> class TriangularViewImpl<Matr
     typedef typename internal::traits<TriangularViewType>::StorageKind StorageKind;
 
     enum {
-      Mode = Mode_,
+      Mode = _Mode,
       Flags = internal::traits<TriangularViewType>::Flags
     };
 

@@ -1,24 +1,7 @@
 # cmake_minimum_require must be the first command of the file
 cmake_minimum_required(VERSION 3.5.0)
 
-# NOTE Remove setting the policy once the minimum required CMake version is
-# increased to at least 3.15. Retain enabling the export to package registry.
-if (POLICY CMP0090)
-  # The export command does not populate package registry by default
-  cmake_policy (SET CMP0090 NEW)
-
-  # Unless otherwise specified, always export to package registry to ensure
-  # backwards compatibility.
-  if (NOT DEFINED CMAKE_EXPORT_PACKAGE_REGISTRY)
-    set (CMAKE_EXPORT_PACKAGE_REGISTRY ON)
-  endif (NOT DEFINED CMAKE_EXPORT_PACKAGE_REGISTRY)
-endif (POLICY CMP0090)
-
 project(Eigen3)
-
-set(CMAKE_CXX_STANDARD 11 CACHE STRING "Default C++ standard")
-set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "Require C++ standard")
-set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "Allow C++ extensions")
 
 # guard against in-source builds
 
@@ -79,7 +62,8 @@ include(CMakeDependentOption)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 
-option(EIGEN_TEST_CXX11 "Enable testing of unsupported CXX11 tests (i.e. those starting with cxx11_)." OFF)
+option(EIGEN_TEST_CXX11 "Enable testing with C++11 and C++11 features (e.g. Tensor module)." OFF)
+
 
 macro(ei_add_cxx_compiler_flag FLAG)
   string(REGEX REPLACE "-" "" SFLAG1 ${FLAG})
@@ -89,6 +73,20 @@ macro(ei_add_cxx_compiler_flag FLAG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FLAG}")
   endif()
 endmacro()
+
+check_cxx_compiler_flag("-std=c++11" EIGEN_COMPILER_SUPPORT_CPP11)
+
+if(EIGEN_TEST_CXX11)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  if(EIGEN_COMPILER_SUPPORT_CPP11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  endif()
+else()
+  #set(CMAKE_CXX_STANDARD 03)
+  #set(CMAKE_CXX_EXTENSIONS OFF)
+  ei_add_cxx_compiler_flag("-std=c++03")
+endif()
 
 # Determine if we should build shared libraries on this platform.
 get_cmake_property(EIGEN_BUILD_SHARED_LIBS TARGET_SUPPORTS_SHARED_LIBS)
@@ -185,6 +183,18 @@ if(NOT MSVC)
   ei_add_cxx_compiler_flag("-wd981")                    # disable ICC's "operands are evaluated in unspecified order" remark
   ei_add_cxx_compiler_flag("-wd2304")                   # disable ICC's "warning #2304: non-explicit constructor with single argument may cause implicit type conversion" produced by -Wnon-virtual-dtor
 
+
+  # The -ansi flag must be added last, otherwise it is also used as a linker flag by check_cxx_compiler_flag making it fails
+  # Moreover we should not set both -strict-ansi and -ansi
+  check_cxx_compiler_flag("-strict-ansi" COMPILER_SUPPORT_STRICTANSI)
+  ei_add_cxx_compiler_flag("-Qunused-arguments")        # disable clang warning: argument unused during compilation: '-ansi'
+
+  if(COMPILER_SUPPORT_STRICTANSI)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -strict-ansi")
+  else()
+    ei_add_cxx_compiler_flag("-ansi")
+  endif()
+
   if(ANDROID_NDK)
     ei_add_cxx_compiler_flag("-pie")
     ei_add_cxx_compiler_flag("-fPIE")
@@ -243,12 +253,18 @@ if(NOT MSVC)
   option(EIGEN_TEST_AVX512 "Enable/Disable AVX512 in tests/examples" OFF)
   if(EIGEN_TEST_AVX512)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mfma")
+    if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fabi-version=6")
+    endif()
     message(STATUS "Enabling AVX512 in tests/examples")
   endif()
 
   option(EIGEN_TEST_AVX512DQ "Enable/Disable AVX512DQ in tests/examples" OFF)
   if(EIGEN_TEST_AVX512DQ)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512dq -mfma")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512dq")
+    if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fabi-version=6")
+    endif()
     message(STATUS "Enabling AVX512DQ in tests/examples")
   endif()
 
@@ -326,7 +342,7 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /wd4127 /wd4505 /wd4714")
 
   # replace all /Wx by /W4
-  # string(REGEX REPLACE "/W[0-9]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(REGEX REPLACE "/W[0-9]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
   check_cxx_compiler_flag("/openmp" COMPILER_SUPPORT_OPENMP)
   if(COMPILER_SUPPORT_OPENMP)
@@ -400,8 +416,7 @@ if(EIGEN_TEST_NO_EXCEPTIONS)
   message(STATUS "Disabling exceptions in tests/examples")
 endif()
 
-set(EIGEN_CUDA_CXX_FLAGS "" CACHE STRING "Additional flags to pass to the cuda compiler.")
-set(EIGEN_CUDA_COMPUTE_ARCH 30 CACHE STRING "The CUDA compute architecture(s) to target when compiling CUDA code")
+set(EIGEN_CUDA_COMPUTE_ARCH 30 CACHE STRING "The CUDA compute architecture level to target when compiling CUDA code")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -577,12 +592,16 @@ set ( EIGEN_VERSION_STRING ${EIGEN_VERSION_NUMBER} )
 set ( EIGEN_VERSION_MAJOR  ${EIGEN_WORLD_VERSION} )
 set ( EIGEN_VERSION_MINOR  ${EIGEN_MAJOR_VERSION} )
 set ( EIGEN_VERSION_PATCH  ${EIGEN_MINOR_VERSION} )
+set ( EIGEN_DEFINITIONS "")
+set ( EIGEN_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/${INCLUDE_INSTALL_DIR}" )
+set ( EIGEN_ROOT_DIR ${CMAKE_INSTALL_PREFIX} )
 
 include (CMakePackageConfigHelpers)
 
 # Imported target support
 add_library (eigen INTERFACE)
 add_library (Eigen3::Eigen ALIAS eigen)
+target_compile_definitions (eigen INTERFACE ${EIGEN_DEFINITIONS})
 target_include_directories (eigen INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
@@ -596,30 +615,20 @@ install (TARGETS eigen EXPORT Eigen3Targets)
 configure_package_config_file (
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Eigen3Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/Eigen3Config.cmake
+  PATH_VARS EIGEN_INCLUDE_DIR EIGEN_ROOT_DIR
   INSTALL_DESTINATION ${CMAKEPACKAGE_INSTALL_DIR}
-  NO_SET_AND_CHECK_MACRO # Eigen does not provide legacy style defines
   NO_CHECK_REQUIRED_COMPONENTS_MACRO # Eigen does not provide components
 )
-
-# NOTE Remove the first code path once the minimum required CMake version is
-# bumped to 3.14 or above.
-if (CMAKE_VERSION VERSION_LESS 3.14)
-  # Remove CMAKE_SIZEOF_VOID_P from Eigen3ConfigVersion.cmake since Eigen does
-  # not depend on architecture specific settings or libraries. More
-  # specifically, an Eigen3Config.cmake generated from a 64 bit target can be
-  # used for 32 bit targets as well (and vice versa).
-  set (_Eigen3_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
-  unset (CMAKE_SIZEOF_VOID_P)
-  write_basic_package_version_file (Eigen3ConfigVersion.cmake
-                                    VERSION ${EIGEN_VERSION_NUMBER}
-                                    COMPATIBILITY SameMajorVersion)
-  set (CMAKE_SIZEOF_VOID_P ${_Eigen3_CMAKE_SIZEOF_VOID_P})
-else (CMAKE_VERSION VERSION_LESS 3.14)
-  write_basic_package_version_file (Eigen3ConfigVersion.cmake
-                                    VERSION ${EIGEN_VERSION_NUMBER}
-                                    COMPATIBILITY SameMajorVersion
-                                    ARCH_INDEPENDENT)
-endif (CMAKE_VERSION VERSION_LESS 3.14)
+# Remove CMAKE_SIZEOF_VOID_P from Eigen3ConfigVersion.cmake since Eigen does
+# not depend on architecture specific settings or libraries. More
+# specifically, an Eigen3Config.cmake generated from a 64 bit target can be
+# used for 32 bit targets as well (and vice versa).
+set (_Eigen3_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
+unset (CMAKE_SIZEOF_VOID_P)
+write_basic_package_version_file (Eigen3ConfigVersion.cmake
+                                  VERSION ${EIGEN_VERSION_NUMBER}
+                                  COMPATIBILITY SameMajorVersion)
+set (CMAKE_SIZEOF_VOID_P ${_Eigen3_CMAKE_SIZEOF_VOID_P})
 
 # The Eigen target will be located in the Eigen3 namespace. Other CMake
 # targets can refer to it using Eigen3::Eigen.
@@ -630,9 +639,10 @@ export (PACKAGE Eigen3)
 
 install (EXPORT Eigen3Targets NAMESPACE Eigen3:: DESTINATION ${CMAKEPACKAGE_INSTALL_DIR})
 
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/Eigen3Config.cmake
-               ${CMAKE_CURRENT_BINARY_DIR}/Eigen3ConfigVersion.cmake
-         DESTINATION ${CMAKEPACKAGE_INSTALL_DIR})
+install ( FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/UseEigen3.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/Eigen3Config.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/Eigen3ConfigVersion.cmake
+          DESTINATION ${CMAKEPACKAGE_INSTALL_DIR} )
 
 # Add uninstall target
 add_custom_target ( uninstall

@@ -10,8 +10,6 @@
 #ifndef EIGEN_SKYLINEPRODUCT_H
 #define EIGEN_SKYLINEPRODUCT_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 template<typename Lhs, typename Rhs, int ProductMode>
@@ -122,17 +120,17 @@ protected:
 
 template<typename Lhs, typename Rhs, typename Dest>
 EIGEN_DONT_INLINE void skyline_row_major_time_dense_product(const Lhs& lhs, const Rhs& rhs, Dest& dst) {
-    typedef typename remove_all<Lhs>::type Lhs_;
-    typedef typename remove_all<Rhs>::type Rhs_;
+    typedef typename remove_all<Lhs>::type _Lhs;
+    typedef typename remove_all<Rhs>::type _Rhs;
     typedef typename traits<Lhs>::Scalar Scalar;
 
     enum {
-        LhsIsRowMajor = (Lhs_::Flags & RowMajorBit) == RowMajorBit,
-        LhsIsSelfAdjoint = (Lhs_::Flags & SelfAdjointBit) == SelfAdjointBit,
+        LhsIsRowMajor = (_Lhs::Flags & RowMajorBit) == RowMajorBit,
+        LhsIsSelfAdjoint = (_Lhs::Flags & SelfAdjointBit) == SelfAdjointBit,
         ProcessFirstHalf = LhsIsSelfAdjoint
-        && (((Lhs_::Flags & (UpperTriangularBit | LowerTriangularBit)) == 0)
-        || ((Lhs_::Flags & UpperTriangularBit) && !LhsIsRowMajor)
-        || ((Lhs_::Flags & LowerTriangularBit) && LhsIsRowMajor)),
+        && (((_Lhs::Flags & (UpperTriangularBit | LowerTriangularBit)) == 0)
+        || ((_Lhs::Flags & UpperTriangularBit) && !LhsIsRowMajor)
+        || ((_Lhs::Flags & LowerTriangularBit) && LhsIsRowMajor)),
         ProcessSecondHalf = LhsIsSelfAdjoint && (!ProcessFirstHalf)
     };
 
@@ -144,7 +142,7 @@ EIGEN_DONT_INLINE void skyline_row_major_time_dense_product(const Lhs& lhs, cons
     }
     //Use matrix lower triangular part
     for (Index row = 0; row < lhs.rows(); row++) {
-        typename Lhs_::InnerLowerIterator lIt(lhs, row);
+        typename _Lhs::InnerLowerIterator lIt(lhs, row);
         const Index stop = lIt.col() + lIt.size();
         for (Index col = 0; col < rhs.cols(); col++) {
 
@@ -164,7 +162,7 @@ EIGEN_DONT_INLINE void skyline_row_major_time_dense_product(const Lhs& lhs, cons
 
     //Use matrix upper triangular part
     for (Index lhscol = 0; lhscol < lhs.cols(); lhscol++) {
-        typename Lhs_::InnerUpperIterator uIt(lhs, lhscol);
+        typename _Lhs::InnerUpperIterator uIt(lhs, lhscol);
         const Index stop = uIt.size() + uIt.row();
         for (Index rhscol = 0; rhscol < rhs.cols(); rhscol++) {
 
@@ -185,17 +183,17 @@ EIGEN_DONT_INLINE void skyline_row_major_time_dense_product(const Lhs& lhs, cons
 
 template<typename Lhs, typename Rhs, typename Dest>
 EIGEN_DONT_INLINE void skyline_col_major_time_dense_product(const Lhs& lhs, const Rhs& rhs, Dest& dst) {
-    typedef typename remove_all<Lhs>::type Lhs_;
-    typedef typename remove_all<Rhs>::type Rhs_;
+    typedef typename remove_all<Lhs>::type _Lhs;
+    typedef typename remove_all<Rhs>::type _Rhs;
     typedef typename traits<Lhs>::Scalar Scalar;
 
     enum {
-        LhsIsRowMajor = (Lhs_::Flags & RowMajorBit) == RowMajorBit,
-        LhsIsSelfAdjoint = (Lhs_::Flags & SelfAdjointBit) == SelfAdjointBit,
+        LhsIsRowMajor = (_Lhs::Flags & RowMajorBit) == RowMajorBit,
+        LhsIsSelfAdjoint = (_Lhs::Flags & SelfAdjointBit) == SelfAdjointBit,
         ProcessFirstHalf = LhsIsSelfAdjoint
-        && (((Lhs_::Flags & (UpperTriangularBit | LowerTriangularBit)) == 0)
-        || ((Lhs_::Flags & UpperTriangularBit) && !LhsIsRowMajor)
-        || ((Lhs_::Flags & LowerTriangularBit) && LhsIsRowMajor)),
+        && (((_Lhs::Flags & (UpperTriangularBit | LowerTriangularBit)) == 0)
+        || ((_Lhs::Flags & UpperTriangularBit) && !LhsIsRowMajor)
+        || ((_Lhs::Flags & LowerTriangularBit) && LhsIsRowMajor)),
         ProcessSecondHalf = LhsIsSelfAdjoint && (!ProcessFirstHalf)
     };
 
@@ -208,7 +206,7 @@ EIGEN_DONT_INLINE void skyline_col_major_time_dense_product(const Lhs& lhs, cons
 
     //Use matrix upper triangular part
     for (Index row = 0; row < lhs.rows(); row++) {
-        typename Lhs_::InnerUpperIterator uIt(lhs, row);
+        typename _Lhs::InnerUpperIterator uIt(lhs, row);
         const Index stop = uIt.col() + uIt.size();
         for (Index col = 0; col < rhs.cols(); col++) {
 
@@ -229,7 +227,7 @@ EIGEN_DONT_INLINE void skyline_col_major_time_dense_product(const Lhs& lhs, cons
 
     //Use matrix lower triangular part
     for (Index lhscol = 0; lhscol < lhs.cols(); lhscol++) {
-        typename Lhs_::InnerLowerIterator lIt(lhs, lhscol);
+        typename _Lhs::InnerLowerIterator lIt(lhs, lhscol);
         const Index stop = lIt.size() + lIt.row();
         for (Index rhscol = 0; rhscol < rhs.cols(); rhscol++) {
 
@@ -274,7 +272,7 @@ struct skyline_product_selector<Lhs, Rhs, ResultType, ColMajor> {
 // template<typename Derived>
 // template<typename Lhs, typename Rhs >
 // Derived & MatrixBase<Derived>::lazyAssign(const SkylineProduct<Lhs, Rhs, SkylineTimeDenseProduct>& product) {
-//     typedef typename internal::remove_all<Lhs>::type Lhs_;
+//     typedef typename internal::remove_all<Lhs>::type _Lhs;
 //     internal::skyline_product_selector<typename internal::remove_all<Lhs>::type,
 //             typename internal::remove_all<Rhs>::type,
 //             Derived>::run(product.lhs(), product.rhs(), derived());

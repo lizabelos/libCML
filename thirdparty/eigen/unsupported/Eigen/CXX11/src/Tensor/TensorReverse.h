@@ -10,8 +10,6 @@
 
 #ifndef EIGEN_CXX11_TENSOR_TENSOR_REVERSE_H
 #define EIGEN_CXX11_TENSOR_TENSOR_REVERSE_H
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class TensorReverse

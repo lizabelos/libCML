@@ -11,8 +11,6 @@
 #ifndef EIGEN_MATRIXBASE_H
 #define EIGEN_MATRIXBASE_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class MatrixBase

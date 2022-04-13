@@ -13,8 +13,6 @@
 // This file contains many lightweight helper classes used to
 // implement and control fast level 2 and level 3 BLAS-like routines.
 
-#include "../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -310,15 +308,15 @@ public:
   }
 
   // storePacketBlock_helper defines a way to access values inside the PacketBlock, this is essentially required by the Complex types.
-  template<typename SubPacket, typename Scalar_, int n, int idx>
+  template<typename SubPacket, typename ScalarT, int n, int idx>
   struct storePacketBlock_helper
   {
-    storePacketBlock_helper<SubPacket, Scalar_, n, idx-1> spbh;
+    storePacketBlock_helper<SubPacket, ScalarT, n, idx-1> spbh;
     EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void store(const blas_data_mapper<Scalar, Index, StorageOrder, AlignmentType, Incr>* sup, Index i, Index j, const PacketBlock<SubPacket, n>& block) const {
       spbh.store(sup, i,j,block);
       for(int l = 0; l < unpacket_traits<SubPacket>::size; l++)
       {
-        Scalar_ *v = &sup->operator()(i+l, j+idx);
+        ScalarT *v = &sup->operator()(i+l, j+idx);
         *v = block.packet[idx][l];
       }
     }
@@ -354,8 +352,8 @@ public:
     }
   };
 
-  template<typename SubPacket, typename Scalar_, int n>
-  struct storePacketBlock_helper<SubPacket, Scalar_, n, -1>
+  template<typename SubPacket, typename ScalarT, int n>
+  struct storePacketBlock_helper<SubPacket, ScalarT, n, -1>
   {
     EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void store(const blas_data_mapper<Scalar, Index, StorageOrder, AlignmentType, Incr>*, Index, Index, const PacketBlock<SubPacket, n>& ) const {
     }

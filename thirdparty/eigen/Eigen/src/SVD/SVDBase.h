@@ -16,8 +16,6 @@
 #ifndef EIGEN_SVDBASE_H
 #define EIGEN_SVDBASE_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -54,7 +52,7 @@ template<typename Derived> struct traits<SVDBase<Derived> >
  * singular vectors. Asking for \em thin \a U or \a V means asking for only their \a m first columns to be formed. So \a U is then a n-by-m matrix,
  * and \a V is then a p-by-m matrix. Notice that thin \a U and \a V are all you need for (least squares) solving.
  * 
- * The status of the computation can be retrieved using the \a info() method. Unless \a info() returns \a Success, the results should be not
+ * The status of the computation can be retrived using the \a info() method. Unless \a info() returns \a Success, the results should be not
  * considered well defined.
  *  
  * If the input matrix has inf or nan coefficients, the result of the computation is undefined, and \a info() will return \a InvalidInput, but the computation is guaranteed to
@@ -251,7 +249,10 @@ public:
 
 protected:
 
-  EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
+  static void check_template_parameters()
+  {
+    EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar);
+  }
 
   void _check_compute_assertions() const {
     eigen_assert(m_isInitialized && "SVD is not initialized.");
@@ -294,7 +295,9 @@ protected:
       m_computeThinV(false),
       m_computationOptions(0),
       m_rows(-1), m_cols(-1), m_diagSize(0)
-  { }
+  {
+    check_template_parameters();
+  }
 
 
 };

@@ -12,8 +12,6 @@
 #ifndef EIGEN_ASSIGN_EVALUATOR_H
 #define EIGEN_ASSIGN_EVALUATOR_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 // This implementation is based on Assign.h
@@ -329,7 +327,8 @@ struct dense_assignment_loop<Kernel, AllAtOnceTraversal, Unrolling>
 {
   EIGEN_DEVICE_FUNC static void EIGEN_STRONG_INLINE run(Kernel& /*kernel*/)
   {
-    EIGEN_STATIC_ASSERT(int(Kernel::DstEvaluatorType::XprType::SizeAtCompileTime) == 0,
+    typedef typename Kernel::DstEvaluatorType::XprType DstXprType;
+    EIGEN_STATIC_ASSERT(int(DstXprType::SizeAtCompileTime) == 0,
       EIGEN_INTERNAL_ERROR_PLEASE_FILE_A_BUG_REPORT)
   }
 };

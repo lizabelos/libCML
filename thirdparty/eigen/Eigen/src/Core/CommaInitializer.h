@@ -11,8 +11,6 @@
 #ifndef EIGEN_COMMAINITIALIZER_H
 #define EIGEN_COMMAINITIALIZER_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 /** \class CommaInitializer

@@ -8,8 +8,8 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef EIGEN_CORE_MODULE_H
-#define EIGEN_CORE_MODULE_H
+#ifndef EIGEN_CORE_H
+#define EIGEN_CORE_H
 
 // first thing Eigen does: stop the compiler from reporting useless warnings.
 #include "src/Core/util/DisableStupidWarnings.h"
@@ -109,8 +109,7 @@
 #endif
 
 // required for __cpuid, needs to be included after cmath
-// also required for _BitScanReverse on Windows on ARM
-#if EIGEN_COMP_MSVC && (EIGEN_ARCH_i386_OR_x86_64 || EIGEN_ARCH_ARM64) && !EIGEN_OS_WINCE
+#if EIGEN_COMP_MSVC && EIGEN_ARCH_i386_OR_x86_64 && !EIGEN_OS_WINCE
   #include <intrin.h>
 #endif
 
@@ -166,7 +165,6 @@ using std::ptrdiff_t;
 #include "src/Core/util/XprHelper.h"
 #include "src/Core/util/Memory.h"
 #include "src/Core/util/IntegralConstant.h"
-#include "src/Core/util/Serializer.h"
 #include "src/Core/util/SymbolicIndex.h"
 
 #include "src/Core/NumTraits.h"
@@ -383,4 +381,4 @@ using std::ptrdiff_t;
 
 #include "src/Core/util/ReenableStupidWarnings.h"
 
-#endif // EIGEN_CORE_MODULE_H
+#endif // EIGEN_CORE_H

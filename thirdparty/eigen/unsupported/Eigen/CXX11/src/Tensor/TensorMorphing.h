@@ -10,8 +10,6 @@
 #ifndef EIGEN_CXX11_TENSOR_TENSOR_MORPHING_H
 #define EIGEN_CXX11_TENSOR_TENSOR_MORPHING_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class TensorReshaping

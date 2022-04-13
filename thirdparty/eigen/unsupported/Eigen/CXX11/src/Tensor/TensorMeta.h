@@ -10,8 +10,6 @@
 #ifndef EIGEN_CXX11_TENSOR_TENSOR_META_H
 #define EIGEN_CXX11_TENSOR_TENSOR_META_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 template<bool cond> struct Cond {};
@@ -54,7 +52,7 @@ struct PacketType : internal::packet_traits<Scalar> {
 };
 
 // For CUDA packet types when using a GpuDevice
-#if defined(EIGEN_USE_GPU) && defined(EIGEN_HAS_GPU_FP16) && defined(EIGEN_GPU_COMPILE_PHASE)
+#if defined(EIGEN_USE_GPU) && defined(EIGEN_HAS_GPU_FP16)
 
 typedef ulonglong2 Packet4h2;
 template<>
@@ -209,11 +207,9 @@ template<> struct PacketType<const half, const SyclDevice>: PacketType<half, Syc
 #endif
 #endif
 
-// Pair mimics std::pair but works on e.g. nvcc.
-template <typename U, typename V> struct Pair {
+// Tuple mimics std::pair but works on e.g. nvcc.
+template <typename U, typename V> struct Tuple {
  public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   U first;
   V second;
 
@@ -221,13 +217,13 @@ template <typename U, typename V> struct Pair {
   typedef V second_type;
 
   EIGEN_CONSTEXPR EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-  Pair() : first(), second() {}
+  Tuple() : first(), second() {}
 
   EIGEN_CONSTEXPR EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-  Pair(const U& f, const V& s) : first(f), second(s) {}
+  Tuple(const U& f, const V& s) : first(f), second(s) {}
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-  void swap(Pair& rhs) {
+  void swap(Tuple& rhs) {
     using numext::swap;
     swap(first, rhs.first);
     swap(second, rhs.second);
@@ -236,13 +232,13 @@ template <typename U, typename V> struct Pair {
 
 template <typename U, typename V>
 EIGEN_CONSTEXPR EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-bool operator==(const Pair<U, V>& x, const Pair<U, V>& y) {
+bool operator==(const Tuple<U, V>& x, const Tuple<U, V>& y) {
   return (x.first == y.first && x.second == y.second);
 }
 
 template <typename U, typename V>
 EIGEN_CONSTEXPR EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-bool operator!=(const Pair<U, V>& x, const Pair<U, V>& y) {
+bool operator!=(const Tuple<U, V>& x, const Tuple<U, V>& y) {
   return !(x == y);
 }
 

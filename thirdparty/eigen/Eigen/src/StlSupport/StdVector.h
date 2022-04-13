@@ -11,10 +11,6 @@
 #ifndef EIGEN_STDVECTOR_H
 #define EIGEN_STDVECTOR_H
 
-#ifndef EIGEN_STDVECTOR_MODULE_H
-#error "Please include Eigen/StdVector instead of including this file directly."
-#endif
-
 #include "details.h"
 
 /**

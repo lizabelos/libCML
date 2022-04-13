@@ -10,8 +10,6 @@
 #ifndef EIGEN_SPARSE_REF_H
 #define EIGEN_SPARSE_REF_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 enum {
@@ -22,13 +20,13 @@ namespace internal {
 
 template<typename Derived> class SparseRefBase;
 
-template<typename MatScalar, int MatOptions, typename MatIndex, int Options_, typename _StrideType>
-struct traits<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
+template<typename MatScalar, int MatOptions, typename MatIndex, int _Options, typename _StrideType>
+struct traits<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
   : public traits<SparseMatrix<MatScalar,MatOptions,MatIndex> >
 {
   typedef SparseMatrix<MatScalar,MatOptions,MatIndex> PlainObjectType;
   enum {
-    Options = Options_,
+    Options = _Options,
     Flags = traits<PlainObjectType>::Flags | CompressedAccessBit | NestByRefBit
   };
 
@@ -42,22 +40,22 @@ struct traits<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options_, _Stride
   
 };
 
-template<typename MatScalar, int MatOptions, typename MatIndex, int Options_, typename _StrideType>
-struct traits<Ref<const SparseMatrix<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
-  : public traits<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
+template<typename MatScalar, int MatOptions, typename MatIndex, int _Options, typename _StrideType>
+struct traits<Ref<const SparseMatrix<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
+  : public traits<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
 {
   enum {
     Flags = (traits<SparseMatrix<MatScalar,MatOptions,MatIndex> >::Flags | CompressedAccessBit | NestByRefBit) & ~LvalueBit
   };
 };
 
-template<typename MatScalar, int MatOptions, typename MatIndex, int Options_, typename _StrideType>
-struct traits<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
+template<typename MatScalar, int MatOptions, typename MatIndex, int _Options, typename _StrideType>
+struct traits<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
   : public traits<SparseVector<MatScalar,MatOptions,MatIndex> >
 {
   typedef SparseVector<MatScalar,MatOptions,MatIndex> PlainObjectType;
   enum {
-    Options = Options_,
+    Options = _Options,
     Flags = traits<PlainObjectType>::Flags | CompressedAccessBit | NestByRefBit
   };
 
@@ -70,9 +68,9 @@ struct traits<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options_, _Stride
 
 };
 
-template<typename MatScalar, int MatOptions, typename MatIndex, int Options_, typename _StrideType>
-struct traits<Ref<const SparseVector<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
-  : public traits<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options_, _StrideType> >
+template<typename MatScalar, int MatOptions, typename MatIndex, int _Options, typename _StrideType>
+struct traits<Ref<const SparseVector<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
+  : public traits<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, _Options, _StrideType> >
 {
   enum {
     Flags = (traits<SparseVector<MatScalar,MatOptions,MatIndex> >::Flags | CompressedAccessBit | NestByRefBit) & ~LvalueBit

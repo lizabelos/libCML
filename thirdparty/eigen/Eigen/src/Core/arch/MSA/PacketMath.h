@@ -16,8 +16,6 @@
 #include <iostream>
 #include <string>
 
-#include "../../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {

@@ -11,8 +11,6 @@
 #define EIGEN_GENERAL_BLOCK_PANEL_H
 
 
-#include "../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -23,7 +21,7 @@ enum GEBPPacketSizeType {
   GEBPPacketQuarter
 };
 
-template<typename LhsScalar_, typename RhsScalar_, bool ConjLhs_=false, bool ConjRhs_=false, int Arch=Architecture::Target, int PacketSize_=GEBPPacketFull>
+template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs=false, bool _ConjRhs=false, int Arch=Architecture::Target, int _PacketSize=GEBPPacketFull>
 class gebp_traits;
 
 
@@ -416,21 +414,21 @@ struct packet_conditional<GEBPPacketHalf, T1, T2, T3> { typedef T2 type; };
  *  cplx*real : unpack rhs to constant packets, ...
  *  real*cplx : load lhs as (a0,a0,a1,a1), and mul as usual
  */
-template<typename LhsScalar_, typename RhsScalar_, bool ConjLhs_, bool ConjRhs_, int Arch, int PacketSize_>
+template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs, bool _ConjRhs, int Arch, int _PacketSize>
 class gebp_traits
 {
 public:
-  typedef LhsScalar_ LhsScalar;
-  typedef RhsScalar_ RhsScalar;
+  typedef _LhsScalar LhsScalar;
+  typedef _RhsScalar RhsScalar;
   typedef typename ScalarBinaryOpTraits<LhsScalar, RhsScalar>::ReturnType ResScalar;
 
-  PACKET_DECL_COND_PREFIX(_, Lhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Rhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Res, PacketSize_);
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
 
   enum {
-    ConjLhs = ConjLhs_,
-    ConjRhs = ConjRhs_,
+    ConjLhs = _ConjLhs,
+    ConjRhs = _ConjRhs,
     Vectorizable = unpacket_traits<_LhsPacket>::vectorizable && unpacket_traits<_RhsPacket>::vectorizable,
     LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
     RhsPacketSize = Vectorizable ? unpacket_traits<_RhsPacket>::size : 1,
@@ -545,20 +543,20 @@ public:
 
 };
 
-template<typename RealScalar, bool ConjLhs_, int Arch, int PacketSize_>
-class gebp_traits<std::complex<RealScalar>, RealScalar, ConjLhs_, false, Arch, PacketSize_>
+template<typename RealScalar, bool _ConjLhs, int Arch, int _PacketSize>
+class gebp_traits<std::complex<RealScalar>, RealScalar, _ConjLhs, false, Arch, _PacketSize>
 {
 public:
   typedef std::complex<RealScalar> LhsScalar;
   typedef RealScalar RhsScalar;
   typedef typename ScalarBinaryOpTraits<LhsScalar, RhsScalar>::ReturnType ResScalar;
 
-  PACKET_DECL_COND_PREFIX(_, Lhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Rhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Res, PacketSize_);
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
 
   enum {
-    ConjLhs = ConjLhs_,
+    ConjLhs = _ConjLhs,
     ConjRhs = false,
     Vectorizable = unpacket_traits<_LhsPacket>::vectorizable && unpacket_traits<_RhsPacket>::vectorizable,
     LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
@@ -756,8 +754,8 @@ template<typename Packet> struct unpacket_traits<DoublePacket<Packet> > {
 //   return res;
 // }
 
-template<typename RealScalar, bool ConjLhs_, bool ConjRhs_, int Arch, int PacketSize_>
-class gebp_traits<std::complex<RealScalar>, std::complex<RealScalar>, ConjLhs_, ConjRhs_, Arch, PacketSize_ >
+template<typename RealScalar, bool _ConjLhs, bool _ConjRhs, int Arch, int _PacketSize>
+class gebp_traits<std::complex<RealScalar>, std::complex<RealScalar>, _ConjLhs, _ConjRhs, Arch, _PacketSize >
 {
 public:
   typedef std::complex<RealScalar>  Scalar;
@@ -765,15 +763,15 @@ public:
   typedef std::complex<RealScalar>  RhsScalar;
   typedef std::complex<RealScalar>  ResScalar;
   
-  PACKET_DECL_COND_PREFIX(_, Lhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Rhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Res, PacketSize_);
-  PACKET_DECL_COND(Real, PacketSize_);
-  PACKET_DECL_COND_SCALAR(PacketSize_);
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
+  PACKET_DECL_COND(Real, _PacketSize);
+  PACKET_DECL_COND_SCALAR(_PacketSize);
 
   enum {
-    ConjLhs = ConjLhs_,
-    ConjRhs = ConjRhs_,
+    ConjLhs = _ConjLhs,
+    ConjRhs = _ConjRhs,
     Vectorizable = unpacket_traits<RealPacket>::vectorizable
                 && unpacket_traits<ScalarPacket>::vectorizable,
     ResPacketSize   = Vectorizable ? unpacket_traits<_ResPacket>::size : 1,
@@ -797,7 +795,7 @@ public:
   typedef typename conditional<Vectorizable,ScalarPacket,Scalar>::type ResPacket;
   typedef typename conditional<Vectorizable,DoublePacketType,Scalar>::type AccPacket;
 
-  // this actually holds 8 packets!
+  // this actualy holds 8 packets!
   typedef QuadPacket<RhsPacket> RhsPacketx4;
   
   EIGEN_STRONG_INLINE void initAcc(Scalar& p) { p = Scalar(0); }
@@ -922,8 +920,8 @@ protected:
   conj_helper<LhsScalar,RhsScalar,ConjLhs,ConjRhs> cj;
 };
 
-template<typename RealScalar, bool ConjRhs_, int Arch, int PacketSize_>
-class gebp_traits<RealScalar, std::complex<RealScalar>, false, ConjRhs_, Arch, PacketSize_ >
+template<typename RealScalar, bool _ConjRhs, int Arch, int _PacketSize>
+class gebp_traits<RealScalar, std::complex<RealScalar>, false, _ConjRhs, Arch, _PacketSize >
 {
 public:
   typedef std::complex<RealScalar>  Scalar;
@@ -931,11 +929,11 @@ public:
   typedef Scalar      RhsScalar;
   typedef Scalar      ResScalar;
 
-  PACKET_DECL_COND_PREFIX(_, Lhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Rhs, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Res, PacketSize_);
-  PACKET_DECL_COND_PREFIX(_, Real, PacketSize_);
-  PACKET_DECL_COND_SCALAR_PREFIX(_, PacketSize_);
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Real, _PacketSize);
+  PACKET_DECL_COND_SCALAR_PREFIX(_, _PacketSize);
 
 #undef PACKET_DECL_COND_SCALAR_PREFIX
 #undef PACKET_DECL_COND_PREFIX
@@ -944,7 +942,7 @@ public:
 
   enum {
     ConjLhs = false,
-    ConjRhs = ConjRhs_,
+    ConjRhs = _ConjRhs,
     Vectorizable = unpacket_traits<_RealPacket>::vectorizable
                 && unpacket_traits<_ScalarPacket>::vectorizable,
     LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,

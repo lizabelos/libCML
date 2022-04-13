@@ -12,11 +12,9 @@
 #ifndef EIGEN_SPARSE_LU_H
 #define EIGEN_SPARSE_LU_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
-template <typename MatrixType_, typename OrderingType_ = COLAMDOrdering<typename MatrixType_::StorageIndex> > class SparseLU;
+template <typename _MatrixType, typename _OrderingType = COLAMDOrdering<typename _MatrixType::StorageIndex> > class SparseLU;
 template <typename MappedSparseMatrixType> struct SparseLUMatrixLReturnType;
 template <typename MatrixLType, typename MatrixUType> struct SparseLUMatrixUReturnType;
 
@@ -121,25 +119,25 @@ private:
   * If this is the case for your matrices, you can try the basic scaling method at
   *  "unsupported/Eigen/src/IterativeSolvers/Scaling.h"
   * 
-  * \tparam MatrixType_ The type of the sparse matrix. It must be a column-major SparseMatrix<>
-  * \tparam OrderingType_ The ordering method to use, either AMD, COLAMD or METIS. Default is COLMAD
+  * \tparam _MatrixType The type of the sparse matrix. It must be a column-major SparseMatrix<>
+  * \tparam _OrderingType The ordering method to use, either AMD, COLAMD or METIS. Default is COLMAD
   *
   * \implsparsesolverconcept
   * 
   * \sa \ref TutorialSparseSolverConcept
   * \sa \ref OrderingMethods_Module
   */
-template <typename MatrixType_, typename OrderingType_>
-class SparseLU : public SparseSolverBase<SparseLU<MatrixType_,OrderingType_> >, public internal::SparseLUImpl<typename MatrixType_::Scalar, typename MatrixType_::StorageIndex>
+template <typename _MatrixType, typename _OrderingType>
+class SparseLU : public SparseSolverBase<SparseLU<_MatrixType,_OrderingType> >, public internal::SparseLUImpl<typename _MatrixType::Scalar, typename _MatrixType::StorageIndex>
 {
   protected:
-    typedef SparseSolverBase<SparseLU<MatrixType_,OrderingType_> > APIBase;
+    typedef SparseSolverBase<SparseLU<_MatrixType,_OrderingType> > APIBase;
     using APIBase::m_isInitialized;
   public:
     using APIBase::_solve_impl;
     
-    typedef MatrixType_ MatrixType;
-    typedef OrderingType_ OrderingType;
+    typedef _MatrixType MatrixType; 
+    typedef _OrderingType OrderingType;
     typedef typename MatrixType::Scalar Scalar; 
     typedef typename MatrixType::RealScalar RealScalar; 
     typedef typename MatrixType::StorageIndex StorageIndex;
@@ -199,9 +197,9 @@ class SparseLU : public SparseSolverBase<SparseLU<MatrixType_,OrderingType_> >, 
       *
       * \sa adjoint(), solve()
       */
-    const SparseLUTransposeView<false,SparseLU<MatrixType_,OrderingType_> > transpose()
+    const SparseLUTransposeView<false,SparseLU<_MatrixType,_OrderingType> > transpose()
     {
-      SparseLUTransposeView<false,  SparseLU<MatrixType_,OrderingType_> > transposeView;
+      SparseLUTransposeView<false,  SparseLU<_MatrixType,_OrderingType> > transposeView;
       transposeView.setSparseLU(this);
       transposeView.setIsInitialized(this->m_isInitialized);
       return transposeView;
@@ -220,9 +218,9 @@ class SparseLU : public SparseSolverBase<SparseLU<MatrixType_,OrderingType_> >, 
       *
       * \sa transpose(), solve()
       */
-    const SparseLUTransposeView<true, SparseLU<MatrixType_,OrderingType_> > adjoint()
+    const SparseLUTransposeView<true, SparseLU<_MatrixType,_OrderingType> > adjoint()
     {
-      SparseLUTransposeView<true,  SparseLU<MatrixType_,OrderingType_> > adjointView;
+      SparseLUTransposeView<true,  SparseLU<_MatrixType,_OrderingType> > adjointView;
       adjointView.setSparseLU(this);
       adjointView.setIsInitialized(this->m_isInitialized);
       return adjointView;

@@ -10,8 +10,6 @@
 #ifndef EIGEN_PACKET_MATH_SSE_H
 #define EIGEN_PACKET_MATH_SSE_H
 
-#include "../../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -182,6 +180,7 @@ struct packet_traits<double> : default_packet_traits {
     HasRint = 1
   };
 };
+#endif
 template<> struct packet_traits<int>    : default_packet_traits
 {
   typedef Packet4i type;
@@ -195,7 +194,7 @@ template<> struct packet_traits<int>    : default_packet_traits
     HasBlend = 1
   };
 };
-#endif
+
 template<> struct packet_traits<bool> : default_packet_traits
 {
   typedef Packet16b type;
@@ -234,7 +233,7 @@ template<> struct unpacket_traits<Packet2d> {
 template<> struct unpacket_traits<Packet4i> {
   typedef int       type;
   typedef Packet4i  half;
-  enum {size=4, alignment=Aligned16, vectorizable=true, masked_load_available=false, masked_store_available=false};
+  enum {size=4, alignment=Aligned16, vectorizable=false, masked_load_available=false, masked_store_available=false};
 };
 template<> struct unpacket_traits<Packet16b> {
   typedef bool       type;
@@ -622,7 +621,7 @@ template<> EIGEN_STRONG_INLINE Packet4i pabs(const Packet4i& a)
 #ifdef EIGEN_VECTORIZE_SSE4_1
 template<> EIGEN_STRONG_INLINE Packet4f pround<Packet4f>(const Packet4f& a)
 {
-  // Unfortunately _mm_round_ps doesn't have a rounding mode to implement numext::round.
+  // Unfortunatly _mm_round_ps doesn't have a rounding mode to implement numext::round.
   const Packet4f mask = pset1frombits<Packet4f>(0x80000000u);
   const Packet4f prev0dot5 = pset1frombits<Packet4f>(0x3EFFFFFFu);
   return _mm_round_ps(padd(por(pand(a, mask), prev0dot5), a), _MM_FROUND_TO_ZERO);

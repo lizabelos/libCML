@@ -10,8 +10,6 @@
 #ifndef EIGEN_INDEXED_VIEW_H
 #define EIGEN_INDEXED_VIEW_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -98,7 +96,7 @@ class IndexedViewImpl;
   *  - decltype(ArrayXi::LinSpaced(...))
   *  - Any view/expressions of the previous types
   *  - Eigen::ArithmeticSequence
-  *  - Eigen::internal::AllRange     (helper for Eigen::placeholders::all)
+  *  - Eigen::internal::AllRange      (helper for Eigen::all)
   *  - Eigen::internal::SingleRange  (helper for single index)
   *  - etc.
   *

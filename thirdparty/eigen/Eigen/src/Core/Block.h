@@ -11,8 +11,6 @@
 #ifndef EIGEN_BLOCK_H
 #define EIGEN_BLOCK_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -262,19 +260,19 @@ template<typename XprType, int BlockRows, int BlockCols, bool InnerPanel, bool H
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC inline PacketScalar packet(Index rowId, Index colId) const
+    inline PacketScalar packet(Index rowId, Index colId) const
     {
       return m_xpr.template packet<Unaligned>(rowId + m_startRow.value(), colId + m_startCol.value());
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC inline void writePacket(Index rowId, Index colId, const PacketScalar& val)
+    inline void writePacket(Index rowId, Index colId, const PacketScalar& val)
     {
       m_xpr.template writePacket<Unaligned>(rowId + m_startRow.value(), colId + m_startCol.value(), val);
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC inline PacketScalar packet(Index index) const
+    inline PacketScalar packet(Index index) const
     {
       return m_xpr.template packet<Unaligned>
               (m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),
@@ -282,7 +280,7 @@ template<typename XprType, int BlockRows, int BlockCols, bool InnerPanel, bool H
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC inline void writePacket(Index index, const PacketScalar& val)
+    inline void writePacket(Index index, const PacketScalar& val)
     {
       m_xpr.template writePacket<Unaligned>
          (m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),

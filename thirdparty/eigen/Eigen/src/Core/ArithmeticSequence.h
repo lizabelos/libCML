@@ -10,8 +10,6 @@
 #ifndef EIGEN_ARITHMETIC_SEQUENCE_H
 #define EIGEN_ARITHMETIC_SEQUENCE_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -74,7 +72,7 @@ template<typename T> struct cleanup_seq_incr {
   typedef typename cleanup_index_type<T,DynamicIndex>::type type;
 };
 
-}  // namespace internal
+}
 
 //--------------------------------------------------------------------------------
 // seq(first,last,incr) and seqN(first,size,incr)
@@ -321,7 +319,6 @@ seq(const symbolic::BaseExpr<FirstTypeDerived> &f, const symbolic::BaseExpr<Last
 
 #endif // EIGEN_PARSED_BY_DOXYGEN
 
-namespace placeholders {
 
 #if EIGEN_HAS_CXX11 || defined(EIGEN_PARSED_BY_DOXYGEN)
 /** \cpp11
@@ -332,9 +329,9 @@ namespace placeholders {
   * \sa lastN(SizeType), seqN(FirstType,SizeType), seq(FirstType,LastType,IncrType) */
 template<typename SizeType,typename IncrType>
 auto lastN(SizeType size, IncrType incr)
--> decltype(seqN(Eigen::placeholders::last-(size-fix<1>())*incr, size, incr))
+-> decltype(seqN(Eigen::last-(size-fix<1>())*incr, size, incr))
 {
-  return seqN(Eigen::placeholders::last-(size-fix<1>())*incr, size, incr);
+  return seqN(Eigen::last-(size-fix<1>())*incr, size, incr);
 }
 
 /** \cpp11
@@ -345,13 +342,11 @@ auto lastN(SizeType size, IncrType incr)
   * \sa lastN(SizeType,IncrType, seqN(FirstType,SizeType), seq(FirstType,LastType) */
 template<typename SizeType>
 auto lastN(SizeType size)
--> decltype(seqN(Eigen::placeholders::last+fix<1>()-size, size))
+-> decltype(seqN(Eigen::last+fix<1>()-size, size))
 {
-  return seqN(Eigen::placeholders::last+fix<1>()-size, size);
+  return seqN(Eigen::last+fix<1>()-size, size);
 }
 #endif
-
-}  // namespace placeholders
 
 namespace internal {
 
@@ -392,25 +387,25 @@ struct get_compile_time_incr<ArithmeticSequence<FirstType,SizeType,IncrType> > {
   * \code using namespace Eigen::indexing; \endcode
   * is equivalent to:
   * \code
-  using Eigen::fix;
+  using Eigen::all;
   using Eigen::seq;
   using Eigen::seqN;
-  using Eigen::placeholders::all;
-  using Eigen::placeholders::last;
-  using Eigen::placeholders::lastN;  // c++11 only
-  using Eigen::placeholders::lastp1;
+  using Eigen::lastN; // c++11 only
+  using Eigen::last;
+  using Eigen::lastp1;
+  using Eigen::fix;
   \endcode
   */
 namespace indexing {
-  using Eigen::fix;
+  using Eigen::all;
   using Eigen::seq;
   using Eigen::seqN;
-  using Eigen::placeholders::all;
-  using Eigen::placeholders::last;
   #if EIGEN_HAS_CXX11
-  using Eigen::placeholders::lastN;
+  using Eigen::lastN;
   #endif
-  using Eigen::placeholders::lastp1;
+  using Eigen::last;
+  using Eigen::lastp1;
+  using Eigen::fix;
 }
 
 } // end namespace Eigen

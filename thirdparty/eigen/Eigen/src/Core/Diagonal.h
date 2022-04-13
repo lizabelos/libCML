@@ -11,8 +11,6 @@
 #ifndef EIGEN_DIAGONAL_H
 #define EIGEN_DIAGONAL_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class Diagonal
@@ -62,12 +60,12 @@ struct traits<Diagonal<MatrixType,DiagIndex> >
 };
 }
 
-template<typename MatrixType, int DiagIndex_> class Diagonal
-   : public internal::dense_xpr_base< Diagonal<MatrixType,DiagIndex_> >::type
+template<typename MatrixType, int _DiagIndex> class Diagonal
+   : public internal::dense_xpr_base< Diagonal<MatrixType,_DiagIndex> >::type
 {
   public:
 
-    enum { DiagIndex = DiagIndex_ };
+    enum { DiagIndex = _DiagIndex };
     typedef typename internal::dense_xpr_base<Diagonal>::type Base;
     EIGEN_DENSE_PUBLIC_INTERFACE(Diagonal)
 

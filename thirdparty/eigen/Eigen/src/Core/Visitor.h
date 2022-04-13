@@ -10,8 +10,6 @@
 #ifndef EIGEN_VISITOR_H
 #define EIGEN_VISITOR_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {

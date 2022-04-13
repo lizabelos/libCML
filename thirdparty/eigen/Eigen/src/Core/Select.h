@@ -10,8 +10,6 @@
 #ifndef EIGEN_SELECT_H
 #define EIGEN_SELECT_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class Select

@@ -11,8 +11,6 @@
 #ifndef EIGEN_REDUX_H
 #define EIGEN_REDUX_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
 
 namespace internal {
@@ -355,12 +353,12 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, CompleteUnrolling>
 };
 
 // evaluator adaptor
-template<typename XprType_>
-class redux_evaluator : public internal::evaluator<XprType_>
+template<typename _XprType>
+class redux_evaluator : public internal::evaluator<_XprType>
 {
-  typedef internal::evaluator<XprType_> Base;
+  typedef internal::evaluator<_XprType> Base;
 public:
-  typedef XprType_ XprType;
+  typedef _XprType XprType;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
   explicit redux_evaluator(const XprType &xpr) : Base(xpr) {}
   

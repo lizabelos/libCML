@@ -10,8 +10,6 @@
 #ifndef EIGEN_MAPPED_SPARSEMATRIX_H
 #define EIGEN_MAPPED_SPARSEMATRIX_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \deprecated Use Map<SparseMatrix<> >
@@ -19,22 +17,22 @@ namespace Eigen {
   *
   * \brief Sparse matrix
   *
-  * \param Scalar_ the scalar type, i.e. the type of the coefficients
+  * \param _Scalar the scalar type, i.e. the type of the coefficients
   *
   * See http://www.netlib.org/linalg/html_templates/node91.html for details on the storage scheme.
   *
   */
 namespace internal {
-template<typename Scalar_, int _Flags, typename StorageIndex_>
-struct traits<MappedSparseMatrix<Scalar_, _Flags, StorageIndex_> > : traits<SparseMatrix<Scalar_, _Flags, StorageIndex_> >
+template<typename _Scalar, int _Flags, typename _StorageIndex>
+struct traits<MappedSparseMatrix<_Scalar, _Flags, _StorageIndex> > : traits<SparseMatrix<_Scalar, _Flags, _StorageIndex> >
 {};
 } // end namespace internal
 
-template<typename Scalar_, int _Flags, typename StorageIndex_>
+template<typename _Scalar, int _Flags, typename _StorageIndex>
 class MappedSparseMatrix
-  : public Map<SparseMatrix<Scalar_, _Flags, StorageIndex_> >
+  : public Map<SparseMatrix<_Scalar, _Flags, _StorageIndex> >
 {
-    typedef Map<SparseMatrix<Scalar_, _Flags, StorageIndex_> > Base;
+    typedef Map<SparseMatrix<_Scalar, _Flags, _StorageIndex> > Base;
 
   public:
     
@@ -51,11 +49,11 @@ class MappedSparseMatrix
 
 namespace internal {
 
-template<typename Scalar_, int Options_, typename StorageIndex_>
-struct evaluator<MappedSparseMatrix<Scalar_,Options_,StorageIndex_> >
-  : evaluator<SparseCompressedBase<MappedSparseMatrix<Scalar_,Options_,StorageIndex_> > >
+template<typename _Scalar, int _Options, typename _StorageIndex>
+struct evaluator<MappedSparseMatrix<_Scalar,_Options,_StorageIndex> >
+  : evaluator<SparseCompressedBase<MappedSparseMatrix<_Scalar,_Options,_StorageIndex> > >
 {
-  typedef MappedSparseMatrix<Scalar_,Options_,StorageIndex_> XprType;
+  typedef MappedSparseMatrix<_Scalar,_Options,_StorageIndex> XprType;
   typedef evaluator<SparseCompressedBase<XprType> > Base;
   
   evaluator() : Base() {}

@@ -10,8 +10,6 @@
 #ifndef EIGEN_NUMTRAITS_H
 #define EIGEN_NUMTRAITS_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
@@ -254,15 +252,15 @@ template<> struct NumTraits<long double>
   static inline long double dummy_precision() { return 1e-15l; }
 };
 
-template<typename Real_> struct NumTraits<std::complex<Real_> >
-  : GenericNumTraits<std::complex<Real_> >
+template<typename _Real> struct NumTraits<std::complex<_Real> >
+  : GenericNumTraits<std::complex<_Real> >
 {
-  typedef Real_ Real;
-  typedef typename NumTraits<Real_>::Literal Literal;
+  typedef _Real Real;
+  typedef typename NumTraits<_Real>::Literal Literal;
   enum {
     IsComplex = 1,
-    RequireInitialization = NumTraits<Real_>::RequireInitialization,
-    ReadCost = 2 * NumTraits<Real_>::ReadCost,
+    RequireInitialization = NumTraits<_Real>::RequireInitialization,
+    ReadCost = 2 * NumTraits<_Real>::ReadCost,
     AddCost = 2 * NumTraits<Real>::AddCost,
     MulCost = 4 * NumTraits<Real>::MulCost + 2 * NumTraits<Real>::AddCost
   };

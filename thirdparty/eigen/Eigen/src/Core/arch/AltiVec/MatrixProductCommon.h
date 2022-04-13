@@ -5,8 +5,6 @@
 #define EIGEN_POWER_PREFETCH(p)
 #endif
 
-#include "../../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {

@@ -11,15 +11,13 @@
 #ifndef EIGEN_MACROS_H
 #define EIGEN_MACROS_H
 
-#include "../InternalHeaderCheck.h"
-
 //------------------------------------------------------------------------------------------
 // Eigen version and basic defaults
 //------------------------------------------------------------------------------------------
 
 #define EIGEN_WORLD_VERSION 3
 #define EIGEN_MAJOR_VERSION 4
-#define EIGEN_MINOR_VERSION 90
+#define EIGEN_MINOR_VERSION 0
 
 #define EIGEN_VERSION_AT_LEAST(x,y,z) (EIGEN_WORLD_VERSION>x || (EIGEN_WORLD_VERSION>=x && \
                                       (EIGEN_MAJOR_VERSION>y || (EIGEN_MAJOR_VERSION>=y && \
@@ -624,7 +622,7 @@
 #define EIGEN_CPLUSPLUS 0
 #endif
 
-// The macro EIGEN_COMP_CXXVER defines the c++ version expected by the compiler.
+// The macro EIGEN_COMP_CXXVER defines the c++ verson expected by the compiler.
 // For instance, if compiling with gcc and -std=c++17, then EIGEN_COMP_CXXVER
 // is defined to 17.
 #if EIGEN_CPLUSPLUS > 201703L
@@ -649,7 +647,7 @@
 
 
 // The macros EIGEN_HAS_CXX?? defines a rough estimate of available c++ features
-// but in practice we should not rely on them but rather on the availability of
+// but in practice we should not rely on them but rather on the availabilty of
 // individual features as defined later.
 // This is why there is no EIGEN_HAS_CXX17.
 // FIXME: get rid of EIGEN_HAS_CXX14 and maybe even EIGEN_HAS_CXX11.
@@ -1133,16 +1131,7 @@ namespace Eigen {
       #define EIGEN_OPTIMIZATION_BARRIER(X)  __asm__  ("" : "+r,v,wa" (X));
     #elif EIGEN_ARCH_ARM_OR_ARM64
       // General, NEON.
-      // Clang doesn't like "r",
-      //    error: non-trivial scalar-to-vector conversion, possible invalid
-      //           constraint for vector type
-      // GCC < 5 doesn't like "g",
-      //    error: 'asm' operand requires impossible reload
-      #if EIGEN_COMP_GNUC_STRICT && EIGEN_GNUC_AT_MOST(5, 0)
-        #define EIGEN_OPTIMIZATION_BARRIER(X)  __asm__  ("" : "+r,w" (X));
-      #else
-        #define EIGEN_OPTIMIZATION_BARRIER(X)  __asm__  ("" : "+g,w" (X));
-      #endif
+      #define EIGEN_OPTIMIZATION_BARRIER(X)  __asm__  ("" : "+g,w" (X));
     #elif EIGEN_ARCH_i386_OR_x86_64
       // General, SSE.
       #define EIGEN_OPTIMIZATION_BARRIER(X)  __asm__  ("" : "+g,x" (X));
@@ -1227,7 +1216,7 @@ namespace Eigen {
  * This is necessary, because the implicit definition is deprecated if the copy-assignment is overridden.
  */
 #if EIGEN_HAS_CXX11
-#define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS) EIGEN_DEVICE_FUNC CLASS(const CLASS&) = default;
+#define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS) CLASS(const CLASS&) = default;
 #else
 #define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS)
 #endif
@@ -1252,12 +1241,12 @@ namespace Eigen {
  */
 #if EIGEN_HAS_CXX11
 #define EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(Derived)  \
-    EIGEN_DEVICE_FUNC Derived() = default; \
-    EIGEN_DEVICE_FUNC ~Derived() = default;
+    Derived() = default; \
+    ~Derived() = default;
 #else
 #define EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(Derived)  \
-    EIGEN_DEVICE_FUNC Derived() {}; \
-    /* EIGEN_DEVICE_FUNC ~Derived() {}; */
+    Derived() {}; \
+    /* ~Derived() {}; */
 #endif
 
 

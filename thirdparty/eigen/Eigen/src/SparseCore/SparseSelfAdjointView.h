@@ -10,8 +10,6 @@
 #ifndef EIGEN_SPARSE_SELFADJOINTVIEW_H
 #define EIGEN_SPARSE_SELFADJOINTVIEW_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen { 
   
 /** \ingroup SparseCore_Module
@@ -42,13 +40,13 @@ void permute_symm_to_fullsymm(const MatrixType& mat, SparseMatrix<typename Matri
 
 }
 
-template<typename MatrixType, unsigned int Mode_> class SparseSelfAdjointView
-  : public EigenBase<SparseSelfAdjointView<MatrixType,Mode_> >
+template<typename MatrixType, unsigned int _Mode> class SparseSelfAdjointView
+  : public EigenBase<SparseSelfAdjointView<MatrixType,_Mode> >
 {
   public:
     
     enum {
-      Mode = Mode_,
+      Mode = _Mode,
       TransposeMode = ((Mode & Upper) ? Lower : 0) | ((Mode & Lower) ? Upper : 0),
       RowsAtCompileTime = internal::traits<SparseSelfAdjointView>::RowsAtCompileTime,
       ColsAtCompileTime = internal::traits<SparseSelfAdjointView>::ColsAtCompileTime
@@ -261,6 +259,15 @@ struct Assignment<DstXprType, SrcXprType, Functor, SparseSelfAdjoint2Sparse>
     SparseMatrix<DestScalar,StorageOrder,StorageIndex> tmp(src.rows(),src.cols());
     run(tmp, src, AssignOpType());
     dst -= tmp;
+  }
+  
+  template<typename DestScalar>
+  static void run(DynamicSparseMatrix<DestScalar,ColMajor,StorageIndex>& dst, const SrcXprType &src, const AssignOpType&/*func*/)
+  {
+    // TODO directly evaluate into dst;
+    SparseMatrix<DestScalar,ColMajor,StorageIndex> tmp(dst.rows(),dst.cols());
+    internal::permute_symm_to_fullsymm<SrcXprType::Mode>(src.matrix(), tmp);
+    dst = tmp;
   }
 };
 
@@ -509,7 +516,7 @@ void permute_symm_to_fullsymm(const MatrixType& mat, SparseMatrix<typename Matri
   }
 }
 
-template<int SrcMode_,int DstMode_,typename MatrixType,int DstOrder>
+template<int _SrcMode,int _DstMode,typename MatrixType,int DstOrder>
 void permute_symm_to_symm(const MatrixType& mat, SparseMatrix<typename MatrixType::Scalar,DstOrder,typename MatrixType::StorageIndex>& _dest, const typename MatrixType::StorageIndex* perm)
 {
   typedef typename MatrixType::StorageIndex StorageIndex;
@@ -522,8 +529,8 @@ void permute_symm_to_symm(const MatrixType& mat, SparseMatrix<typename MatrixTyp
   enum {
     SrcOrder = MatrixType::IsRowMajor ? RowMajor : ColMajor,
     StorageOrderMatch = int(SrcOrder) == int(DstOrder),
-    DstMode = DstOrder==RowMajor ? (DstMode_==Upper ? Lower : Upper) : DstMode_,
-    SrcMode = SrcOrder==RowMajor ? (SrcMode_==Upper ? Lower : Upper) : SrcMode_
+    DstMode = DstOrder==RowMajor ? (_DstMode==Upper ? Lower : Upper) : _DstMode,
+    SrcMode = SrcOrder==RowMajor ? (_SrcMode==Upper ? Lower : Upper) : _SrcMode
   };
 
   MatEval matEval(mat);

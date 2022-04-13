@@ -11,8 +11,6 @@
 #ifndef EIGEN_CXX11_TENSOR_TENSOR_H
 #define EIGEN_CXX11_TENSOR_TENSOR_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \class Tensor
@@ -44,8 +42,7 @@ namespace Eigen {
   * \endcode
   *
   * This class can be extended with the help of the plugin mechanism described on the page
-  * \ref TopicCustomizing_Plugins by defining the preprocessor symbol \c EIGEN_TENSOR_PLUGIN,
-  * \c EIGEN_TENSORBASE_PLUGIN, and \c EIGEN_READONLY_TENSORBASE_PLUGIN.
+  * \ref TopicCustomizing_Plugins by defining the preprocessor symbol \c EIGEN_TENSOR_PLUGIN.
   *
   * <i><b>Some notes:</b></i>
   *
@@ -524,10 +521,6 @@ class Tensor : public TensorBase<Tensor<Scalar_, NumIndices_, Options_, IndexTyp
       resize(dims);
     }
 #endif
-
-    #ifdef EIGEN_TENSOR_PLUGIN
-    #include EIGEN_TENSOR_PLUGIN
-    #endif
 
   protected:
 

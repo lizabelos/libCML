@@ -13,14 +13,12 @@
 #ifndef EIGEN_IDRS_H
 #define EIGEN_IDRS_H
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen
 {
 
 	namespace internal
 	{
-		/**     \internal Low-level Induced Dimension Reduction algorithm
+		/**     \internal Low-level Induced Dimension Reduction algoritm
 		        \param A The matrix A
 		        \param b The right hand side vector b
 		        \param x On input and initial solution, on output the computed solution.
@@ -273,17 +271,17 @@ namespace Eigen
 
 	}  // namespace internal
 
-	template <typename MatrixType_, typename Preconditioner_ = DiagonalPreconditioner<typename MatrixType_::Scalar> >
+	template <typename _MatrixType, typename _Preconditioner = DiagonalPreconditioner<typename _MatrixType::Scalar> >
 	class IDRS;
 
 	namespace internal
 	{
 
-		template <typename MatrixType_, typename Preconditioner_>
-		struct traits<Eigen::IDRS<MatrixType_, Preconditioner_> >
+		template <typename _MatrixType, typename _Preconditioner>
+		struct traits<Eigen::IDRS<_MatrixType, _Preconditioner> >
 		{
-			typedef MatrixType_ MatrixType;
-			typedef Preconditioner_ Preconditioner;
+			typedef _MatrixType MatrixType;
+			typedef _Preconditioner Preconditioner;
 		};
 
 	}  // namespace internal
@@ -307,8 +305,8 @@ namespace Eigen
   * and uses 7 vectors. GMRES terminates in at most N iterations, and uses I+3 vectors, with I the number of iterations. 
   * Restarting GMRES limits the memory consumption, but destroys the finite termination property.
   *
-  * \tparam MatrixType_ the type of the sparse matrix A, can be a dense or a sparse matrix.
-  * \tparam Preconditioner_ the type of the preconditioner. Default is DiagonalPreconditioner
+  * \tparam _MatrixType the type of the sparse matrix A, can be a dense or a sparse matrix.
+  * \tparam _Preconditioner the type of the preconditioner. Default is DiagonalPreconditioner
   *
   * \implsparsesolverconcept
   *
@@ -329,15 +327,15 @@ namespace Eigen
   *
   * \sa class SimplicialCholesky, DiagonalPreconditioner, IdentityPreconditioner
   */
-	template <typename MatrixType_, typename Preconditioner_>
-	class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> >
+	template <typename _MatrixType, typename _Preconditioner>
+	class IDRS : public IterativeSolverBase<IDRS<_MatrixType, _Preconditioner> >
 	{
 
 		public:
-			typedef MatrixType_ MatrixType;
+			typedef _MatrixType MatrixType;
 			typedef typename MatrixType::Scalar Scalar;
 			typedef typename MatrixType::RealScalar RealScalar;
-			typedef Preconditioner_ Preconditioner;
+			typedef _Preconditioner Preconditioner;
 
 		private:
 			typedef IterativeSolverBase<IDRS> Base;
@@ -372,7 +370,7 @@ namespace Eigen
 
 			/** \internal */
 			/**     Loops over the number of columns of b and does the following:
-			                1. sets the tolerance and maxIterations
+			                1. sets the tolerence and maxIterations
 			                2. Calls the function that has the core solver routine
 			*/
 			template <typename Rhs, typename Dest>

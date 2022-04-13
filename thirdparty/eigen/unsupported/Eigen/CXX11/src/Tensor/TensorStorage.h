@@ -17,8 +17,6 @@
   #define EIGEN_INTERNAL_TENSOR_STORAGE_CTOR_PLUGIN
 #endif
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \internal

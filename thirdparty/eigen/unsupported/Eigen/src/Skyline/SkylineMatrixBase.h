@@ -12,8 +12,6 @@
 
 #include "SkylineUtil.h"
 
-#include "./InternalHeaderCheck.h"
-
 namespace Eigen {
 
 /** \ingroup Skyline_Module

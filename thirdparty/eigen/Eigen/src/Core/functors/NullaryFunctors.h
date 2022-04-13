@@ -10,8 +10,6 @@
 #ifndef EIGEN_NULLARY_FUNCTORS_H
 #define EIGEN_NULLARY_FUNCTORS_H
 
-#include "../InternalHeaderCheck.h"
-
 namespace Eigen {
 
 namespace internal {
