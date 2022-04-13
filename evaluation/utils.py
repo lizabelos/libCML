@@ -44,7 +44,7 @@ def system(command, comment="", disable_openmp=True):
         start_time = time.time()
         isSLAM = False
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
-        p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=wd, env=my_env)
+        p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=wd, env=my_env)
 
         lines = []
         while p.poll() is None:
