@@ -19,10 +19,10 @@ template <typename T> using DefaultG2OSolverForSpeed = g2o::LinearSolverEigen<T>
 using DefaultG2OSolverForStructureOnly = g2o::StructureOnlySolver<3>;
 
 #else
-#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
-template <typename T> using DefaultG2OSolverWithCovariance = g2o::LinearSolverCholmod<T>;
+//#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
+template <typename T> using DefaultG2OSolverWithCovariance = g2o::LinearSolverEigen<T>;
 
-template <typename T> using DefaultG2OSolverForSpeed = g2o::LinearSolverCholmod<T>;
+template <typename T> using DefaultG2OSolverForSpeed = g2o::LinearSolverEigen<T>;
 
 using DefaultG2OSolverForStructureOnly = g2o::StructureOnlySolver<3>;
 #endif
