@@ -39,8 +39,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
         add_compile_options(-O3)
         add_link_options(-O3)
     else()
-        add_compile_options(-march=native -O3)
-        add_link_options(-march=native -O3)
+        add_compile_options(-march=native -Ofast)
+        add_link_options(-march=native -Ofast)
     endif()
 endif()
 
@@ -179,6 +179,13 @@ if (ENABLE_GUI)
     find_package(Qt6 CONFIG REQUIRED Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia Charts Network)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
+
+
+option(USE_MKL "Use MKL" OFF)
+if (USE_MKL)
+    find_package(MKL REQUIRED)
+endif()
+#
 
 #if (ANDROID)
     #set(ANDROID_PLATFORM_LEVEL 30)
@@ -332,6 +339,11 @@ target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)
+endif()
+
+if (USE_MKL)
+    target_link_libraries(CML MKL::MKL)
+    target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)
 endif()
 
 if (Yaml-cpp_FOUND)
@@ -505,9 +517,7 @@ target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 #if (NOT ANDROID)
 #
 #endif()
-target_compile_definitions(CML PUBLIC -DEIGEN_MAX_ALIGN_BYTES=16)
 #target_compile_definitions(CML PUBLIC -DENABLE_SSE=1)
-#target_compile_definitions(CML PUBLIC -DEIGEN_USE_MKL_ALL=1)
 
 # target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
 
@@ -522,7 +532,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CML PUBLIC -O3 -fno-math-errno)
+    target_compile_options(CML PUBLIC -Ofast -fno-math-errno)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -g)
     target_compile_definitions(CML PUBLIC -DDEBUG=1 -DNDEBUG=1)
