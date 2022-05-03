@@ -91,3 +91,91 @@ def fixRounding(d):
                 fixed = fixed + 1
     print("Fixed " + str(fixed) + " floating points")
     return d
+
+def commonKeys(dicts):
+    if len(dicts) == 0:
+        return []
+    if len(dicts) == 1:
+        return list(dicts[0].keys())
+    keys = list(dicts[0].keys())
+    for i in range(1, len(dicts)):
+        keys = list(set(keys) & set(dicts[i].keys()))
+    return keys
+
+def averageOfMultipleDict(dicts):
+    if len(dicts) == 0:
+        return {}
+    if len(dicts) == 1:
+        return dicts[0]
+    d = {}
+    keys = commonKeys(dicts)
+    for k in keys:
+        d[k] = 0
+    for i in range(1, len(dicts)):
+        for key in d:
+            d[key] = d[key] + dicts[i][key]
+    for key in d:
+        d[key] = d[key] / len(dicts)
+    return d
+
+def averageParameter(d, param):
+    newD = {}
+    maxAteN = 2
+    for h in d:
+        pCopy = d[h].copy()
+        pCopy.pop(param)
+        for node in {"stats", "time", "ate"}:
+            pCopy.pop(node)
+        key = hashOfDict(pCopy)
+        try:
+            float(d[h]["ate"])
+        except:
+            continue
+        if key not in newD:
+            newD[key] = pCopy
+            newD[key]["ate"] = []
+            newD[key]["stats"] = []
+            newD[key]["time"] = []
+        newD[key]["ate"].append(float(d[h]["ate"]))
+        newD[key]["stats"].append(d[h]["stats"])
+        newD[key]["time"].append(d[h]["time"])
+
+        maxAteN = max(maxAteN, len(newD[key]["ate"]))
+
+    toRemove = []
+    toRemoveN = 0
+
+    for h in newD:
+        #if len(newD[h]["ate"]) != maxAteN:
+        #    toRemove.append(h)
+        #    toRemoveN = toRemoveN + len(newD[h]["ate"])
+        #    continue
+
+        newD[h]["ate"] = sum(newD[h]["ate"]) / len(newD[h]["ate"])
+        newD[h]["stats"] = averageOfMultipleDict(newD[h]["stats"])
+        newD[h]["time"] = sum(newD[h]["time"]) / len(newD[h]["time"])
+
+    print("Removed " + str(toRemoveN) + " entries")
+
+    for h in toRemove:
+        newD.pop(h)
+
+    return newD
+
+def addDefaultParameters(d):
+
+    params = [
+        ["orb.nLevels", 1],
+        ["trackingMinimumOrbPoint", 50],
+        ["trackcondUncertaintyWeight", 0.7],
+        ["bacondMinimumOrbPoint",  100],
+        ["numOrbMultiplier", 1.0],
+        ["bacondSaturatedRatio", 0.15],
+    ]
+
+    for h in d:
+        for p in params:
+            if p[0] not in d[h]:
+                d[h][p[0]] = p[1]
+
+    return d

@@ -1,3 +1,6 @@
+import pyximport
+pyximport.install()
+
 import json
 import math
 import os
@@ -5,61 +8,9 @@ import shutil
 import sys
 from statistics import mean
 import copy
-from tqdm.contrib.concurrent import process_map
+from graphmaker import *
 
-nodesToIgnore = {"ate","edges","datasetname","stats","time"}
-
-OUTPUT_DIR = "3_mixed_slam/2_ablation_study/plot/"
-
-def appendBigTitleToLatex(v):
-    with open('output.tex', 'a') as f:
-        f.write("\\section{%s}\n" % v)
-
-def appendTitleToLatex(v):
-    with open('output.tex', 'a') as f:
-        f.write("\\subsection{%s}\n" % v)
-
-def appendSubtitleToLatex(v):
-    with open('output.tex', 'a') as f:
-        f.write("\\subsubsection{%s}\n" % v)
-
-def appendInputToLatex(v):
-    with open('output.tex', 'a') as f:
-        f.write("\\input{%s}\n" % v)
-
-def addNewLineToLatex():
-    with open('output.tex', 'a') as f:
-        f.write("\n\n")
-
-def beginLatexDocument():
-    with open('output.tex', 'a') as f:
-        f.write("\\begin{document}\n")
-
-def endLatexDocument():
-    with open('output.tex', 'a') as f:
-        f.write("\\end{document}\n")
-
-def distanceBetweenNode(p1, p2, ignore = "", maxlen = 1):
-    if len((p1.keys()|nodesToIgnore) ^ (p2.keys()|nodesToIgnore)) > 0:
-        return None
-    if any([not isinstance(p1[index], type(p2[index])) for index in p1 if not index == "ate" and not index == "edges" and not index == "datasetname" and not index == ignore]):
-        return None
-    diff = []
-    for index in p1:
-        if index in nodesToIgnore or index == ignore:
-            continue
-        if isinstance(p1[index], float):
-            if not math.isclose(p1[index],p2[index]):
-                if len(diff) == maxlen:
-                    return None
-                diff.append(index)
-            continue
-        if p1[index] != p2[index]:
-            if len(diff) == maxlen:
-                return None
-            diff.append(index)
-            continue
-    return diff
+OUTPUT_DIR = "plots/"
 
 def paramToLegend(n):
     if n == "bacondMinimumOrbPoint":
@@ -77,6 +28,14 @@ def paramToLegend(n):
     if n == "trackingMinimumOrbPoint":
         return "Minimum number of indirect points"
     return n
+
+def movingAverage(t, iter = 2, delta = 0.75):
+    delta_inv = (1 - delta) / 2
+    for i in range(0, iter):
+        tcopy = t.copy()
+        for j in range(1, len(t) - 1):
+            t[j] = tcopy[j] * delta + tcopy[j - 1] * delta_inv + tcopy[j + 1] * delta_inv
+    return t
 
 def lowerErrorMedian(l):
     s = len(l)
@@ -166,10 +125,11 @@ def plotAutoLabel(labels, importantLabel):
 
     newLabels = set(labels)
     for label in labels:
-        if label == importantLabel:
-            continue
-        if abs(label - importantLabel) < maxDistance:
-            newLabels.remove(label)
+        if importantLabel is not None:
+            if label == importantLabel:
+                continue
+            if abs(label - importantLabel) < maxDistance:
+                newLabels.remove(label)
     labels = list(newLabels)
     labels.sort()
 
@@ -352,9 +312,30 @@ class PlotSet:
         self.sort()
         if paramFilter is not None:
             axis.set_xticks(xticks[0], xticks[1])
-            [t.set_fontweight('bold') for t in axis.xaxis.get_ticklabels() if t.get_text() == str(paramFilter[self.paramName])]
+            if self.paramName in paramFilter:
+                [t.set_fontweight('bold') for t in axis.xaxis.get_ticklabels() if t.get_text() == str(paramFilter[self.paramName])]
 
         axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color='green', linestyle = 'None', label=self.dataset,  markersize=2)
+
+    def plotParam(self, axis, param, label = None):
+        self.sort()
+        all_x = sorted(self.all_x)
+        y = []
+        if label is None:
+            label = param
+        for x in all_x:
+            y.append(self.params[x][param])
+        y = movingAverage(y, 5, 0.75)
+        axis.plot(all_x, y, label=label)
+
+    def plotStat(self, axis, stat, label = None):
+        self.sort()
+        y = []
+        if label is None:
+            label = stat
+        for x in self.all_x:
+            y.append(self.params[x]["stats"][stat])
+        axis.plot(self.all_x, y, label=label)
 
     def plotImportant(self, axis):
         self.sort()
@@ -401,10 +382,22 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
             continue
 
         if paramFilter is not None:
-            r = distanceBetweenNode(d[ref_id], paramFilter, ignore=param)
-            if r is None:
-                continue
-            if len(r) > 0:
+            r = 0
+            for filter in paramFilter:
+                if filter in nodesToIgnore:
+                    continue
+                # if filter == param:
+                #     continue
+                if filter not in d[ref_id]:
+                    r += 1
+                    continue
+                if type(paramFilter[filter]) != type(d[ref_id][filter]):
+                    r += 1
+                    continue
+                if d[ref_id][filter] != paramFilter[filter]:
+                    r += 1
+                    continue
+            if r > 0:
                 continue
 
 
@@ -418,12 +411,8 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
         for cur_id in [ref_id] + list(d[ref_id]["edges"][param]):
 
-            if cur_id != ref_id:
-                test = distanceBetweenNode(d[ref_id], d[cur_id])
-                if len(test) != 1 or test[0] != param:
-                    print("CRITICAL ERROR : The graph is not well constructed")
-                    print(test)
-                    continue
+            if param not in d[cur_id]:
+                continue
 
             if d[cur_id]["datasetname"] != rangedBasedDict.dataset:
                 print("CRITICAL ERROR : This is not the same dataset !")
@@ -442,7 +431,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
                 cur_y = 1
                 rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
 
-        if (removeConstant == False or maxAte != minAte) and len(rangedBasedDict.x_set) > 1:
+        if (removeConstant == False or maxAte != minAte) and len(rangedBasedDict.x_set) > 10:
             #rangedBasedDict.movingAverage()
             l = len(rangedBasedDict.x_set)
             needToAppend = True
@@ -455,12 +444,13 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
             if needToAppend:
                 values.append(rangedBasedDict)
 
-
     cols = 3
-    rows = 4 * 2
+    rows = 4
 
     if len(values) < 5:
         return False
+    else:
+        print("Plotting " + str(len(values)) + " datasets")
 
     if doNothing:
         return True
@@ -477,7 +467,12 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
             allX.add(x)
     allX = list(allX)
     allX.sort()
-    xticks = plotAutoLabel(allX, paramFilter[param])
+
+    xticks = None
+    if param in paramFilter:
+        xticks = plotAutoLabel(allX, paramFilter[param])
+    else:
+        xticks = plotAutoLabel(allX, None)
 
     import matplotlib
     matplotlib.use('pdf')
@@ -520,6 +515,12 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         value.plot(axis, paramFilter=paramFilter, xticks=xticks)
         value.plotError(axis)
         value.plotBaseline(axis,ours)
+
+        twinAxis = axis.twinx()
+        fps = 1.0 / 10.0
+        twinAxis.set_ylim([numFramesOf(value.dataset) * fps * 0.5, numFramesOf(value.dataset) * fps * 2.0])
+        value.plotParam(twinAxis, "time")
+        # value.plotStat(axis.twinx(), "main.Tracking_Decision")
         # axis.set_title(value.dataset)
         axis.set(xlabel=paramToLegend(param), ylabel='Trajectory Error Per Frame')
         # axis.label_outer()
@@ -530,13 +531,9 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         # plt.ylabel('Absolute Trajectory Error')
 
         if separate:
-            print("Saving plot to plot/" + folder + "/" + param + "/" + value.dataset + ".pdf")
+            # print("Saving plot to plot/" + folder + "/" + param + "/" + value.dataset + ".pdf")
             os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
             fig.savefig(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".pdf", bbox_inches="tight", dpi=1000)
-            #appendSubtitleToLatex(param + " " + value.dataset)
-            if i % 2 == 0:
-                addNewLineToLatex()
-            appendInputToLatex(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".tex")
             totex.save(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".tex")
 
         i = i + 1
@@ -590,46 +587,6 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         fig.savefig(OUTPUT_DIR + folder + "/" + param + ".pdf", bbox_inches="tight", dpi=1000)
     return True
 
-def makeGraphEdges_job(j):
-    return j[2], j[3], distanceBetweenNode(j[0], j[1])
-
-def makeGraphEdges(d, params):
-    k = list(d.keys())
-
-    results = None
-
-    print("Creating jobs...")
-    jobs = []
-    for ref_id_i in range(0, len(k)):
-        ref_id = k[ref_id_i]
-        for target_id_i in range(ref_id_i + 1, len(k)):
-            target_id = k[target_id_i]
-            jobs.append([d[ref_id], d[target_id], ref_id, target_id])
-    print("Launching jobs...")
-    if len(d) < 2000:
-        results = list(map(makeGraphEdges_job, jobs))
-    else:
-        results = process_map(makeGraphEdges_job, jobs, max_workers=20, chunksize=int(len(jobs)/20))
-
-    print("Parsing jobs...")
-    for ref_id in d:
-        d[ref_id]["edges"] = {}
-        for param in params + ["same"]:
-            d[ref_id]["edges"][param] = []
-    for ref_id,target_id,diff in results:
-        if diff is None:
-            continue
-        dist = len(diff)
-        if dist == 0:
-            d[ref_id]["edges"]["same"].append(target_id)
-            d[target_id]["edges"]["same"].append(ref_id)
-        elif dist <= 1:
-            if d[ref_id]["datasetname"] != d[target_id]["datasetname"]:
-                continue
-            d[ref_id]["edges"][diff[0]].append(target_id)
-            d[target_id]["edges"][diff[0]].append(ref_id)
-    return d
-
 def computeBestResults(d):
 
     lim = [67,50,43,1.0,0.9,43,49,17,58,60,9]
@@ -643,6 +600,7 @@ def computeBestResults(d):
             continue
         res = [9999 for x in lim]
         isbest = [0 for x in lim]
+        originalates = [0 for x in lim]
         taken = [None for x in lim]
         if not "same" in d[ref_id]["edges"]:
             continue
@@ -662,6 +620,7 @@ def computeBestResults(d):
             try:
                 ate = float(d[id]["ate"]) / numFramesOf(datasetname)
                 res[int(datasetname.split(" ")[1])] = ate
+                originalates[int(datasetname.split(" ")[1])] = float(d[id]["ate"])
                 if ate < lim[int(datasetname.split(" ")[1])] / numFramesOf(datasetname):
                     isbest[int(datasetname.split(" ")[1])] = 1
                 taken[int(datasetname.split(" ")[1])] = id
@@ -676,7 +635,7 @@ def computeBestResults(d):
         del paramCopy["datasetname"]
         del paramCopy["edges"]
         del paramCopy["ate"]
-        allErrors.append([ate, sum(isbest), paramCopy, res, isbest])
+        allErrors.append([ate, sum(isbest), paramCopy, res, isbest, originalates])
 
     allErrors.sort(key=lambda k:k[0])
 
@@ -686,6 +645,7 @@ def computeBestResults(d):
         print("Comparaison : " + str(allErrors[0][0] * len(lim) * 100 / 350) + "%")
         print(allErrors[0][3])
         print(allErrors[0][4])
+        print(allErrors[0][5])
         #with open("best.yaml", "w") as outfile:
         #    yaml.dump(paramToParam[bestParam], outfile)
 
@@ -697,10 +657,11 @@ def merge_two_dicts(x, y):
     return z
 
 def processFile(filename,foldername):
-    from database import loadJsonFile, fixRounding
+    from database import loadJsonFile, fixRounding, averageParameter
 
     d = loadJsonFile(filename, cache=False)
     d = fixRounding(d)
+    d = averageParameter(d, "dsoInitializer.regularizationWeight")
 
     if len(d) < 100:
         return
@@ -720,42 +681,22 @@ def processFile(filename,foldername):
         for s in d[id]["stats"]:
             stats.add(s)
 
-    print(stats)
-
     datasets = removeDuplicate([d[x]["datasetname"] for x in d])
 
     d = makeGraphEdges(d, params)
 
     bestResults = computeBestResults(d)
 
-    for i in range(0, len(bestResults)):
-        numOrbConer = bestResults[i][2]["numOrbCorner"]
+    for param in params:
 
-        #os.makedirs(OUTPUT_DIR + foldername, exist_ok=True)
-        #with open(OUTPUT_DIR + foldername + "/" + str(i) + "_" + str(numOrbConer) + ".json", "w") as outfile:
-        #    toDump = copy.deepcopy(bestResults[i][2])
-        #    for toIgnore in nodesToIgnore:
-        #        if toIgnore in toDump:
-        #            del toDump[toIgnore]
-        #    toDump["results"] = [bestResults[i][0], bestResults[i][1], bestResults[i][3], bestResults[i][4]]
-        #    json.dump(toDump, outfile, indent=4)
+        print("Plotting " + param + "...")
 
-        toPlot = []
-        for param in params:
-            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2], doNothing=True)
+        for i in range(0, len(bestResults)):
+            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2])
             if res:
-                toPlot.append(param)
-        if len(toPlot) > 0:
-            appendBigTitleToLatex(foldername[0:4] + " " + str(i) + " " + str(numOrbConer))
-            for param in toPlot:
-                appendTitleToLatex(param)
-                plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2])
-                plot(d, param, datasets, ours=bestResults[i][3], folder=foldername + "/" + str(i) + "_" + str(numOrbConer), onlyAverage=True, paramFilter=bestResults[i][2], separate=True)
-            break
+                break
 
 if __name__ == "__main__":
-    appendInputToLatex("header.tex")
-    beginLatexDocument()
     dirname = "."
     filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
     for filename in filenames:
@@ -765,6 +706,5 @@ if __name__ == "__main__":
     #filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
     #for filename in filenames:
     #    processFile(dirname+"/"+filename,filename.split(".")[0])
-    #endLatexDocument()
 
     #os.system("pdflatex -interaction nonstopmode -file-line-error .\output.tex")
