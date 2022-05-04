@@ -1,5 +1,23 @@
 # libCML : SLAM library
 
+# Downloads
+
+## Windows
+
+https://github.com/belosthomas/libCML/releases
+
+## Android
+
+https://github.com/belosthomas/libCML/releases
+
+<img src="documentation/images/screen_recording.gif" width="600" alt=""/>
+
+**Known issues : ** 
+ - A lot of crashes
+ - Not internal calibration is used
+ - Based on old settings which take DSO almost all the time
+
+
 # 1. About libCML
 
 libCML is a SLAM library and scientific tool, which include a novel fast thread-safe graph map implementation. If you are using this work, please cite :
