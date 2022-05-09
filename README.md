@@ -1,28 +1,41 @@
-# libCML : SLAM library
+# 1. MOD SLAM: Mixed Method for a More Robust SLAM Without Loop Closing
 
-# Downloads
+**Paper link** : [https://hal.archives-ouvertes.fr/hal-03538133](https://hal.archives-ouvertes.fr/hal-03538133)
 
-## Windows
+In recent years, the state-of-the-art  of monocular SLAM has seen remarkable advances in reducing errors and improving robustness. At the same time, this quality of results can be obtained in real-time on small CPUs.
+However, most algorithms have a high failure rate out-of-the-box. Systematic error such as drift remains still significant even for the best algorithms. This can be handled by a global measure as a loop closure, but it penalizes online data processing. We propose a mixed SLAM, based on ORB-SLAM2 and DSO: MOD SLAM. It is a fusion of photometric and feature-based methods, without being a simple copy of both. We propose a decision system to predict at each frame which optimization will produce the minimum drift so that only one will be selected to save computational time and resources. We propose a new implementation of the map that is equipped with the ability to actively work with DSO and ORB points at the same time. Our experimental results show that this method increases the overall robustness and reduces the drift without compromising the computational resources. Contrary to the best state-of-the-art algorithms, MOD SLAM can handle 100\% of KITTI, TUM, and random phone videos, without any configuration change.
+
+If you are using this work, please cite : 
+```bibtex
+@inproceedings{modslam2021,
+  title={MOD SLAM: Mixed Method for a More Robust SLAM without Loop Closing},
+  author={Thomas Belos, Pascal Monasse, and Eva Dokladalova},
+  booktitle={In Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)}
+}
+```
+
+## Downloads
+
+### Windows
 
 https://github.com/belosthomas/libCML/releases
 
-## Linux
+### Linux
 
 Build Coming soon...
 
-## Android
+### Android
 
 https://github.com/belosthomas/libCML/releases
 
-<img src="documentation/images/screen_recording.gif" width="600" alt=""/>
+<img src="https://github.com/belosthomas/libCML/raw/main/documentation/images/screen_recording.gif" width="600" alt=""/>
 
 **Known issues on Android:**
- - A lot of crashes
- - Not internal calibration is used
- - Based on old settings
+- A lot of crashes
+- Not internal calibration is used
+- Based on old settings
 
-
-# 1. About libCML
+# 2. About libCML
 
 libCML is a SLAM library and scientific tool, which include a novel fast thread-safe graph map implementation. If you are using this work, please cite :
 ```bibtex
@@ -30,17 +43,6 @@ libCML is a SLAM library and scientific tool, which include a novel fast thread-
   title={libCML : SLAM library},
   author={Thomas Belos, Pascal Monasse, Eva Dokladalova},
   url={https://github.com/belosthomas/libCML}
-}
-```
-
-# 2. About MODSLAM
-
-MODSLAM is a mixed ORB-SLAM2 and DSO SLAM system. If you are using this work, please cite : 
-```bibtex
-@inproceedings{modslam2021,
-  title={MOD SLAM: Mixed Method for a More Robust SLAM without Loop Closing},
-  author={Belos, T., Monasse, P. and Dokladalova, E.},
-  booktitle={In Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)}
 }
 ```
 
@@ -189,7 +191,7 @@ python3 plotall.py
 
 All the result are stored in a `result` folder. This is the kind of result you can except with a few experiences :
 
-<img src="documentation/images/plot.png" width="600" alt=""/>
+<img src="https://github.com/belosthomas/libCML/raw/main/documentation/images/plot.png" width="600" alt=""/>
 
 # Known bugs
 
