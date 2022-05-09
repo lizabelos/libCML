@@ -1,1 +1,5 @@
+title: libCML and MODSLAM
 theme: jekyll-theme-cayman
+navbar-links:
+  Download for Windows: "https://github.com/belosthomas/libCML/releases"
+  Download for Android: "https://github.com/belosthomas/libCML/releases"
