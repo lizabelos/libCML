@@ -6,16 +6,20 @@
 
 https://github.com/belosthomas/libCML/releases
 
+## Linux
+
+Build Coming soon...
+
 ## Android
 
 https://github.com/belosthomas/libCML/releases
 
 <img src="documentation/images/screen_recording.gif" width="600" alt=""/>
 
-**Known issues : ** 
+**Known issues on Android:**
  - A lot of crashes
  - Not internal calibration is used
- - Based on old settings which take DSO almost all the time
+ - Based on old settings
 
 
 # 1. About libCML
