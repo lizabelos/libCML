@@ -40,6 +40,38 @@ bool Hybrid::poseEstimationDecision() {
         return !mShouldPreferDso;
     }
 
+    if (mTrackcondUncertaintyWeightOrb.f() > 0) {
+
+        if (!std::isfinite(indirectUncertainty)) {
+            return true;
+        }
+
+        if (!std::isfinite(directUncertainty)) {
+            return false;
+        }
+
+        if (indirectUncertainty * mTrackcondUncertaintyWeightOrb.f() < directUncertainty) {
+            return true;
+        }
+
+    }
+
+    if (mTrackcondUncertaintyWeightDso.f() > 0) {
+
+        if (!std::isfinite(indirectUncertainty)) {
+            return true;
+        }
+
+        if (!std::isfinite(directUncertainty)) {
+            return false;
+        }
+
+        if (directUncertainty * mTrackcondUncertaintyWeightDso.f() < indirectUncertainty) {
+            return true;
+        }
+
+    }
+
     if (mTrackingMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mTrackingMinimumOrbPoint.i()) {
         return true;
     }

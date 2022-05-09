@@ -304,6 +304,8 @@ private:
     Parameter mScoreWeight = createParameter("bacondScoreWeight", 0.0125);
     Parameter mScoreWindow = createParameter("bacondScoreWindow", 1);
     Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.7);
+    Parameter mTrackcondUncertaintyWeightOrb = createParameter("trackcondUncertaintyWeightOrb", -1);
+    Parameter mTrackcondUncertaintyWeightDso = createParameter("trackcondUncertaintyWeightDso", -1);
     Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 1);
     Parameter mBacondUncertaintyWeight = createParameter("bacondUncertaintyWeight", -1.0);
     Parameter mBacondUncertaintyWindow = createParameter("bacondUncertaintyWindow", 1);
