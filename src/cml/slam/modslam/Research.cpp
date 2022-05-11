@@ -51,7 +51,7 @@ bool Hybrid::poseEstimationDecision() {
         }
 
         if (indirectUncertainty * mTrackcondUncertaintyWeightOrb.f() < directUncertainty) {
-            return true;
+            return false;
         }
 
     }
