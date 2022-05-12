@@ -198,6 +198,23 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
 }
 
 
+void init_source(jpeg_decompress_struct *cinfo) {
+    //cinfo->src->next_input_byte = NULL;
+    //cinfo->src->bytes_in_buffer = 0;
+    cinfo->output_scanline = 0;
+}
+
+bool fill_input_buffer(jpeg_decompress_struct *cinfo) {
+    throw std::runtime_error("Should not be called");
+}
+
+void skip_input_data(jpeg_decompress_struct *cinfo, long num_bytes) {
+    cinfo->src->next_input_byte += num_bytes;
+}
+
+void term_source(jpeg_decompress_struct *cinfo) {
+}
+
 CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, size_t lenght) {
 /* This struct contains the JPEG decompression parameters and pointers to
    * working space (which is allocated as needed by the JPEG library).
@@ -208,7 +225,6 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
      * struct, to avoid dangling-pointer problems.
      */
     /* More stuff */
-    FILE *infile;    /* source file */
     JSAMPARRAY buffer;    /* Output row buffer */
     int row_stride;    /* physical row width in output buffer */
 
@@ -231,6 +247,11 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
         cinfo.src->resync_to_restart = jpeg_resync_to_restart; /* use default method */
         cinfo.src->next_input_byte = str;
         cinfo.src->bytes_in_buffer = lenght;
+        cinfo.src->init_source = init_source;
+        cinfo.src->fill_input_buffer = fill_input_buffer;
+        cinfo.src->skip_input_data = skip_input_data;
+        cinfo.src->resync_to_restart = jpeg_resync_to_restart;
+        cinfo.src->term_source = term_source;
     }
 
     /* Step 3: read file parameters with jpeg_read_header() */
@@ -270,8 +291,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
     /* Step 6: while (scan lines remain to be read) */
     /*           jpeg_read_scanlines(...); */
 
-    CML::FloatImage resultFloat;
-    CML::Image resultColor;
+    CML::FloatImage resultFloat(cinfo.output_width, cinfo.output_height);
+    CML::Image resultColor(cinfo.output_width, cinfo.output_height);
     /* Here we use the library's state variable cinfo.output_scanline as the
      * loop counter, so that we don't have to keep track ourselves.
      */
@@ -285,8 +306,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i];
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i];
+                    resultFloat(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i];
+                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i];
                 }
             }
             break;
@@ -299,10 +320,10 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) =
+                    resultFloat(i, cinfo.output_scanline - 1) =
                             (float) (((unsigned char *) buffer[0])[i * 3] + ((unsigned char *) buffer[0])[i * 3 + 1] +
                                      ((unsigned char *) buffer[0])[i * 3 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * 3];
+                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * 3];
                 }
             }
             break;
@@ -315,10 +336,10 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) =
+                    resultFloat(i, cinfo.output_scanline - 1) =
                             (float) (((unsigned char *) buffer[0])[i * 4] + ((unsigned char *) buffer[0])[i * 4 + 1] +
                                      ((unsigned char *) buffer[0])[i * 4 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * 4];
+                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * 4];
                 }
             }
             break;
@@ -331,8 +352,8 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
-                    resultColor(i, cinfo.output_scanline) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
+                    resultFloat(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
+                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
                 }
             }
             break;
@@ -349,17 +370,6 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
 
     /* This is an important step since it will release a good deal of memory. */
     jpeg_destroy_decompress(&cinfo);
-
-    /* After finish_decompress, we can close the input file.
-     * Here we postpone it until after no more JPEG errors are possible,
-     * so as to simplify the setjmp error logic above.  (Actually, I don't
-     * think that jpeg_destroy can do an error exit, but why assume anything...)
-     */
-    fclose(infile);
-
-    /* At this point you may want to check to see whether any corrupt-data
-     * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
-     */
 
     /* And we're done! */
     return {resultFloat, resultColor};
