@@ -197,22 +197,63 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadTiffImage(const uint8_t *str, si
 
 }
 
+/// JPEG source manager
+struct jpeg_source_t
+{
+    struct jpeg_source_mgr _pub;
 
-void init_source(jpeg_decompress_struct *cinfo) {
-    //cinfo->src->next_input_byte = NULL;
-    //cinfo->src->bytes_in_buffer = 0;
-    cinfo->output_scanline = 0;
+    const char *_begin;
+    const char *_end;
+};
+
+/// Initialize JPEG source
+METHODDEF(void) init_source(j_decompress_ptr cinfo)
+{
 }
 
-bool fill_input_buffer(jpeg_decompress_struct *cinfo) {
-    throw std::runtime_error("Should not be called");
+/// Fill image buffer
+METHODDEF(bool) fill_input_buffer(j_decompress_ptr cinfo)
+{
+    struct jpeg_source_t *src=(struct jpeg_source_t *)cinfo->src;
+
+    src->_pub.next_input_byte=(const JOCTET *)src->_begin;
+    src->_pub.bytes_in_buffer=src->_end-src->_begin;
+
+    return true;
 }
 
-void skip_input_data(jpeg_decompress_struct *cinfo, long num_bytes) {
-    cinfo->src->next_input_byte += num_bytes;
+
+/// Skip data in buffer
+METHODDEF(void)skip_input_data(j_decompress_ptr cinfo, long num_bytes)
+{
+    struct jpeg_source_t *src=(struct jpeg_source_t *)cinfo->src;
+
+    src->_pub.next_input_byte+=(size_t)num_bytes;
+    src->_pub.bytes_in_buffer-=(size_t)num_bytes;
 }
 
-void term_source(jpeg_decompress_struct *cinfo) {
+
+/// Close buffer
+METHODDEF(void)term_source(j_decompress_ptr cinfo)
+{
+}
+
+
+/// Initialize memory source
+void jpeg_memory_src(j_decompress_ptr cinfo, const char *begin, const char *end)
+{
+    cinfo->src=(struct jpeg_source_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT, sizeof(struct jpeg_source_t));
+    struct jpeg_source_t *src=(struct jpeg_source_t *)cinfo->src;
+
+    src->_pub.init_source=init_source;
+    src->_pub.fill_input_buffer=fill_input_buffer;
+    src->_pub.skip_input_data=skip_input_data;
+    src->_pub.resync_to_restart=jpeg_resync_to_restart;
+    src->_pub.term_source=term_source;
+    src->_pub.bytes_in_buffer=0;
+    src->_pub.next_input_byte=NULL;
+    src->_begin=begin;
+    src->_end=end;
 }
 
 CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, size_t lenght) {
@@ -228,31 +269,14 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
     JSAMPARRAY buffer;    /* Output row buffer */
     int row_stride;    /* physical row width in output buffer */
 
+    memset(&cinfo, 0, sizeof(cinfo));
 
     /* Step 1: allocate and initialize JPEG decompression object */
 
     jpeg_create_decompress(&cinfo);
 
     /* Step 2: specify data source  */
-
-    {
-
-        /* The source object is made permanent so that a series of JPEG images
-         * can be read from a single buffer by calling jpeg_memory_src
-         * only before the first one.
-         * This makes it unsafe to use this manager and a different source
-         * manager serially with the same JPEG object.  Caveat programmer.
-         */
-        cinfo.src = (struct jpeg_source_mgr *)(*cinfo.mem->alloc_small) ((j_common_ptr)&cinfo, JPOOL_PERMANENT, sizeof(jpeg_source_mgr));
-        cinfo.src->resync_to_restart = jpeg_resync_to_restart; /* use default method */
-        cinfo.src->next_input_byte = str;
-        cinfo.src->bytes_in_buffer = lenght;
-        cinfo.src->init_source = init_source;
-        cinfo.src->fill_input_buffer = fill_input_buffer;
-        cinfo.src->skip_input_data = skip_input_data;
-        cinfo.src->resync_to_restart = jpeg_resync_to_restart;
-        cinfo.src->term_source = term_source;
-    }
+    jpeg_memory_src(&cinfo, reinterpret_cast<const char *>(str), reinterpret_cast<const char *>(str + lenght));
 
     /* Step 3: read file parameters with jpeg_read_header() */
 
@@ -303,11 +327,12 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                  * Here the array is only one element long, but you could ask for
                  * more than one scanline at a time if that's more convenient.
                  */
+                int row = cinfo.output_scanline;
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i];
-                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i];
+                    resultFloat(i, row) = (float)buffer[0][i] / 255.0f;
+                    resultColor(i, row) = buffer[0][i];
                 }
             }
             break;
@@ -317,13 +342,14 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                  * Here the array is only one element long, but you could ask for
                  * more than one scanline at a time if that's more convenient.
                  */
+                int row = cinfo.output_scanline;
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline - 1) =
+                    resultFloat(i, row) =
                             (float) (((unsigned char *) buffer[0])[i * 3] + ((unsigned char *) buffer[0])[i * 3 + 1] +
                                      ((unsigned char *) buffer[0])[i * 3 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * 3];
+                    resultColor(i, row) = ((unsigned char *) buffer[0])[i * 3];
                 }
             }
             break;
@@ -333,13 +359,14 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                  * Here the array is only one element long, but you could ask for
                  * more than one scanline at a time if that's more convenient.
                  */
+                int row = cinfo.output_scanline;
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline - 1) =
+                    resultFloat(i, row) =
                             (float) (((unsigned char *) buffer[0])[i * 4] + ((unsigned char *) buffer[0])[i * 4 + 1] +
                                      ((unsigned char *) buffer[0])[i * 4 + 2]) / 3;
-                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * 4];
+                    resultColor(i, row) = ((unsigned char *) buffer[0])[i * 4];
                 }
             }
             break;
@@ -349,11 +376,12 @@ CML::Pair<CML::FloatImage, CML::Image> CML::loadJpegImage(const uint8_t *str, si
                  * Here the array is only one element long, but you could ask for
                  * more than one scanline at a time if that's more convenient.
                  */
+                int row = cinfo.output_scanline;
                 (void) jpeg_read_scanlines(&cinfo, buffer, 1);
                 /* Assume put_scanline_someplace wants a pointer and sample count. */
                 for (int i = 0; i < cinfo.output_width; i++) {
-                    resultFloat(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
-                    resultColor(i, cinfo.output_scanline - 1) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
+                    resultFloat(i, row) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
+                    resultColor(i, row) = ((unsigned char *) buffer[0])[i * cinfo.num_components];
                 }
             }
             break;
