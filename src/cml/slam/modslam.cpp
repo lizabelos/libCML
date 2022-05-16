@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
     program.add_argument("-b", "--reverse").nargs(0).help("Reverse mode").default_value(false).implicit_value(true);
 
 //#if CML_ENABLE_GUI
-    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(false);
+    program.add_argument("-g", "--gui").nargs(0).help("Gui mode").default_value(true).implicit_value(true);
     program.add_argument("-t", "--terminal").nargs(0).help("Terminal mode").default_value(false).implicit_value(true);
 //#endif
 #if CML_HAVE_YAML_CPP
