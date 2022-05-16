@@ -162,6 +162,16 @@ def averageParameter(d, param):
 
     return newD
 
+def changeSpaceForPlot(d):
+    for h in d:
+        for p in d[h]:
+            if p.startswith("trackcondUncertaintyWeight"):
+                if d[h][p] > 1.0:
+                    d[h][p] = 1.0 - (1.0 / d[h][p])
+                else:
+                    d[h][p] = -d[h][p]
+    return d
+
 def addDefaultParameters(d):
 
     params = [

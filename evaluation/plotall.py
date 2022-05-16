@@ -1,4 +1,6 @@
 import pyximport
+import yaml
+
 pyximport.install()
 
 import json
@@ -181,6 +183,8 @@ class PlotSet:
         self.params = {}
 
     def addValue(self, x, y, param):
+        if x == -1:
+            return
         self.all_x.append(x)
         self.all_y.append(y)
         self.x_set.add(x)
@@ -189,6 +193,8 @@ class PlotSet:
         self.params[x] = param
 
     def addValueOnlyOne(self, x, y, param):
+        if x == -1:
+            return
         for i in range(0, len(self.all_x)):
             if math.isclose(x, self.all_x[i]):
                 if not math.isclose(y, self.all_y[i]):
@@ -299,11 +305,11 @@ class PlotSet:
         minX = min(self.all_x)
         maxX = max(self.all_x)
         if orbResult[numDataset] is not None:
-            axis.axhline(orbResult[numDataset] / baseline, color='blue', zorder=10)
-            axis.text(minX, orbResult[numDataset] / baseline, "ORB-SLAM2", zorder=10, color="blue")
+            axis.axhline(orbResult[numDataset] / baseline, color='red', zorder=10, alpha=0.5)
+            axis.text(minX, orbResult[numDataset] / baseline, "ORB-SLAM2", zorder=10, color="red", alpha=0.5)
         if dsoResult[numDataset] is not None:
-            axis.axhline(dsoResult[numDataset] / baseline, color='red', zorder=10)
-            axis.text(maxX, dsoResult[numDataset] / baseline, "DSO", zorder=10, ha='right', color="red")
+            axis.axhline(dsoResult[numDataset] / baseline, color='red', zorder=10, alpha=0.5)
+            axis.text(maxX, dsoResult[numDataset] / baseline, "DSO", zorder=10, ha='right', color="red", alpha=0.5)
         #if ourResults[numDataset] is not None:
         #    axis.axhline(ourResults[numDataset] / baseline, label='ModSLAM', color='red')
         #    axis.text(minX, ourResults[numDataset] / baseline, "ModSLAM")
@@ -315,7 +321,9 @@ class PlotSet:
             if self.paramName in paramFilter:
                 [t.set_fontweight('bold') for t in axis.xaxis.get_ticklabels() if t.get_text() == str(paramFilter[self.paramName])]
 
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", alpha=0.75, zorder=1000, color='green', linestyle = 'None', label=self.dataset,  markersize=2)
+        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", zorder=1000, color='red', linestyle = 'None', label=self.dataset,  markersize=2)
+        axis.tick_params(axis='y', labelcolor='red')
+
 
     def plotParam(self, axis, param, label = None):
         self.sort()
@@ -335,7 +343,8 @@ class PlotSet:
             label = stat
         for x in self.all_x:
             y.append(self.params[x]["stats"][stat])
-        axis.plot(self.all_x, y, label=label)
+        axis.plot(self.all_x, y, label=label, color='blue', marker="o", linestyle = 'None', markersize=2)
+        axis.tick_params(axis='y', labelcolor='blue')
 
     def plotImportant(self, axis):
         self.sort()
@@ -366,9 +375,12 @@ class PlotSet:
             axis2.set_ylim([0, 11])
         else:
             axis2.set_ylim([0, 1])
+        axis2.get_yaxis().set_ticks([])
+        axis2.get_yaxis().set_ticklabels([])
+        axis2.tick_params(top=False, labeltop=False, right=False, labelright=False)
         axis2.bar(errors_x, errors_y, errors_width, color="gray", label="Errors", zorder=0)
 
-def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, paramFilter = None, ours = None, doNothing = False, separate = False):
+def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False, paramFilter = None, ours = None, doNothing = False, separate = False, suffix=""):
     values = []
     alreadyTaken = set()
     for ref_id in d:
@@ -509,6 +521,9 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         else:
             axis = axs[int(i/cols),int(i%cols)]
 
+        #if param == "trackcondUncertaintyWeight":
+        #    axis.set_xscale("log")
+
         axis.set_xlim([minX, maxX])
         axis.set_ylim([minY, maxY])
 
@@ -516,12 +531,23 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         value.plotError(axis)
         value.plotBaseline(axis,ours)
 
-        twinAxis = axis.twinx()
-        fps = 1.0 / 10.0
-        twinAxis.set_ylim([numFramesOf(value.dataset) * fps * 0.5, numFramesOf(value.dataset) * fps * 2.0])
-        value.plotParam(twinAxis, "time")
+        # twinAxis = axis.twinx()
+        # fps = 1.0 / 10.0
+        # twinAxis.set_ylim([numFramesOf(value.dataset) * fps * 0.5, numFramesOf(value.dataset) * fps * 2.0])
+        # value.plotParam(twinAxis, "time")
+        # value.plotStat(axis.twinx(), "main.Track_DSO_Var")
+        # value.plotStat(axis.twinx(), "main.Track_ORB_Var")
         # value.plotStat(axis.twinx(), "main.Tracking_Decision")
-        # axis.set_title(value.dataset)
+        # value.plotStat(axis.twinx(), "main.Bundle_Adjustment_Decision")
+        axis.set_title("Influence of " + paramToLegend(param) + " on " + value.dataset)
+        if param.startswith("bacond"):
+            twinAxis = axis.twinx()
+            twinAxis.set_ylim([0, 1])
+            value.plotStat(twinAxis, "main.Bundle_Adjustment_Decision", label="Bundle Adjustment Decision")
+        elif param.startswith("track"):
+            twinAxis = axis.twinx()
+            twinAxis.set_ylim([0, 1])
+            value.plotStat(twinAxis, "main.Tracking_Decision", label="Tracking Decision")
         axis.set(xlabel=paramToLegend(param), ylabel='Trajectory Error Per Frame')
         # axis.label_outer()
         axis.legend()
@@ -578,13 +604,15 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
     # function to show the plot
     #plt.show()
     if separate:
-        print("Saving plot to plot/" + folder + "/" + param + "/" + "avg" + ".pdf")
+        print("Saving plot to plot/" + folder + "/" + param + suffix + "/" + "avg" + ".pdf")
         os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
-        fig.savefig(OUTPUT_DIR + folder + "/" + param + "/" + "avg" + ".pdf", bbox_inches="tight", dpi=1000)
+        fig.tight_layout()
+        fig.savefig(OUTPUT_DIR + folder + "/" + param + suffix + "/" + "avg" + ".pdf", bbox_inches="tight", dpi=1000)
     else:
-        print("Saving plot to plot/" + folder + "/" + param + ".pdf")
+        print("Saving plot to plot/" + folder + "/" + param + suffix + ".pdf")
         os.makedirs(OUTPUT_DIR + folder, exist_ok=True)
-        fig.savefig(OUTPUT_DIR + folder + "/" + param + ".pdf", bbox_inches="tight", dpi=1000)
+        fig.tight_layout()
+        fig.savefig(OUTPUT_DIR + folder + "/" + param + suffix + ".pdf", bbox_inches="tight", dpi=1000)
     return True
 
 def computeBestResults(d):
@@ -646,8 +674,7 @@ def computeBestResults(d):
         print(allErrors[0][3])
         print(allErrors[0][4])
         print(allErrors[0][5])
-        #with open("best.yaml", "w") as outfile:
-        #    yaml.dump(paramToParam[bestParam], outfile)
+        print(allErrors[0][2])
 
     return allErrors
 
@@ -657,15 +684,19 @@ def merge_two_dicts(x, y):
     return z
 
 def processFile(filename,foldername):
-    from database import loadJsonFile, fixRounding, averageParameter
+    from database import loadJsonFile, changeSpaceForPlot, fixRounding, averageParameter
 
     d = loadJsonFile(filename, cache=False)
+    d = changeSpaceForPlot(d)
     d = fixRounding(d)
     d = averageParameter(d, "dsoInitializer.regularizationWeight")
 
-    if len(d) < 100:
-        return
     print("Processing " + filename + " with " + str(len(d)) + " entries")
+
+    if len(d) < 100:
+        print("Not enough entries")
+        return
+
     params = set()
     for id in d:
         for x in d[id]:
@@ -692,9 +723,40 @@ def processFile(filename,foldername):
         print("Plotting " + param + "...")
 
         for i in range(0, len(bestResults)):
-            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2])
-            if res:
-                break
+
+            suffix = ""
+
+            if param == "bacondSaturatedRatio":
+                if not "bacondMinimumOrbPoints" in bestResults[i][2]:
+                    continue
+                if bestResults[i][2]["bacondMinimumOrbPoint"] != -1:
+                    continue
+
+            if param == "bacondScoreWeight":
+                if not "bacondMinimumOrbPoint" in bestResults[i][2] or not "bacondSaturatedRatio" in bestResults[i][2]:
+                    continue
+                if bestResults[i][2]["bacondMinimumOrbPoint"] != -1 or bestResults[i][2]["bacondSaturatedRatio"] != -1:
+                    continue
+
+            if param.startswith("trackcondUncertaintyWeight"):
+                if param == "trackcondUncertaintyWeight":
+                    if not "trackingMinimumOrbPoint" in bestResults[i][2]:
+                        continue
+                    if bestResults[i][2]["trackingMinimumOrbPoint"] != -1:
+                        continue
+                if "trackcondUncertaintyWindow" in param:
+                    suffix = "_w" + str(bestResults[i][2]["trackcondUncertaintyWindow"])
+
+            if param == "trackcondUncertaintyWindow":
+                if not "trackingMinimumOrbPoint" in bestResults[i][2]:
+                    continue
+                if bestResults[i][2]["trackingMinimumOrbPoint"] != -1:
+                    continue
+
+            if os.path.isfile(OUTPUT_DIR + "/" + foldername + "/" + param + suffix + ".pdf"):
+                continue
+
+            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2], suffix=suffix)
 
 if __name__ == "__main__":
     dirname = "."

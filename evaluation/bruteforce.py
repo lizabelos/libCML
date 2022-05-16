@@ -55,11 +55,12 @@ def intrange(a, b, c = 1):
 def floatrange(a, b, c = 1.0):
     return [float(x) for x in np.arange(a,b,c)]
 
-def movingAverage(t, iter = 5, delta = 0.75):
+def movingAverage(t, iter = 2, delta = 0.75):
     delta_inv = (1 - delta) / 2
     for i in range(0, iter):
+        tcopy = t.copy()
         for j in range(1, len(t) - 1):
-            t[j] = t[j] * delta + t[j - 1] * delta_inv + t[j + 1] * delta_inv
+            t[j] = tcopy[j] * delta + tcopy[j - 1] * delta_inv + tcopy[j + 1] * delta_inv
     return t
 
 def numFramesOf(dataset):
@@ -97,7 +98,7 @@ def bruteforceFindBest(currentParam):
     weightAndInv = floatrange(0,1.05,0.05) + [1/x for x in floatrange(0.05,1,0.05)]
     params = [
     #    ["orb.iniThFAST", intrange(10, 30, 1)],
-        ["orb.nLevels", intrange(1, 9, 1)],
+    #    ["orb.nLevels", intrange(1, 9, 1)],
     #    ["orb.scaleFactor", floatrange(1.1, 1.6, 0.1)]
     ]
     #for t in ["motionModelTracker", "referenceTracker", "localPointsTracker", "triangulationTracker"]:
@@ -111,11 +112,12 @@ def bruteforceFindBest(currentParam):
     params = params + [
         #["dsoInitializer.densityFactor", floatrange(0.1,1.1,0.1)],
         #["dsoInitializer.regularizationWeight", floatrange(0.0,1.1,0.1)],
-        ["trackingMinimumOrbPoint", intrange(0,305,5)],
+        #["dsoBa.disableMarginalization", [True, False]],
+        #["orbBa.adjustDirectPoints", [True, False]],
+        ["trackcondUncertaintyWeightOrb", weightAndInv + [-1]],
+        ["trackcondUncertaintyWeightDso", weightAndInv + [-1]],
+        ["trackingMinimumOrbPoint", intrange(0,205,5)],
         ["trackcondUncertaintyWeight", weightAndInv + [-1]],
-        ["bacondMinimumOrbPoint",  intrange(0,305,5)],
-        ["numOrbMultiplier", floatrange(1.0,2.2,0.2)],
-        ["bacondSaturatedRatio", floatrange(0.0,1.1,0.1)],
         ["trackcondUncertaintyWindow", [1, -2]],
         ["bacondScoreWeight", weightAndInv],
         #["bacondScoreWindow", intrange(1,20,1)],
@@ -125,13 +127,15 @@ def bruteforceFindBest(currentParam):
     ]
 
     seedParamName = "dsoInitializer.regularizationWeight"
-    seedParamValues = [0.5,0.6,0.7,0.8,0.9]
+    seedParamValues = [0.5,0.6]
+    #seedParamName = "orb.nLevels"
+    #seedParamValues = [1,2,3,4,5]
 
     dprint("Hello :)\n\n")
     launchPrintStatusThread()
     # currentParam = {'numOrbCorner': 500, 'trackcondUncertaintyWeight': 0.4, 'bacondScoreWeight': 0.02, 'trackcondUncertaintyWindow': 8}
     # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
     currentMin = 99999999
     while True:
         bestParamModif = None
@@ -171,7 +175,7 @@ def bruteforceFindBest(currentParam):
                         except KeyboardInterrupt:
                             return 0,0,""
                         except Exception as e:
-                            err = "x"
+                            err = 10000
                             try:
                                 slamLog = context.getError()
                                 lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
@@ -206,6 +210,7 @@ def bruteforceFindBest(currentParam):
             if currentMinI is not None:
                 bestParamModif = [param[0],param[1][currentMinI]]
                 currentParam[param[0]] = param[1][currentMinI]
+                currentMin = 99999999 # todo : remove this
 
             #dprint("=========================")
             #dprint(currentParam)
@@ -221,7 +226,20 @@ def bruteforceFindBest(currentParam):
         dprint("\n\n\n\n\n")
 
 if __name__ == "__main__":
-    bruteforceFindBest({})
+    bruteforceFindBest({'numOrbCorner': 1250,
+                        'orb.nLevels': 1,
+                        'dsoBa.disableMarginalization': True,
+                        'orbBa.adjustDirectPoints': True,
+                        'trackingMinimumOrbPoint': -1,
+                        'trackcondUncertaintyWeight': 0.65,
+                        'bacondMinimumOrbPoint': 40,
+                        'numOrbMultiplier': 1.0,
+                        'bacondSaturatedRatio': 0.4,
+                        'trackcondUncertaintyWindow': 1,
+                        'bacondScoreWeight': 0.0,
+                        'orbInlierRatioThreshold': 0.6,
+                        'orbKeyframeRatio': 0.94,
+                        'orbInlierNumThreshold': 30})
     #pow10 = [math.pow(10,i) for i in range(1,11)] + [-1]
     #pow10.reverse()
     #print(pow10)
