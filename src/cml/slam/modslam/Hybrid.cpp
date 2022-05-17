@@ -176,11 +176,13 @@ void Hybrid::processFrame(PFrame currentFrame) {
             // assertThrow(mShouldPreferDso, "Should prefer dso");
             if (mShouldPreferDso) {
                 logger.info("Should Prefer Dso");
+                mBacondTrack.add(0);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(0);
                 trackWithDso(currentFrame);
             } else {
                 logger.info("Using Orb with Dso Refinement");
+                mBacondTrack.add(1);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(1);
                 trackWithOrbAndDsoRefinement(currentFrame);

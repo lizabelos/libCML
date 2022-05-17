@@ -76,6 +76,28 @@ bool Hybrid::poseEstimationDecision() {
         return true;
     }
 
+    if (mLastFrame.isNotNull() && mTrackcondFlowThreshold.f() >= 0){
+
+        scalar_t setting_maxShiftWeightT = 0.04 * (640 + 480);
+        scalar_t setting_maxShiftWeightR = 0.0 * (640 + 480);
+        scalar_t setting_maxShiftWeightRT = 0.02 * (640 + 480);
+        scalar_t setting_maxAffineWeight = 2;
+
+        Vector2 refToFh = mLastDirectKeyFrame->getExposure().to(mLastFrame->getExposure()).getParameters();
+
+        bool flowTooBig = setting_maxShiftWeightT * CML::sqrt(mLastPhotometricTrackingResidual.flowVector[0]) /
+                          (mLastFrame->getWidth(0) + mLastFrame->getHeight(0)) +
+                          setting_maxShiftWeightR * CML::sqrt(mLastPhotometricTrackingResidual.flowVector[1]) /
+                          (mLastFrame->getWidth(0) + mLastFrame->getHeight(0)) +
+                          setting_maxShiftWeightRT * CML::sqrt(mLastPhotometricTrackingResidual.flowVector[2]) /
+                          (mLastFrame->getWidth(0) + mLastFrame->getHeight(0)) +
+                          setting_maxAffineWeight * abs(log(refToFh[0])) > mTrackcondFlowThreshold.f();
+
+        if (flowTooBig) {
+            return false;
+        }
+    }
+
     if (mTrackcondUncertaintyWeight.f() > 0) {
 
         logger.debug("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
@@ -144,6 +166,20 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
 
     if (mBaMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
         return BADIRECT;
+    }
+
+    if (mBacondTrackThresholdOrb.f() >= 0) {
+        // dso is 0. orb is 1
+        if (mBacondTrack.accumulate(10) > mBacondTrackThresholdOrb.f()) {
+            return BAINDIRECT;
+        }
+    }
+
+    if (mBacondTrackThresholdDso.f() >= 0) {
+        // dso is 0. orb is 1
+        if (mBacondTrack.accumulate(10) < mBacondTrackThresholdDso.f()) {
+            return BADIRECT;
+        }
     }
 
     if (mBacondSaturatedRatioDir.b() == false) {
