@@ -31,6 +31,17 @@ def paramToLegend(n):
         return "Minimum number of indirect points"
     return n
 
+def meanOrNone(l, weights = None):
+    if weights is None:
+        weights = [1] * len(l)
+    sum = 0
+    total = 0
+    for i in range(len(l)):
+        if l[i] is not None:
+            sum += l[i] * weights[i]
+            total += weights[i]
+    return sum / total if total > 0 else None
+
 def movingAverage(t, iter = 2, delta = 0.75):
     delta_inv = (1 - delta) / 2
     for i in range(0, iter):
@@ -38,6 +49,14 @@ def movingAverage(t, iter = 2, delta = 0.75):
         for j in range(1, len(t) - 1):
             t[j] = tcopy[j] * delta + tcopy[j - 1] * delta_inv + tcopy[j + 1] * delta_inv
     return t
+
+def densify(x):
+    newX = []
+    for i in range(0, len(x)):
+        newX.append(x[i])
+        if i < len(x) - 1:
+            newX.append((x[i] + x[i + 1]) / 2)
+    return newX
 
 def lowerErrorMedian(l):
     s = len(l)
@@ -182,25 +201,29 @@ class PlotSet:
         self.errors = {}
         self.params = {}
 
-    def addValue(self, x, y, param):
+    def addValue(self, x, y, param, lower_y = None, upper_y = None):
         if x == -1:
             return
         self.all_x.append(x)
         self.all_y.append(y)
         self.x_set.add(x)
-        self.lower_y.append(0)
-        self.upper_y.append(0)
+        self.lower_y.append(lower_y)
+        self.upper_y.append(upper_y)
         self.params[x] = param
 
-    def addValueOnlyOne(self, x, y, param):
-        if x == -1:
-            return
+    def addValueOnlyOne(self, x, y, param, lower_y = None, upper_y = None):
+        if lower_y is not None:
+            if lower_y > y:
+                raise Exception("Lower bound is higher than upper bound")
+        if upper_y is not None:
+            if upper_y < y:
+                raise Exception("Lower bound is higher than upper bound")
         for i in range(0, len(self.all_x)):
             if math.isclose(x, self.all_x[i]):
                 if not math.isclose(y, self.all_y[i]):
                     print("CRITICAL ERROR : Value already exist : " + str(x) + " vs " + str(self.all_x[i]))
                 return
-        self.addValue(x,y,param)
+        self.addValue(x,y,param,lower_y,upper_y)
 
     def addError(self, x, y, param, n = 1):
         if x not in self.errors:
@@ -211,11 +234,13 @@ class PlotSet:
     def sort(self):
         all_values = []
         for i in range(0, len(self.all_x)):
-            all_values.append([self.all_x[i], self.all_y[i]])
+            all_values.append([self.all_x[i], self.all_y[i], self.lower_y[i], self.upper_y[i]])
         all_values = sorted(all_values, key=lambda k: k[0])
         for i in range(0, len(self.all_x)):
             self.all_x[i] = all_values[i][0]
             self.all_y[i] = all_values[i][1]
+            self.lower_y[i] = all_values[i][2]
+            self.upper_y[i] = all_values[i][3]
 
     def tryMergeSameDataset(l, mergingMode = "all"):
         if len(l) == 0:
@@ -233,24 +258,33 @@ class PlotSet:
                 all_x_in_common = elementInCommon(all_x_in_common, l[i].all_x)
         all_x_in_common = sorted(list(all_x_in_common))
         new_y = []
+        new_lower_y = []
+        new_upper_y = []
         for i in range(0, len(all_x_in_common)):
             current_y = []
+            current_lower_y = []
+            current_upper_y = []
             for j in range(0, len(l)):
                 for k in range(0, len(l[j].all_x)):
                     if l[j].all_x[k] == all_x_in_common[i]:
                         current_y.append(l[j].all_y[k])
+                        if l[j].lower_y[k] is not None:
+                            current_lower_y.append(l[j].lower_y[k])
+                            current_upper_y.append(l[j].upper_y[k])
             new_y.append(current_y)
+            new_lower_y.append(current_lower_y)
+            new_upper_y.append(current_upper_y)
 
-        lower_y = [lowerErrorMedian(elem) for elem in new_y]
-        upper_y = [upperErrorMedian(elem) for elem in new_y]
         new_y = [mean(elem) for elem in new_y]
-        plotSet = PlotSet(l[0].paramName, dataset, all_x_in_common, new_y, lower_y, upper_y)
+        new_lower_y = [meanOrNone(elem) for elem in new_lower_y]
+        new_upper_y = [meanOrNone(elem) for elem in new_upper_y]
+        plotSet = PlotSet(l[0].paramName, dataset, all_x_in_common, new_y, new_lower_y, new_upper_y)
         for elem in l:
             for error in elem.errors:
                 plotSet.addError(error, None, None, elem.errors[error])
         return plotSet
 
-    def tryMergeDifferentDataset(l, weighted = False):
+    def tryMergeDifferentDataset(l, weighted = True):
         if len(l) == 0:
             return PlotSet("None", "None")
         dataset = "Group"
@@ -261,6 +295,7 @@ class PlotSet:
         new_y = []
         new_lower_y = []
         new_upper_y = []
+        new_weights = []
         weight_sum = len(l)
         if weighted:
             weight_sum = sum([numFramesOf(elem.dataset) for elem in l])
@@ -268,21 +303,28 @@ class PlotSet:
             current_y = []
             current_lower = []
             current_upper = []
+            current_weights = []
             for j in range(0, len(l)):
                 for k in range(0, len(l[j].all_x)):
                     if l[j].all_x[k] == all_x_in_common[i]:
                         if weighted:
                             current_y.append(l[j].all_y[k] * numFramesOf(l[j].dataset))
+                            current_weights.append(numFramesOf(l[j].dataset))
                         else:
                             current_y.append(l[j].all_y[k])
+                            current_weights.append(1)
                         current_lower.append(l[j].lower_y[k])
                         current_upper.append(l[j].upper_y[k])
             new_y.append(current_y)
             new_lower_y.append(current_lower)
             new_upper_y.append(current_upper)
+            new_weights.append(current_weights)
 
-        lower_y = [mean(elem) for elem in new_lower_y]
-        upper_y = [mean(elem) for elem in new_upper_y]
+        lower_y = []
+        upper_y = []
+        for i in range(0, len(new_y)):
+            lower_y.append(meanOrNone(new_lower_y[i], new_weights[i]))
+            upper_y.append(meanOrNone(new_upper_y[i], new_weights[i]))
         new_y = [sum(elem) / weight_sum for elem in new_y]
         plotSet = PlotSet(l[0].paramName, dataset, all_x_in_common, new_y, lower_y, upper_y)
         for elem in l:
@@ -321,7 +363,37 @@ class PlotSet:
             if self.paramName in paramFilter:
                 [t.set_fontweight('bold') for t in axis.xaxis.get_ticklabels() if t.get_text() == str(paramFilter[self.paramName])]
 
-        axis.errorbar(self.all_x, self.all_y, yerr=[self.lower_y, self.upper_y], marker="o", zorder=1000, color='red', linestyle = 'None', label=self.dataset,  markersize=2)
+        filtered_x = []
+        filtered_y = []
+        filtered_lower_y = []
+        filtered_upper_y = []
+        for i in range(0, len(self.all_x)):
+            if self.lower_y[i] is not None and self.upper_y[i] is not None:
+                #if self.lower_y[i] > self.all_y[i]:
+                #    raise Exception("Lower bound is greater than upper bound")
+                #if self.upper_y[i] < self.all_y[i]:
+                #    raise Exception("Upper bound is smaller than lower bound")
+                filtered_x.append(self.all_x[i])
+                filtered_y.append(self.all_y[i])
+                filtered_lower_y.append(self.lower_y[i])
+                filtered_upper_y.append(self.upper_y[i])
+
+        filtered_lower_y = movingAverage(filtered_lower_y, 5, 0.5)
+        filtered_upper_y = movingAverage(filtered_upper_y, 5, 0.5)
+
+        filtered_x = densify(filtered_x)
+        filtered_y = densify(filtered_y)
+        filtered_lower_y = densify(filtered_lower_y)
+        filtered_upper_y = densify(filtered_upper_y)
+
+        filtered_lower_y = movingAverage(filtered_lower_y, 5, 0.5)
+        filtered_upper_y = movingAverage(filtered_upper_y, 5, 0.5)
+
+        if len(filtered_x) > 0:
+            axis.fill_between(filtered_x, filtered_lower_y, filtered_upper_y, facecolor='red', alpha=0.2, zorder=1000, label="95% confidence interval smoothed")
+        else:
+            print("No confidence interval for " + self.paramName)
+        axis.plot(self.all_x, self.all_y, marker="o", zorder=1000, color='red', linestyle = 'None', label="Absolute Trajectory Error",  markersize=2)
         axis.tick_params(axis='y', labelcolor='red')
 
 
@@ -431,14 +503,21 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
                 continue
 
             alreadyTaken.add(cur_id)
+
+            cur_x = d[cur_id][param]
+            if param.startswith("trackcondUncertaintyWeight") and cur_x < -1.5:
+                continue
+
             try:
                 ate = float(d[cur_id]["ate"]) / baselineOf(d[ref_id]["datasetname"])
-                cur_x = d[cur_id][param]
                 cur_y = ate
                 minAte = min(minAte,ate)
                 maxAte = max(maxAte,ate)
-                rangedBasedDict.addValueOnlyOne(cur_x, cur_y, d[cur_id])
-            except:
+                if "ate_upper" in d[cur_id]:
+                    rangedBasedDict.addValueOnlyOne(cur_x, cur_y, d[cur_id], d[cur_id]["ate_lower"] / baselineOf(d[ref_id]["datasetname"]), d[cur_id]["ate_upper"] / baselineOf(d[ref_id]["datasetname"]))
+                else:
+                    rangedBasedDict.addValueOnlyOne(cur_x, cur_y, d[cur_id])
+            except ValueError:
                 cur_x = d[cur_id][param]
                 cur_y = 1
                 rangedBasedDict.addError(cur_x, cur_y, d[ref_id])
@@ -540,17 +619,19 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         # value.plotStat(axis.twinx(), "main.Tracking_Decision")
         # value.plotStat(axis.twinx(), "main.Bundle_Adjustment_Decision")
         axis.set_title("Influence of " + paramToLegend(param) + " on " + value.dataset)
+        twinAxis = axis.twinx()
         if param.startswith("bacond"):
-            twinAxis = axis.twinx()
             twinAxis.set_ylim([0, 1])
             value.plotStat(twinAxis, "main.Bundle_Adjustment_Decision", label="Bundle Adjustment Decision")
         elif param.startswith("track"):
-            twinAxis = axis.twinx()
             twinAxis.set_ylim([0, 1])
             value.plotStat(twinAxis, "main.Tracking_Decision", label="Tracking Decision")
         axis.set(xlabel=paramToLegend(param), ylabel='Trajectory Error Per Frame')
         # axis.label_outer()
-        axis.legend()
+
+        lines, labels = axis.get_legend_handles_labels()
+        lines2, labels2 = twinAxis.get_legend_handles_labels()
+        axis.legend(lines + lines2, labels + labels2)
         # naming the x axis
         # plt.xlabel(param)
         # naming the y axis
@@ -591,8 +672,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
     avg = PlotSet.tryMergeDifferentDataset(averageByDataset)
     if avg.dataset != "None":
-        avg.plotImportant(axis)
-        avg.plotError(axis)
+        avg.plot(axis)
 
     axis.legend()
 
@@ -642,7 +722,7 @@ def computeBestResults(d):
                         print("CRITICAL : Something is wrong : " + str(ate) + "/" + str(res[int(datasetname.split(" ")[1])]))
                         print(taken[int(datasetname.split(" ")[1])])
                         print(id)
-                except:
+                except ValueError:
                     print("CRITICAL : Something is wrong")
                 continue
             try:
@@ -652,7 +732,7 @@ def computeBestResults(d):
                 if ate < lim[int(datasetname.split(" ")[1])] / numFramesOf(datasetname):
                     isbest[int(datasetname.split(" ")[1])] = 1
                 taken[int(datasetname.split(" ")[1])] = id
-            except:
+            except ValueError:
                 continue
         if any([x == 9999 for x in res]):
             continue
@@ -683,15 +763,18 @@ def merge_two_dicts(x, y):
     z.update(y)    # modifies z with keys and values of y
     return z
 
-def processFile(filename,foldername):
+def processFile(filenames,foldername):
     from database import loadJsonFile, changeSpaceForPlot, fixRounding, averageParameter
 
-    d = loadJsonFile(filename, cache=False)
+    d = None
+    for filename in filenames:
+        if d is None:
+            d = loadJsonFile(filename, cache=False)
+        else:
+            d = merge_two_dicts(d, loadJsonFile(filename, cache=False))
     d = changeSpaceForPlot(d)
     d = fixRounding(d)
     d = averageParameter(d, "dsoInitializer.regularizationWeight")
-
-    print("Processing " + filename + " with " + str(len(d)) + " entries")
 
     if len(d) < 100:
         print("Not enough entries")
@@ -717,6 +800,26 @@ def processFile(filename,foldername):
     d = makeGraphEdges(d, params)
 
     bestResults = computeBestResults(d)
+
+    bestResultsToTest = {}
+
+    print("{")
+
+    for i in range(0, len(bestResults)):
+        printedThisIteration = False
+        for param in bestResults[i][2]:
+            if param in nodesToIgnore:
+                continue
+            if param not in bestResultsToTest:
+                if not printedThisIteration:
+                    print("    #" + str(i))
+                    printedThisIteration = True
+                bestResultsToTest[param] = bestResults[i][2][param]
+                print("    '" + param + "': " + str(bestResults[i][2][param]) + ",")
+
+    print("}")
+
+    shutil.rmtree(OUTPUT_DIR + "/" + foldername, ignore_errors=True)
 
     for param in params:
 
@@ -744,7 +847,7 @@ def processFile(filename,foldername):
                         continue
                     if bestResults[i][2]["trackingMinimumOrbPoint"] != -1:
                         continue
-                if "trackcondUncertaintyWindow" in param:
+                if "trackcondUncertaintyWindow" in bestResults[i][2]:
                     suffix = "_w" + str(bestResults[i][2]["trackcondUncertaintyWindow"])
 
             if param == "trackcondUncertaintyWindow":
@@ -755,14 +858,12 @@ def processFile(filename,foldername):
 
             if os.path.isfile(OUTPUT_DIR + "/" + foldername + "/" + param + suffix + ".pdf"):
                 continue
-
             res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2], suffix=suffix)
 
 if __name__ == "__main__":
-    dirname = "."
-    filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
-    for filename in filenames:
-        processFile(dirname+"/"+filename,filename.split(".")[0])
+    dirname = "jsons"
+    filenames = [dirname+"/"+x for x in os.listdir(dirname) if x.endswith(".json")]
+    processFile(filenames, "merged")
 
     #dirname = "oldjson"
     #filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]

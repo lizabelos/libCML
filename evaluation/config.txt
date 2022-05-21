@@ -1,2 +1,3 @@
 ModSLAM "../build/modslam"
 KITTI "/home/belosth/Datasets/KITTI"
+TUM "/home/belosth/Datasets/TUM"

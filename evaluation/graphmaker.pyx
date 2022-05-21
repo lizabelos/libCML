@@ -2,10 +2,10 @@ import math
 from tqdm import tqdm
 import json
 
-nodesToIgnore = {"ate","edges","datasetname","stats","time"}
+nodesToIgnore = {"ate","ate_upper","ate_lower","edges","datasetname","stats","time"}
 
 cpdef distanceBetweenNode(dict p1, dict p2, str ignore = "", int maxlen = 1):
-    cpdef nodesToIgnore = {"ate","edges","datasetname","stats","time"}
+    cpdef nodesToIgnore = {"ate","ate_upper","ate_lower","edges","datasetname","stats","time"}
     if len((p1.keys()|nodesToIgnore) ^ (p2.keys()|nodesToIgnore)) > 0:
         return None
     if any([not isinstance(p1[index], type(p2[index])) for index in p1 if not index == "ate" and not index == "edges" and not index == "datasetname" and not index == ignore]):

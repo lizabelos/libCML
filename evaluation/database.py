@@ -1,11 +1,19 @@
+import copy
 import json
 import hashlib
 import os
 import threading
+import time
+from statistics import median
+from math import pi, sqrt, exp, floor, ceil
+
+import numpy as np
+
 from utils import autoRound
 
 mutex = threading.Lock()
 cachedDatabase = None
+threadStarted = False
 
 def loadJsonFile(path, cache = True):
     if cache == False:
@@ -24,20 +32,37 @@ def loadJsonFile(path, cache = True):
             cachedDatabase = {}
     return cachedDatabase
 
-def saveJsonFile(path, d):
-    global cachedDatabase
-    if os.path.isfile(path + ".bak.bak"):
-        os.remove(path + ".bak.bak")
-    with open(path + ".new", "w") as outfile:
-        json.dump(d, outfile, indent=4)
-    if os.path.isfile(path + ".bak"):
-        os.rename(path + ".bak", path + ".bak.bak")
-    if os.path.isfile(path):
-        os.rename(path, path + ".bak")
-    os.rename(path + ".new", path)
-    if os.path.isfile(path + ".bak.bak"):
-        os.remove(path + ".bak.bak")
+def saveJsonFile(path, d, isFromThread = False):
+    global threadStarted
+    if isFromThread or not threadStarted:
+        global cachedDatabase
+        if os.path.isfile(path + ".bak.bak"):
+            os.remove(path + ".bak.bak")
+        with open(path + ".new", "w") as outfile:
+            json.dump(d, outfile, indent=4)
+        if os.path.isfile(path + ".bak"):
+            os.rename(path + ".bak", path + ".bak.bak")
+        if os.path.isfile(path):
+            os.rename(path, path + ".bak")
+        os.rename(path + ".new", path)
+        if os.path.isfile(path + ".bak.bak"):
+            os.remove(path + ".bak.bak")
     cachedDatabase = d
+
+def saveJsonFileThead(path):
+    global cachedDatabase
+    global threadStarted
+    threadStarted = True
+    # Look for modification of cachedDatabase
+    cachedDatabaseCopy = copy.copy(cachedDatabase)
+    while True:
+        if cachedDatabaseCopy != cachedDatabase:
+            saveJsonFile(path, cachedDatabase, isFromThread=True)
+            cachedDatabaseCopy = copy.copy(cachedDatabase)
+        time.sleep(10)
+
+def launchJsonFileThread():
+    threading.Thread(target=saveJsonFileThead, args=("./results.json",)).start()
 
 def hashOfDict(d):
     hash_object = hashlib.md5(json.dumps(d, sort_keys=True).encode('utf-8'))
@@ -118,7 +143,56 @@ def averageOfMultipleDict(dicts):
         d[key] = d[key] / len(dicts)
     return d
 
-def averageParameter(d, param):
+def gauss(n=11,sigma=1.0):
+    r = range(-int(n/2),int(n/2)+1)
+    return [1 / (sigma * sqrt(2*pi)) * exp(-float(x)**2/(2*sigma**2)) for x in r]
+
+def linearInterpolation(y, value):
+    x = np.linspace(0, len(y)-1, len(y)) + 0.5
+    return np.interp(value, x, y)
+
+def gaussian(a):
+    if len(a) == 0:
+        raise "Empty array"
+    if len(a) == 1:
+        return a[0]
+    if len(a) == 2:
+        return (a[0] + a[1]) / 2
+    a = sorted(a)
+    sum = 0
+    total = 0
+    weights = gauss(n=len(a),sigma=(len(a)-1)/6)
+    for i in range(0, len(a)):
+        weight = weights[i]
+        sum = sum + a[i] * weight
+        total = total + weight
+    sum = sum / total
+
+    # Compute confidence interval
+    sum_low = 0
+    sum_high = 0
+    total_low = 0
+    total_high = 0
+    for i in range(0, len(a)):
+        if a[i] < sum:
+            weight = weights[i]
+            sum_low = sum_low + a[i] * weight
+            total_low = total_low + weight
+        else:
+            weight = weights[i]
+            sum_high = sum_high + a[i] * weight
+            total_high = total_high + weight
+    sum_low = sum_low / total_low
+    sum_high = sum_high / total_high
+
+    if sum_low > sum:
+        raise "Error in computing confidence interval"
+    if sum_high < sum:
+        raise "Error in computing confidence interval"
+
+    return [sum, sum_low, sum_high]
+
+def averageParameter(d, param, mode = "gaussian"):
     newD = {}
     maxAteN = 2
     for h in d:
@@ -129,7 +203,7 @@ def averageParameter(d, param):
         key = hashOfDict(pCopy)
         try:
             float(d[h]["ate"])
-        except:
+        except ValueError:
             continue
         if key not in newD:
             newD[key] = pCopy
@@ -146,14 +220,22 @@ def averageParameter(d, param):
     toRemoveN = 0
 
     for h in newD:
-        #if len(newD[h]["ate"]) != maxAteN:
-        #    toRemove.append(h)
-        #    toRemoveN = toRemoveN + len(newD[h]["ate"])
-        #    continue
-
-        newD[h]["ate"] = sum(newD[h]["ate"]) / len(newD[h]["ate"])
         newD[h]["stats"] = averageOfMultipleDict(newD[h]["stats"])
         newD[h]["time"] = sum(newD[h]["time"]) / len(newD[h]["time"])
+        if len(newD[h]["ate"]) == 0:
+            newD[h]["ate"] = "ERROR"
+            continue
+        if mode == "average":
+            newD[h]["ate"] = sum(newD[h]["ate"]) / len(newD[h]["ate"])
+        elif mode == "median":
+            newD[h]["ate"] = median(newD[h]["ate"])
+        elif mode == "gaussian":
+            newD[h]["ate"] = gaussian(newD[h]["ate"])
+
+        if isinstance(newD[h]["ate"], list):
+            newD[h]["ate_upper"] = newD[h]["ate"][2]
+            newD[h]["ate_lower"] = newD[h]["ate"][1]
+            newD[h]["ate"] = newD[h]["ate"][0]
 
     print("Removed " + str(toRemoveN) + " entries")
 
@@ -165,11 +247,11 @@ def averageParameter(d, param):
 def changeSpaceForPlot(d):
     for h in d:
         for p in d[h]:
-            if p.startswith("trackcondUncertaintyWeight"):
+            if p.startswith("trackcondUncertaintyWeight") or p == "bacondScoreWeight":
                 if d[h][p] > 1.0:
                     d[h][p] = 1.0 - (1.0 / d[h][p])
                 else:
-                    d[h][p] = -d[h][p]
+                    d[h][p] = -1 + d[h][p]
     return d
 
 def addDefaultParameters(d):
