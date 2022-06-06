@@ -43,6 +43,12 @@ Hybrid::Hybrid() : AbstractSlam() {
         mIndirectPointOptimizer = new Optimization::IndirectPointOptimizer(this);
         mPnP = new Optimization::G2O::IndirectCameraOptimizer(this);
     }
+
+#if CML_HAVE_LIBZIP
+    mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
+#else
+    mCornerExtractor->loadVocabulary("resources/ORBvoc.txt");
+#endif
 }
 
 Hybrid::~Hybrid() {
@@ -84,11 +90,6 @@ void Hybrid::onReset() {
 void Hybrid::run() {
 
     assertDeterministicMsg("Run");
-#if CML_HAVE_LIBZIP
-    mCornerExtractor->loadVocabulary("resources/ORBvoc.zip");
-#else
-    mCornerExtractor->loadVocabulary("resources/ORBvoc.txt");
-#endif
 
 
     mPhotometricBA->setMixedBundleAdjustment(mMixedBundleAdjustment.b());
@@ -113,6 +114,8 @@ void Hybrid::run() {
 
    // std::thread *processThread = new std::thread(&Hybrid::processThread, this);
 
+    beforeStart();
+
     while (!isStopped()) {
 
         currentFrame = getNextFrame();
@@ -120,6 +123,7 @@ void Hybrid::run() {
             stop("This is the end of the video");
             break;
         }
+        onNewFrame(currentFrame);
 
         if (mFrameLimit >= 0 && (int) currentFrame->getId() >= mFrameLimit) {
             stop("Frame limit reached");
@@ -131,6 +135,10 @@ void Hybrid::run() {
         //*mProcessQueue.getPushElement() = currentFrame;
         //mProcessQueue.notifyPush();
         processFrame(currentFrame);
+
+        if (mTrackingOk) {
+            onTracked(currentFrame);
+        }
     }
 
 
@@ -190,13 +198,15 @@ void Hybrid::processFrame(PFrame currentFrame) {
 
         }
 
-        if (!mTrackingOk) {
-            mNumTrackingError++;
-            if (mNumTrackingError > 3) {
-                restartOrStop("Too many tracking error");
+        if (!mFixedReferenceFrame) {
+            if (!mTrackingOk) {
+                mNumTrackingError++;
+                if (mNumTrackingError > 3) {
+                    restartOrStop("Too many tracking error");
+                }
+            } else {
+                mNumTrackingError = 0;
             }
-        } else {
-            mNumTrackingError = 0;
         }
 
 
@@ -204,7 +214,7 @@ void Hybrid::processFrame(PFrame currentFrame) {
             return;
         }
 
-        if (mTrackingOk) {
+        if (mTrackingOk && !mFixedReferenceFrame) {
 
             if (mMixedBundleAdjustment.b()) {
 

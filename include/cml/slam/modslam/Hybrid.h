@@ -100,10 +100,6 @@ public:
 
     }
 
-    void viewOnCapture(DrawBoard &drawBoard, PFrame frame) final {
-
-    }
-
     std::string getName() final {
         return "Hybrid";
     }
@@ -112,6 +108,59 @@ public:
         if (groupId == ACTIVEINDIRECTPOINT && state == true) {
             assertThrow(mapPoint->isGroup(getMap().INDIRECTGROUP), "Can't put a non indirect point in active indirect point");
         }
+    }
+
+protected:
+    virtual void beforeStart() {
+
+    }
+
+    virtual void onNewFrame(PFrame currentFrame) {
+
+    }
+
+    void setFlatFixedReferenceFrame(PFrame frame, int &directFid) {
+        mReferenceKeyFrame = frame;
+        mLastFrame = frame;
+
+        extractOrb(mReferenceKeyFrame);
+
+        auto referenceFrameData = get(mReferenceKeyFrame);
+        for (int i = 0; i < mReferenceKeyFrame->getFeaturePoints(referenceFrameData->featureId).size(); i++) {
+            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(referenceFrameData->featureId, i), MapPointType::INDIRECT);
+            mReferenceKeyFrame->setMapPoint(FeatureIndex(referenceFrameData->featureId, i), mapPoint);
+            mapPoint->setReferenceInverseDepth(1);
+            mapPoint->setGroup(this->getMap().MAPPED, true);
+            mapPoint->setDescriptor(referenceFrameData->descriptors[i]);
+        }
+
+        List<Corner> directCorners;
+        List<float> directTypes;
+
+        if (mPixelSelector == nullptr) {
+            mPixelSelector = new Features::PixelSelector(this, frame->getWidth(0), frame->getHeight(0));
+        }
+        mPixelSelector->compute(mReferenceKeyFrame->getCaptureFrame(), directCorners, directTypes, 2000);
+
+        directFid = mReferenceKeyFrame->addFeaturePoints(directCorners);
+        Set<PPoint> directPoints;
+        for (int i = 0; i < mReferenceKeyFrame->getFeaturePoints(directFid).size(); i++) {
+            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(directFid, i), MapPointType::DIRECT);
+            mReferenceKeyFrame->setMapPoint(FeatureIndex(directFid, i), mapPoint);
+            mapPoint->setReferenceInverseDepth(1);
+            mapPoint->setGroup(this->getMap().MAPPED, true);
+            directPoints.insert(mapPoint);
+        }
+        mPhotometricTracker->makeCoarseDepthL0(mReferenceKeyFrame, directPoints);
+
+        mFixedReferenceFrame = true;
+
+        mState = InitializationState::OK;
+
+    }
+
+    virtual void onTracked(PFrame frame) {
+
     }
 
 protected:
@@ -229,6 +278,7 @@ private:
     Optimization::DSOTracer *mHybridTracer;
     Optimization::DSOBundleAdjustment *mPhotometricBA;
     Optimization::DSOTrackerContext mLoopClosureTrackerContext;
+    Features::PixelSelector *mPixelSelector = nullptr;
 
     CornerAndDescriptor *mCornerExtractor;
     Features::BoWTracker *mInitTracker, *mMotionModelTracker, *mReferenceTracker, *mLocalPointsTracker, *mTriangulationTracker;
@@ -279,6 +329,8 @@ private:
     OptPFrame mReferenceKeyFrame;
     OptPFrame mLastRelocFrame;
 
+    bool mFixedReferenceFrame = false;
+
     Window<Vector6> mTrackingDecisionCovariances, mBADecisionCovariances;
     Window<Vector2> mBADecisionScores;
 
@@ -295,12 +347,13 @@ private:
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", false);
     Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
 
-    Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.15);
+    /// PARAMETERS FOR THE DECISION SYSTEM
+    Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.4);
     Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);
-    Parameter mScoreWeight = createParameter("bacondScoreWeight", 0.0125);
+    Parameter mScoreWeight = createParameter("bacondScoreWeight", 0.0);
     Parameter mScoreWindow = createParameter("bacondScoreWindow", 1);
-    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.7);
+    Parameter mTrackcondUncertaintyWeight = createParameter("trackcondUncertaintyWeight", 0.65);
     Parameter mTrackcondUncertaintyWeightOrb = createParameter("trackcondUncertaintyWeightOrb", -1.0f);
     Parameter mTrackcondUncertaintyWeightDso = createParameter("trackcondUncertaintyWeightDso", -1.0f);
     Parameter mTrackcondUncertaintyWindow = createParameter("trackcondUncertaintyWindow", 1);
@@ -308,21 +361,25 @@ private:
     Parameter mBacondUncertaintyWindow = createParameter("bacondUncertaintyWindow", 1);
     Parameter mBacondForce = createParameter("bacondForce", 0);
     Parameter mTrackcondForce = createParameter("trackcondForce", 0);
-    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 100);
-    Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 50);
+    Parameter mBaMinimumOrbPoint = createParameter("bacondMinimumOrbPoint", 40);
+    Parameter mTrackingMinimumOrbPoint = createParameter("trackingMinimumOrbPoint", 85);
     Parameter mBaOrbRepeat = createParameter("baOrbRepeat", -1);
-    Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.51f);
-    Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 10);
+    Parameter mOrbInlierRatioThreshold = createParameter("orbInlierRatioThreshold", 0.6f);
+    Parameter mOrbInlierNumThreshold = createParameter("orbInlierNumThreshold", 30);
     Parameter mBacondTrackThresholdOrb = createParameter("bacondTrackThresholdOrb", -1.0);
     Parameter mBacondTrackThresholdDso = createParameter("bacondTrackThresholdDso", -1.0);
     Parameter mTrackcondFlowThreshold = createParameter("trackcondFlowThreshold", -1.0);
-
     Window<float> mBacondTrack;
+
+
+    /// PARAMETERS FOR THE DECISION BUT WITH WEIGHTS
+    Parameter mPoseEstimationDecisionWeights = createParameter("peDecisionWeights", "");
+    Parameter mBundleAdjustmentDecisionWeights = createParameter("baDecisionWeights", "");
 
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
 
     Parameter mOrbKeyframeReflimit = createParameter("orbKeyframeReflimit", 200);
-    Parameter mOrbKeyframeRatio = createParameter("orbKeyframeRatio", 0.83f);
+    Parameter mOrbKeyframeRatio = createParameter("orbKeyframeRatio", 0.94f);
 
     Parameter mDsoKeyframeWeight = createParameter("dsoKeyframeWeight", 1.0f);
     Parameter mDsoKeyframeResidualRatio = createParameter("dsoKeyframeResidualRatio", 2.0f);

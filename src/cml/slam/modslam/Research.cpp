@@ -40,6 +40,51 @@ bool Hybrid::poseEstimationDecision() {
         return !mShouldPreferDso;
     }
 
+
+    if (mPoseEstimationDecisionWeights.s() != "") {
+
+        std::string decisionWeightsString = mPoseEstimationDecisionWeights.s();
+        std::vector<std::string> decisionWeightsStringVector;
+        split(decisionWeightsString, decisionWeightsStringVector, ';');
+
+        std::vector<Pair<float, float>> decisionWeights;
+        for (auto &decisionWeightString : decisionWeightsStringVector) {
+            std::vector<std::string> decisionWeightStringVector;
+            split(decisionWeightString, decisionWeightStringVector, ':');
+            assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
+            decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
+        }
+
+
+        float sum = 0;
+        for (int i = 0; i < decisionWeights.size(); i++) {
+            float value = 0;
+            if (i == 0) {
+                value = indirectUncertainty;
+            }
+            if (i == 1) {
+                value = directUncertainty;
+            }
+            if (i == 2) {
+                value = mLastNumTrackedPoints;
+            }
+            if (i == 3) {
+                Vector2 refToFh = mLastDirectKeyFrame->getExposure().to(mLastFrame->getExposure()).getParameters();
+                value = abs(log(refToFh[0]));
+            }
+            if (i >= 4 && i <= 6) {
+                value = CML::sqrt(mLastPhotometricTrackingResidual.flowVector[i - 4]);
+            }
+            sum += decisionWeights[i].first * value + decisionWeights[i].second;
+        }
+
+        if (sum > 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     if (mTrackcondUncertaintyWeightOrb.f() > 0) {
 
         if (!std::isfinite(indirectUncertainty)) {
@@ -151,6 +196,11 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     mStatBAORBNum->addValue(orbScore);
     mStatBADSONum->addValue(dsoScore);
 
+    Vector6 v = mBADecisionCovariances.accumulate(mBacondUncertaintyWindow.i());
+
+    scalar_t indirectUncertainty = v.head<3>().norm();
+    scalar_t directUncertainty = v.tail<3>().norm();
+
     if (mBacondForce.i() == 1) {
         return BAINDIRECT;
     }
@@ -162,6 +212,49 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     if (mBacondForce.i() == 3) {
         if (mBaMode == BAINDIRECT) return BADIRECT;
         else return BAINDIRECT;
+    }
+
+    if (mBundleAdjustmentDecisionWeights.s() != "") {
+
+        std::string decisionWeightsString = mBundleAdjustmentDecisionWeights.s();
+        std::vector<std::string> decisionWeightsStringVector;
+        split(decisionWeightsString, decisionWeightsStringVector, ';');
+
+        std::vector<Pair<float, float>> decisionWeights;
+        for (auto &decisionWeightString : decisionWeightsStringVector) {
+            std::vector<std::string> decisionWeightStringVector;
+            split(decisionWeightString, decisionWeightStringVector, ':');
+            assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
+            decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
+        }
+
+
+        float sum = 0;
+        for (int i = 0; i < decisionWeights.size(); i++) {
+            float value = 0;
+            if (i == 0) {
+                value = indirectUncertainty;
+            }
+            if (i == 1) {
+                value = directUncertainty;
+            }
+            if (i == 2) {
+                value = orbScore;
+            }
+            if (i == 3) {
+                value = dsoScore;
+            }
+            if (i == 4) {
+                value = mLastPhotometricTrackingResidual.saturatedRatio();
+            }
+            sum += decisionWeights[i].first * value + decisionWeights[i].second;
+        }
+
+        if (sum > 0) {
+            return BADIRECT;
+        } else {
+            return BAINDIRECT;
+        }
     }
 
     if (mBaMinimumOrbPoint.i() >= 0 && mLastNumTrackedPoints < mBaMinimumOrbPoint.i()) {
@@ -207,11 +300,6 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     }
 
     if (mBacondUncertaintyWeight.f() > 0) {
-
-        Vector6 v = mBADecisionCovariances.accumulate(mBacondUncertaintyWindow.i());
-
-        scalar_t indirectUncertainty = v.head<3>().norm();
-        scalar_t directUncertainty = v.tail<3>().norm();
 
         if (!std::isfinite(indirectUncertainty)) {
             return BADIRECT;
