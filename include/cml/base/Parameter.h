@@ -10,7 +10,7 @@
 namespace CML {
 
     typedef enum {
-        PARAM_INTEGER, PARAM_FLOATING, PARAM_BOOLEAN
+        PARAM_INTEGER, PARAM_FLOATING, PARAM_BOOLEAN, PARAM_STRING
     } ParameterType;
 
     using ParameterFloatingType = scalar_t;
@@ -52,6 +52,11 @@ namespace CML {
             return get<bool>();
         }
 
+        EIGEN_STRONG_INLINE std::string s() {
+            assertThrow(mType == PARAM_STRING, "The type of the parameter is not string");
+            return get<std::string>();
+        }
+
         void set(float v) {
             assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
@@ -83,6 +88,15 @@ namespace CML {
             assertThrow(mType == PARAM_BOOLEAN, "The type of the parameter is not boolean");
             logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
             get<bool>() = v;
+            for (auto observer : mObservers) {
+                observer->onValueChange(*this);
+            }
+        }
+
+        void set(const std::string &v) {
+            assertThrow(mType == PARAM_STRING, "The type of the parameter is not string");
+            logger.important("Change the value of '" + mName + "' to " + v);
+            get<std::string>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
             }
@@ -150,6 +164,16 @@ namespace CML {
             mType = PARAM_BOOLEAN;
             mData = new bool[1];
             ((bool*)mData)[0] = value;
+            mObserversMutex = new Mutex;
+        }
+
+        Parameter(std::string name, std::string value) {
+            //mObservers.set_empty_key((Observer*)1);
+            //mObservers.set_deleted_key((Observer*)2);
+            mName = name;
+            mType = PARAM_STRING;
+            mData = new std::string[1];
+            ((std::string*)mData)[0] = value;
             mObserversMutex = new Mutex;
         }
 
