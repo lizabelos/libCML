@@ -1,5 +1,51 @@
 #include "Hybrid.h"
 
+scalar_t leakyRelu(scalar_t v) {
+    if (v < 0) {
+        return v * 0.1;
+    } else {
+        return v;
+    }
+}
+
+float fullyConnectedLayer(List<float> fullyConnectedX, Parameter &weight) {
+    std::string decisionWeightsString = weight.s();
+    std::vector<std::string> decisionWeightsStringVector;
+    split(decisionWeightsString, decisionWeightsStringVector, ';');
+
+    std::vector<Pair<float, float>> decisionWeights;
+    for (auto &decisionWeightString : decisionWeightsStringVector) {
+        std::vector<std::string> decisionWeightStringVector;
+        split(decisionWeightString, decisionWeightStringVector, ':');
+        assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
+        decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
+    }
+
+    const int numFullyConnected = 2;
+    int decisionWeightI = 0;
+    for (int fullyConnectedId = 0; fullyConnectedId < numFullyConnected; fullyConnectedId++) {
+        int numInput = fullyConnectedX.size();
+        int numOutput = fullyConnectedX.size();
+        if (fullyConnectedId == numFullyConnected - 1) {
+            numOutput = 1;
+        }
+        List<float> fullyConnectedResult;
+        fullyConnectedResult.reserve(numOutput);
+        for (int outputId = 0; outputId < numOutput; outputId++) {
+            scalar_t sum = 0;
+            for (int inputId = 0; inputId < numInput; inputId++) {
+                sum += decisionWeights[decisionWeightI].first * fullyConnectedX[inputId] + decisionWeights[decisionWeightI].second;
+                decisionWeightI++;
+            }
+            fullyConnectedResult.emplace_back(leakyRelu(sum));
+        }
+        fullyConnectedX = fullyConnectedResult;
+    }
+
+    scalar_t sum = fullyConnectedX[0];
+    return sum;
+}
+
 bool Hybrid::poseEstimationDecision() {
 
     // true : should prefer dso
@@ -43,42 +89,22 @@ bool Hybrid::poseEstimationDecision() {
 
     if (mPoseEstimationDecisionWeights.s() != "") {
 
-        std::string decisionWeightsString = mPoseEstimationDecisionWeights.s();
-        std::vector<std::string> decisionWeightsStringVector;
-        split(decisionWeightsString, decisionWeightsStringVector, ';');
-
-        std::vector<Pair<float, float>> decisionWeights;
-        for (auto &decisionWeightString : decisionWeightsStringVector) {
-            std::vector<std::string> decisionWeightStringVector;
-            split(decisionWeightString, decisionWeightStringVector, ':');
-            assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
-            decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
+        List<float> fullyConnectedX;
+        fullyConnectedX.emplace_back(indirectUncertainty);
+        fullyConnectedX.emplace_back(directUncertainty);
+        fullyConnectedX.emplace_back(mLastNumTrackedPoints);
+        {
+            Vector2 refToFh = mLastDirectKeyFrame->getExposure().to(mLastFrame->getExposure()).getParameters();
+            scalar_t value = abs(log(refToFh[0]));
+            fullyConnectedX.emplace_back(value);
         }
+        fullyConnectedX.emplace_back(CML::sqrt(mLastPhotometricTrackingResidual.flowVector[0]));
+        fullyConnectedX.emplace_back(CML::sqrt(mLastPhotometricTrackingResidual.flowVector[1]));
+        fullyConnectedX.emplace_back(CML::sqrt(mLastPhotometricTrackingResidual.flowVector[2]));
 
+        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mPoseEstimationDecisionWeights);
 
-        float sum = 0;
-        for (int i = 0; i < decisionWeights.size(); i++) {
-            float value = 0;
-            if (i == 0) {
-                value = indirectUncertainty;
-            }
-            if (i == 1) {
-                value = directUncertainty;
-            }
-            if (i == 2) {
-                value = mLastNumTrackedPoints;
-            }
-            if (i == 3) {
-                Vector2 refToFh = mLastDirectKeyFrame->getExposure().to(mLastFrame->getExposure()).getParameters();
-                value = abs(log(refToFh[0]));
-            }
-            if (i >= 4 && i <= 6) {
-                value = CML::sqrt(mLastPhotometricTrackingResidual.flowVector[i - 4]);
-            }
-            sum += decisionWeights[i].first * value + decisionWeights[i].second;
-        }
-
-        if (sum > 0) {
+        if (sum > 0.5) {
             return false;
         } else {
             return true;
@@ -216,41 +242,16 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
 
     if (mBundleAdjustmentDecisionWeights.s() != "") {
 
-        std::string decisionWeightsString = mBundleAdjustmentDecisionWeights.s();
-        std::vector<std::string> decisionWeightsStringVector;
-        split(decisionWeightsString, decisionWeightsStringVector, ';');
+        List<float> fullyConnectedX;
+        fullyConnectedX.emplace_back(indirectUncertainty);
+        fullyConnectedX.emplace_back(directUncertainty);
+        fullyConnectedX.emplace_back(orbScore);
+        fullyConnectedX.emplace_back(dsoScore);
+        fullyConnectedX.emplace_back(mLastPhotometricTrackingResidual.saturatedRatio());
 
-        std::vector<Pair<float, float>> decisionWeights;
-        for (auto &decisionWeightString : decisionWeightsStringVector) {
-            std::vector<std::string> decisionWeightStringVector;
-            split(decisionWeightString, decisionWeightStringVector, ':');
-            assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
-            decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
-        }
+        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mBundleAdjustmentDecisionWeights);
 
-
-        float sum = 0;
-        for (int i = 0; i < decisionWeights.size(); i++) {
-            float value = 0;
-            if (i == 0) {
-                value = indirectUncertainty;
-            }
-            if (i == 1) {
-                value = directUncertainty;
-            }
-            if (i == 2) {
-                value = orbScore;
-            }
-            if (i == 3) {
-                value = dsoScore;
-            }
-            if (i == 4) {
-                value = mLastPhotometricTrackingResidual.saturatedRatio();
-            }
-            sum += decisionWeights[i].first * value + decisionWeights[i].second;
-        }
-
-        if (sum > 0) {
+        if (sum > 0.5) {
             return BADIRECT;
         } else {
             return BAINDIRECT;
