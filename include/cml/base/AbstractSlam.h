@@ -114,6 +114,10 @@ namespace CML {
                         parameter.set(getConfiguration()[name].as<bool>());
                         mUnusedParameters.erase(name);
                         break;
+                    case PARAM_STRING:
+                        parameter.set(getConfiguration()[name].as<std::string>());
+                        mUnusedParameters.erase(name);
+                        break;
                     default:
                         throw std::runtime_error("Invalid parameter type : " + name);
                 }
