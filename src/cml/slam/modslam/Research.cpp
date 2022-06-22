@@ -16,7 +16,7 @@ float fullyConnectedLayer(List<float> fullyConnectedX, Parameter &weight) {
     std::vector<Pair<float, float>> decisionWeights;
     for (auto &decisionWeightString : decisionWeightsStringVector) {
         std::vector<std::string> decisionWeightStringVector;
-        split(decisionWeightString, decisionWeightStringVector, ':');
+        split(decisionWeightString, decisionWeightStringVector, '|');
         assertThrow(decisionWeightStringVector.size() == 2, "Invalid decision weight string");
         decisionWeights.emplace_back(std::stof(decisionWeightStringVector[0]), std::stof(decisionWeightStringVector[1]));
     }

@@ -373,8 +373,8 @@ private:
 
 
     /// PARAMETERS FOR THE DECISION BUT WITH WEIGHTS
-    Parameter mPoseEstimationDecisionWeights = createParameter("peDecisionWeights", "");
-    Parameter mBundleAdjustmentDecisionWeights = createParameter("baDecisionWeights", "");
+    Parameter mPoseEstimationDecisionWeights = createParameter("peDecisionWeights", std::string());
+    Parameter mBundleAdjustmentDecisionWeights = createParameter("baDecisionWeights", std::string());
 
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
 
