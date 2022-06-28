@@ -29,7 +29,7 @@ def intrange(a, b, c = 1):
 def floatrange(a, b, c = 1.0):
     return [float(x) for x in np.arange(a,b,c)]
 
-def system(command, comment="", disable_openmp=True):
+def system(command, comment="", disable_openmp=True, time_limit=None):
     my_env = os.environ.copy()
     if disable_openmp:
         my_env["OMP_NUM_THREADS"]="1"
@@ -48,6 +48,10 @@ def system(command, comment="", disable_openmp=True):
 
         lines = []
         while p.poll() is None:
+            if time_limit is not None:
+                if time.time() - start_time > time_limit:
+                    p.kill()
+                    break
             line = p.stdout.readline().decode("utf-8")
             lines.append(line)
             if "frame " in line and not isSLAM:

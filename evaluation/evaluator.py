@@ -232,11 +232,11 @@ def fromslam(context):
     return res
     #return SysEvoEvaluator.fromslam(context)
 
-def evaluateOn(context, dataset):
+def evaluateOn(context, dataset, time_limit=None):
     r = getResultFromJson(context.getHash(), context.getconfig(), dataset.name(), contextToUpdate=context)
     if r is not None:
         return r
-    context.run(dataset)
+    context.run(dataset, time_limit=time_limit)
     evaluator = fromslam(context)
     ate = evaluator.ape_rmse()
     return ate

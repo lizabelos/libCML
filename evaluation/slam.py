@@ -32,11 +32,11 @@ class SLAM(ABC):
             self.tmp = tempfile.mkdtemp()
         return self.tmp
 
-    def run(self, d, onfinish=None):
+    def run(self, d, onfinish=None, time_limit=None):
         self.d = d
 
         start = time.time()
-        self.start(d)
+        self.start(d, time_limit=time_limit)
         stop = time.time()
         self.e = (stop - start)
 
@@ -110,7 +110,7 @@ class ModSLAM(SLAM):
         self.config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
 
-    def start(self, d):
+    def start(self, d, time_limit=None):
         output = self.outputdir()
 
         config_file, config_filename = tempfile.mkstemp()
@@ -128,7 +128,7 @@ class ModSLAM(SLAM):
 
         # print(command)
 
-        out, err, tim = system(command, comment=d.name())
+        out, err, tim = system(command, comment=d.name(), time_limit=time_limit)
         self.tim = tim
         self.processLogForStats(out)
 
