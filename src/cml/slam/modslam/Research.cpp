@@ -90,9 +90,9 @@ bool Hybrid::poseEstimationDecision() {
     if (mPoseEstimationDecisionWeights.s() != "") {
 
         List<float> fullyConnectedX;
-        fullyConnectedX.emplace_back(indirectUncertainty);
-        fullyConnectedX.emplace_back(directUncertainty);
-        fullyConnectedX.emplace_back(mLastNumTrackedPoints);
+        fullyConnectedX.emplace_back(indirectUncertainty / (indirectUncertainty + directUncertainty));
+        fullyConnectedX.emplace_back(directUncertainty / (indirectUncertainty + directUncertainty));
+        fullyConnectedX.emplace_back((float)mLastNumTrackedPoints / (float)mNumOrbCorner.i());
         {
             Vector2 refToFh = mLastDirectKeyFrame->getExposure().to(mLastFrame->getExposure()).getParameters();
             scalar_t value = abs(log(refToFh[0]));
@@ -243,10 +243,10 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
     if (mBundleAdjustmentDecisionWeights.s() != "") {
 
         List<float> fullyConnectedX;
-        fullyConnectedX.emplace_back(indirectUncertainty);
-        fullyConnectedX.emplace_back(directUncertainty);
-        fullyConnectedX.emplace_back(orbScore);
-        fullyConnectedX.emplace_back(dsoScore);
+        fullyConnectedX.emplace_back(indirectUncertainty / (indirectUncertainty + directUncertainty));
+        fullyConnectedX.emplace_back(directUncertainty / (indirectUncertainty + directUncertainty));
+        fullyConnectedX.emplace_back((float)orbScore / (float)mNumOrbCorner.i());
+        fullyConnectedX.emplace_back((float)dsoScore / (float)8000);
         fullyConnectedX.emplace_back(mLastPhotometricTrackingResidual.saturatedRatio());
 
         scalar_t sum = fullyConnectedLayer(fullyConnectedX, mBundleAdjustmentDecisionWeights);
