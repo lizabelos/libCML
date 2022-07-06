@@ -97,6 +97,30 @@ namespace CML {
 
     };
 
+    class StatisticTimer : public Statistic {
+        friend class AbstractFunction;
+
+    public:
+        void start() {
+            mTimer.start();
+        }
+
+        void stop() {
+            mTimer.stop();
+            addValue(mTimer.getValue());
+        }
+
+    protected:
+        StatisticTimer(Map &map, std::string name) : Statistic(map, STATISTIC_NORMAL, std::move(name)) {
+        }
+
+        ~StatisticTimer() {
+        }
+
+    private:
+        Timer mTimer;
+    };
+
     using PStatistic = Ptr<Statistic, NonNullable>;
 
     class StatisticsSheet : public Statistic::Observer, public Map::Observer {
