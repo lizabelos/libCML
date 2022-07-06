@@ -50,13 +50,13 @@ Q_DECLARE_METATYPE(scalar_t)
 #if !CML_IS_ANDROID
 Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
 
-#if CML_HAVE_AVFORMAT
 #if CML_ENABLE_GUI
     if (path == "cam" || path == "webcam" || path == "camera") {
         return new QtWebcamCapture();
     }
 #endif
 
+#if CML_HAVE_AVFORMAT
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
         return capture;
@@ -405,6 +405,7 @@ int main(int argc, char *argv[])
             slam->getMap().exportResults(resultPath + ".kitti.txt", MAP_RESULT_FORMAT_KITTI, false, capture->isReverse());
             slam->getMap().exportResults(resultPath + ".gt.tum.txt", MAP_RESULT_FORMAT_TUM, true, capture->isReverse());
             slam->getMap().exportResults(resultPath + ".gt.kitti.txt", MAP_RESULT_FORMAT_KITTI, true, capture->isReverse());
+            slam->getMap().exportResults(resultPath + ".all", CML::MAP_RESULT_FORMAT_CSV, false, capture->isReverse());
         }
 
     }

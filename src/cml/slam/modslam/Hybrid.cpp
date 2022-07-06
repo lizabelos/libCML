@@ -174,10 +174,14 @@ void Hybrid::processFrame(PFrame currentFrame) {
 
         if (!mEnableDirect.b()) {
             mTrackingOk = false;
+            mIndirectPETimer->start();
             trackWithOrbAndDsoRefinement(currentFrame);
+            mIndirectPETimer->stop();
         } else if (!mEnableIndirect.b()) {
             mTrackingOk = false;
+            mDirectPETimer->start();
             trackWithDso(currentFrame);
+            mDirectPETimer->stop();
         } else {
 
             mShouldPreferDso = poseEstimationDecision();
@@ -187,13 +191,17 @@ void Hybrid::processFrame(PFrame currentFrame) {
                 mBacondTrack.add(0);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(0);
+                mDirectPETimer->start();
                 trackWithDso(currentFrame);
+                mDirectPETimer->stop();
             } else {
                 logger.info("Using Orb with Dso Refinement");
                 mBacondTrack.add(1);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(1);
+                mIndirectPETimer->start();
                 trackWithOrbAndDsoRefinement(currentFrame);
+                mIndirectPETimer->stop();
             }
 
         }
@@ -233,15 +241,19 @@ void Hybrid::processFrame(PFrame currentFrame) {
                     mBaMode = bundleAdjustmentDecision(needIndirectKF, needDirectKF);
 
                     if (mBaMode == BADIRECT) {
+                        mDirectBATimer->start();
                         mStatBADec->addValue(0);
                         logger.important("Ba mode Direct");
                         directPostprocess(currentFrame, needDirectKF);
                         indirectPostprocess(currentFrame, needIndirectKF);
+                        mDirectBATimer->stop();
                     } else {
+                        mIndirectBATimer->start();
                         mStatBADec->addValue(1);
                         logger.important("Ba mode Indirect");
                         indirectPostprocess(currentFrame, needIndirectKF);
                         directPostprocess(currentFrame, needDirectKF);
+                        mIndirectBATimer->stop();
                     }
 
                 }

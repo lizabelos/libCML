@@ -404,6 +404,11 @@ private:
     Ptr<Statistic, NonNullable> mStatTrackDec = createStatistic("Tracking Decision");
     Ptr<Statistic, NonNullable> mStatBADec = createStatistic("Bundle Adjustment Decision");
 
+    Ptr<StatisticTimer, NonNullable> mIndirectPETimer = createStatisticTimer("Indirect PE Timer");
+    Ptr<StatisticTimer, NonNullable> mDirectPETimer = createStatisticTimer("Direct PE Timer");
+    Ptr<StatisticTimer, NonNullable> mIndirectBATimer = createStatisticTimer("Indirect BA Timer");
+    Ptr<StatisticTimer, NonNullable> mDirectBATimer = createStatisticTimer("Direct BA Timer");
+    Ptr<StatisticTimer, NonNullable> mTotalTimer = createStatisticTimer("Total Timer");
 
 };
 

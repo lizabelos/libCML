@@ -229,6 +229,9 @@ CML::PFrame CML::Map::getLastFrame() {
 }
 
 CML::PFrame CML::Map::getLastFrame(int n) {
+    if (n >= mFrames.size()) {
+        return *(mFrames.rbegin());
+    }
     LockGuard lg(mFramesMutex);
     auto it = mFrames.begin();
     std::advance(it, n);
@@ -620,6 +623,73 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
             ateKeyframesRMSE = ateKeyframesRMSE / (scalar_t)ateKeyframesN;
             ateKeyframesRMSE = sqrt(ateKeyframesRMSE);
             logger.info("ATE Key RMSE : " + std::to_string(ateKeyframesRMSE));
+        }
+
+    }
+
+    if (format == MAP_RESULT_FORMAT_CSV) {
+
+        std::string posePath = path + ".pose.csv";
+        std::string pointPath = path + ".point.csv";
+        std::string indirectPath = path + ".indirect.csv";
+        std::string directPath = path + ".direct.csv";
+
+        std::ofstream poseFile;
+        poseFile.open(posePath);
+        poseFile << std::setprecision(15);
+
+        std::ofstream pointFile;
+        pointFile.open(pointPath);
+        pointFile << std::setprecision(15);
+
+        std::ofstream indirectFile;
+        indirectFile.open(indirectPath);
+        indirectFile << std::setprecision(15);
+
+        std::ofstream directFile;
+        directFile.open(directPath);
+        directFile << std::setprecision(15);
+
+        for (auto frame : getFrames()) {
+
+            poseFile << frame->getId() << ";";
+
+            poseFile << frame->getCaptureFrame().getEvaluationTimestamp() <<
+                 ";" << frame->getCamera().getTranslation()(0) <<
+                 ";" << frame->getCamera().getTranslation()(1) <<
+                 ";" << frame->getCamera().getTranslation()(2) <<
+                 ";" << frame->getCamera().getQuaternion().x() <<
+                 ";" << frame->getCamera().getQuaternion().y() <<
+                 ";" << frame->getCamera().getQuaternion().z() <<
+                 ";" << frame->getCamera().getQuaternion().w() << "\n";
+
+        }
+
+        for (auto point : getMapPoints()) {
+            pointFile << point->getId() << ";";
+            pointFile << point->getWorldCoordinate().absolute()(0) << ";";
+            pointFile << point->getWorldCoordinate().absolute()(1) << ";";
+            pointFile << point->getWorldCoordinate().absolute()(2) << ";";
+            pointFile << point->getUncertainty() << ";";
+            pointFile << point->getColor()(0) << ";";
+            pointFile << point->getColor()(1) << ";";
+            pointFile << point->getColor()(2) << "\n";
+        }
+
+        for (auto frame : getFrames()) {
+            for (auto point : frame->getMapPoints()) {
+                indirectFile << frame->getId() << ";";
+                indirectFile << point.second->getId() << ";";
+                indirectFile << frame->getFeaturePoint(point.first).x() << ";";
+                indirectFile << frame->getFeaturePoint(point.first).y() << ";";
+            }
+        }
+
+        for (auto frame : getFrames()) {
+            for (auto point : frame->getMapPoints()) {
+                directFile << frame->getId() << ";";
+                directFile << point.second->getId() << ";";
+            }
         }
 
     }

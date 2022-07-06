@@ -24,7 +24,7 @@ namespace CML {
 #define CML_MAP_FRAME_BUFFER_SIZE 40696
 
     typedef enum MapResultFormat {
-        MAP_RESULT_FORMAT_TUM, MAP_RESULT_FORMAT_KITTI
+        MAP_RESULT_FORMAT_TUM, MAP_RESULT_FORMAT_KITTI, MAP_RESULT_FORMAT_CSV
     } MapResultFormat;
 
     class Map : private Frame::Observer, private MapPoint::Observer {
