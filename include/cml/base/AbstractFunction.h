@@ -125,6 +125,12 @@ namespace CML {
             return statistic;
         }
 
+        Ptr<StatisticTimer, NonNullable> createStatisticTimer(std::string name) {
+            Ptr<StatisticTimer, NonNullable> statistic = new StatisticTimer(getMap(), name);
+            mStatistics.emplace_back(statistic.p());
+            return statistic;
+        }
+
         List<PStatistic> getStatistics() {
             return mStatistics;
         }
