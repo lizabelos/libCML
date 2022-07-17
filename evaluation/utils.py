@@ -7,6 +7,7 @@ import os
 import numpy as np
 import threading
 import time
+from threading import Timer
 
 currentStatus = {}
 
@@ -45,6 +46,7 @@ def system(command, comment="", disable_openmp=True, time_limit=None):
         isSLAM = False
         # print("#" + str(l) + " ==> (" + mode + ")" + outputPath)
         p = Popen(l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=wd, env=my_env)
+        timer = Timer(time_limit, p.kill)
 
         lines = []
         while p.poll() is None:
@@ -61,6 +63,7 @@ def system(command, comment="", disable_openmp=True, time_limit=None):
                 line = comment + "," + line[line.find("(")+1:line.find(")")]
                 currentStatus[threading.get_ident()] = line
 
+        timer.cancel()
         end_time = time.time()
 
         return lines, 0, end_time - start_time
