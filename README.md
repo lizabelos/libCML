@@ -19,6 +19,11 @@ If you are using this work, please cite :
 
 ## Downloads
 
+**Information** : Hyper-threading seems to have a very high impact on the performance. Disable it on the BIOS via : 
+```bash
+echo off > /sys/devices/system/cpu/smt/control
+```
+
 ### Windows
 
 https://github.com/belosthomas/libCML/releases
