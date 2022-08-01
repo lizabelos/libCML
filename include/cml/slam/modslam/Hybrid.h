@@ -319,6 +319,9 @@ private:
     BaMode mBaMode = BADIRECT; // BADIRECT for the initialization
     bool mShouldPreferDso = false;
 
+    float mLastOrbTrackingInliersRatio = 0;
+    int mLastHaveSucceedCVMM = 0;
+
     Mutex mFrameToFreeMutex;
     HashMap<PFrame, int> mFrameToFree;
 
@@ -373,8 +376,10 @@ private:
 
 
     /// PARAMETERS FOR THE DECISION BUT WITH WEIGHTS
-    Parameter mPoseEstimationDecisionWeights = createParameter("peDecisionWeights", std::string());
-    Parameter mBundleAdjustmentDecisionWeights = createParameter("baDecisionWeights", std::string());
+    Parameter mPoseEstimationDecisionFcWeights = createParameter("peDecisionWeightsFc", std::string());
+    Parameter mBundleAdjustmentDecisionFcWeights = createParameter("baDecisionWeightsFc", std::string());
+    Parameter mPoseEstimationDecisionDtWeights = createParameter("peDecisionWeightsDt", std::string());
+    Parameter mBundleAdjustmentDecisionDtWeights = createParameter("baDecisionWeightsDt", std::string());
 
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
 

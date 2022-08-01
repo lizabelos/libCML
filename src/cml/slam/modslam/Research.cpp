@@ -46,6 +46,44 @@ float fullyConnectedLayer(List<float> fullyConnectedX, Parameter &weight) {
     return sum;
 }
 
+float decisionTree(List<float> decisionTreeX, Parameter &weight) {
+
+    std::string decisionWeightsString = weight.s();
+    std::vector<std::string> decisionWeightsStringVector;
+    split(decisionWeightsString, decisionWeightsStringVector, ';');
+    List<float> decisionWeights;
+    for (auto &decisionWeightString : decisionWeightsStringVector) {
+        decisionWeights.emplace_back(std::stof(decisionWeightString));
+    }
+    int decisionWeightI = 0;
+
+
+    float accept = 0, reject = 0;
+    for (int i = 0; i < decisionTreeX.size(); i = i + 2) {
+        if (decisionWeightI + 1 >= decisionWeights.size()) {
+            throw std::runtime_error("Invalid decision weight string, wanted=" + std::to_string(decisionWeights.size()) + ", got=" + std::to_string(decisionWeightI));
+        }
+        if (decisionTreeX[i] > decisionTreeX[i + 1] * decisionWeights[decisionWeightI]) {
+            decisionWeightI++;
+            accept = accept + decisionWeights[decisionWeightI];
+        } else {
+            decisionWeightI++;
+            reject = reject + decisionWeights[decisionWeightI];
+        }
+        decisionWeightI++;
+    }
+
+    if (decisionWeightI != decisionWeights.size()) {
+        throw std::runtime_error("Invalid decision weight string, wanted=" + std::to_string(decisionWeights.size()) + ", got=" + std::to_string(decisionWeightI));
+    }
+
+    if (accept > reject) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 bool Hybrid::poseEstimationDecision() {
 
     // true : should prefer dso
@@ -86,8 +124,34 @@ bool Hybrid::poseEstimationDecision() {
         return !mShouldPreferDso;
     }
 
+    if (mPoseEstimationDecisionDtWeights.s() != "") {
 
-    if (mPoseEstimationDecisionWeights.s() != "") {
+        List<float> decisionX;
+
+        decisionX.emplace_back(indirectUncertainty);
+        decisionX.emplace_back(directUncertainty);
+        decisionX.emplace_back(mLastNumTrackedPoints);
+        decisionX.emplace_back(mLastPhotometricTrackingResidual.numRobust[0] / 8.0f);
+        decisionX.emplace_back(mBacondSaturatedRatio.f());
+        decisionX.emplace_back(0.15f);
+        decisionX.emplace_back(mLastOrbTrackingInliersRatio);
+        decisionX.emplace_back(0.5f);
+        decisionX.emplace_back(mLastHaveSucceedCVMM);
+        decisionX.emplace_back(0.5f);
+        decisionX.emplace_back(getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT).size());
+        decisionX.emplace_back(100);
+
+        float decision = decisionTree(decisionX, mPoseEstimationDecisionDtWeights);
+
+        if (decision > 0.5) {
+            return false;
+        } else {
+            return true;
+        }
+
+    }
+
+    if (mPoseEstimationDecisionFcWeights.s() != "") {
 
         List<float> fullyConnectedX;
         fullyConnectedX.emplace_back(indirectUncertainty / (indirectUncertainty + directUncertainty));
@@ -102,7 +166,7 @@ bool Hybrid::poseEstimationDecision() {
         fullyConnectedX.emplace_back(CML::sqrt(mLastPhotometricTrackingResidual.flowVector[1]));
         fullyConnectedX.emplace_back(CML::sqrt(mLastPhotometricTrackingResidual.flowVector[2]));
 
-        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mPoseEstimationDecisionWeights);
+        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mPoseEstimationDecisionFcWeights);
 
         if (sum > 0.5) {
             return false;
@@ -240,7 +304,36 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         else return BAINDIRECT;
     }
 
-    if (mBundleAdjustmentDecisionWeights.s() != "") {
+    if (mBundleAdjustmentDecisionDtWeights.s() != "") {
+
+        List<float> decisionX;
+
+        decisionX.emplace_back(indirectUncertainty);
+        decisionX.emplace_back(directUncertainty);
+        decisionX.emplace_back(orbScore);
+        decisionX.emplace_back(dsoScore / 8.0f);
+        decisionX.emplace_back(mLastNumTrackedPoints);
+        decisionX.emplace_back(mLastPhotometricTrackingResidual.numRobust[0] / 8.0f);
+        decisionX.emplace_back(mBacondSaturatedRatio.f());
+        decisionX.emplace_back(0.15f);
+        decisionX.emplace_back(mLastOrbTrackingInliersRatio);
+        decisionX.emplace_back(0.5f);
+        decisionX.emplace_back(mLastHaveSucceedCVMM);
+        decisionX.emplace_back(0.5f);
+        decisionX.emplace_back(getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT).size());
+        decisionX.emplace_back(100);
+
+        float decision = decisionTree(decisionX, mBundleAdjustmentDecisionDtWeights);
+
+        if (decision > 0.5) {
+            return BADIRECT;
+        } else {
+            return BAINDIRECT;
+        }
+
+    }
+
+    if (mBundleAdjustmentDecisionFcWeights.s() != "") {
 
         List<float> fullyConnectedX;
         fullyConnectedX.emplace_back(indirectUncertainty / (indirectUncertainty + directUncertainty));
@@ -249,7 +342,7 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
         fullyConnectedX.emplace_back((float)dsoScore / (float)8000);
         fullyConnectedX.emplace_back(mLastPhotometricTrackingResidual.saturatedRatio());
 
-        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mBundleAdjustmentDecisionWeights);
+        scalar_t sum = fullyConnectedLayer(fullyConnectedX, mBundleAdjustmentDecisionFcWeights);
 
         if (sum > 0.5) {
             return BADIRECT;
