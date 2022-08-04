@@ -81,6 +81,10 @@ namespace CML {
             return mId;
         }
 
+        inline uint64_t getHash() const {
+            return mHash;
+        }
+
         /*EIGEN_STRONG_INLINE MapPointType getType() const {
             return (MapPointType)((mOptions >> 0) & (uint8_t)1);
         }*/
@@ -299,7 +303,7 @@ namespace CML {
 
         mutable Mutex mApparitionsMutex;
 #if CML_MAPPOINT_STOREINDIRECTFRAME || CML_MAPPOINT_STOREDIRECTFRAME
-        DenseHashMap<OptPFrame, uint8_t> mApparitions;
+        HashMap<OptPFrame, uint8_t> mApparitions;
 #endif
         LinkedList<Ptr<Observer, NonNullable>> mObservers;
 #if CML_MAPPOINT_STOREPATCH
@@ -312,7 +316,8 @@ namespace CML {
 
         scalar_t mReferenceInverseDepth = 0;
 
-        size_t mId; // 8 bytes
+        size_t mId;
+        uint64_t mHash;
 
         PFrame mReference;
         OptPFrame mLastSeen;
@@ -332,6 +337,15 @@ namespace CML {
         uint8_t mOptions; // 1 bytes
 
     };
+
+    inline size_t Hasher::operator()(PPoint pPoint) const {
+        return reinterpret_cast<size_t>(pPoint.p());
+        //return pPoint->getHash();
+    }
+
+    inline bool CML::Comparator::operator() (PPoint pPointA, PPoint pPointB) const {
+        return pPointA->getId() > pPointB->getId();
+    }
 
 
 }

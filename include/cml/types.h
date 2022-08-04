@@ -14,6 +14,10 @@
 #include <zip.h>
 #endif
 
+#ifdef ANDROID
+#include <QFile>
+#endif
+
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
 #endif
@@ -25,11 +29,7 @@
 #include <Eigen/SparseQR>
 
 // #define SPP_DEFAULT_ALLOCATOR Eigen::aligned_allocator
-#include <sparsepp/spp.h>
-#if CML_USE_GOOGLE_HASH
-#include <sparsehash/dense_hash_map>
-#include <sparsehash/dense_hash_set>
-#endif
+#include <parallel_hashmap/phmap.h>
 
 #include "types/Optional.h"
 #include "utils/Logger.h"
@@ -86,7 +86,8 @@ namespace CML {
         }
     }
 
-    inline std::string readWholeBinaryFile(const std::string &filename) {
+#ifndef ANDROID
+    inline std::string readWholeBinaryFile(const std::string &filename, bool isResource) {
         std::ifstream file(filename, std::ios::in | std::ios::binary);
         if (!file.is_open()) {
             throw std::runtime_error("Could not open file: " + filename);
@@ -101,7 +102,7 @@ namespace CML {
     }
 
 #if CML_HAVE_LIBZIP
-    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry) {
+    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry, bool isResource) {
         int ziperror;
         zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
         zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
@@ -119,6 +120,43 @@ namespace CML {
         delete []data;
         return stream.str();
     }
+#endif
+#else
+    inline std::string readWholeBinaryFile(std::string filename, bool isResource) {
+        // Read the file using QFile
+        if (isResource) {
+            filename = ":/" + filename;
+        }
+        QFile file(filename.c_str());
+        if (!file.open(QIODevice::ReadOnly)) {
+            throw std::runtime_error("Could not open file: " + filename);
+        }
+        QByteArray data = file.readAll();
+        return std::string(data.constData(), data.size());
+    }
+
+#if CML_HAVE_LIBZIP
+    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry, bool isResource) {
+        std::string zipContent = readWholeBinaryFile(filename, isResource);
+        zip_error_t ziperror;
+        zip_source_t *src = zip_source_buffer_create(zipContent.c_str(), zipContent.size(), 1, &ziperror);
+        zip_t *zipArchive = zip_open_from_source(src, 0, &ziperror);
+        zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
+        if (!zipFile) {
+            throw std::runtime_error("Could not open file: " + entry);
+        }
+        std::stringstream stream;
+        char *data = new char[40000];
+        while (true) {
+            size_t n = zip_fread(zipFile, data, 40000);
+            if (n == 0) break;
+            stream << std::string(data, n);
+        }
+        zip_fclose(zipFile);
+        delete []data;
+        return stream.str();
+    }
+#endif
 #endif
 
     inline size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
@@ -232,16 +270,22 @@ namespace CML {
             using Set = std::set<T, C, Eigen::aligned_allocator<T>>;
 
     template <typename T, typename U, typename H = Hasher>
-            using HashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
+            using HashMap = phmap::flat_hash_map<T, U, H>;
 
-#if CML_USE_GOOGLE_HASH
-    template <typename T, typename U, typename H = std::hash<T>>
-        using DenseHashMap = google::dense_hash_map<T, U, H, std::equal_to<T>>;
-#else
     template <typename T, typename U, typename H = Hasher>
-        using DenseHashMap = spp::sparse_hash_map<T, U, H, std::equal_to<T>>;
-#endif
+        using DenseHashMap = phmap::flat_hash_map<T, U, H>;
 
+
+    class DummyMutex {
+    public:
+        void lock() {}
+        void unlock() {}
+    };
+
+    class DummyLockGuard {
+    public:
+        DummyLockGuard(DummyMutex&) {}
+    };
 
     template <typename T>
             using Atomic = std::atomic<T>;
@@ -1007,11 +1051,15 @@ namespace CML {
 
     };
 
+    inline uint64_t integerHashing(uint64_t a) {
+        return (a ^ 14695981039346656037ULL) * 1099511628211ULL;
+    }
+
     class Hasher
     {
     public:
-        size_t operator()(PFrame pFrame) const;
-        size_t operator()(PPoint pPoint) const;
+        inline size_t operator()(PFrame pFrame) const;
+        inline size_t operator()(PPoint pPoint) const;
         inline size_t operator()(const DeterministicallyHashable &obj) const {
             return obj.hash();
         }
@@ -1028,8 +1076,8 @@ namespace CML {
 
     class Comparator {
     public:
-        bool operator() (PPoint pPointA, PPoint pPointB) const;
-        bool operator() (PFrame pFrameA, PFrame pFrameB) const;
+        inline bool operator() (PPoint pPointA, PPoint pPointB) const;
+        inline bool operator() (PFrame pFrameA, PFrame pFrameB) const;
         inline size_t operator()(const DeterministicallyHashable &objA, const DeterministicallyHashable &objB) const {
             return objA.hash() > objB.hash();
         }

@@ -67,14 +67,7 @@ namespace CML {
         };
 
         Frame(size_t id, Ptr<CaptureImage, NonNullable> captureFrame, scalar_t *cameraCenter) : mId(id), mCaptureFrame(captureFrame), mCalibration(captureFrame->getInternalCalibration()), mExposure(captureFrame->getExposureTime()), mCameraCenter(cameraCenter) {
-
-#if CML_USE_GOOGLE_HASH
-            mIndirectCovisibility.set_empty_key(OptPFrame((Frame*)0));
-            mIndirectCovisibility.set_deleted_key(OptPFrame((Frame*)1));
-
-            mDirectCovisibility.set_empty_key(OptPFrame((Frame*)0));
-            mDirectCovisibility.set_deleted_key(OptPFrame((Frame*)1));
-#endif
+            mHash = integerHashing(mId);
 
             for (int i = 0; i < FRAME_GROUP_MAXSIZE; i++) {
                 mGroups[i] = false;
@@ -96,6 +89,10 @@ namespace CML {
 
         inline size_t getId() const {
             return mId;
+        }
+
+        inline uint64_t getHash() const {
+            return mHash;
         }
 
         inline void setGroupId(int group, size_t id) {
@@ -515,12 +512,12 @@ namespace CML {
             }
         }
 
-        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int> getIndirectCovisibilities() {
+        EIGEN_STRONG_INLINE HashMap<OptPFrame, int> getIndirectCovisibilities() {
             LockGuard lg(mIndirectCovisibilityMutex);
             return mIndirectCovisibility;
         }
 
-        EIGEN_STRONG_INLINE DenseHashMap<OptPFrame, int> getDirectCovisibilities() {
+        EIGEN_STRONG_INLINE HashMap<OptPFrame, int> getDirectCovisibilities() {
             LockGuard lg(mDirectCovisibilityMutex);
             return mDirectCovisibility;
         }
@@ -531,6 +528,7 @@ namespace CML {
 
     private:
         size_t mId;
+        uint64_t mHash;
         size_t mGroupId[FRAME_GROUP_MAXSIZE];
 
         int mJacobianParameterId = 0;
@@ -585,9 +583,19 @@ namespace CML {
         Set<PFrame> mChilds;
 
         Mutex mIndirectCovisibilityMutex, mDirectCovisibilityMutex;
-        DenseHashMap<OptPFrame, int> mIndirectCovisibility, mDirectCovisibility;
+        HashMap<OptPFrame, int> mIndirectCovisibility, mDirectCovisibility;
 
     };
+
+
+    inline size_t Hasher::operator()(PFrame pFrame) const {
+        return reinterpret_cast<size_t>(pFrame.p());
+        //return pFrame->getHash();
+    }
+
+    inline bool CML::Comparator::operator() (PFrame pFrameA, PFrame pFrameB) const {
+        return pFrameA->getId() > pFrameB->getId();
+    }
 
 
 }
