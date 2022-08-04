@@ -39,6 +39,7 @@
 
 #define CML_PIXEL_GET_IS_CENTER 0
 
+#define CML_FULLY_REPRODUCIBLE 1
 
 
 namespace CML {

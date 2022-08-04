@@ -339,8 +339,11 @@ namespace CML {
     };
 
     inline size_t Hasher::operator()(PPoint pPoint) const {
+#if CML_FULLY_REPRODUCIBLE
+        return pPoint->getId();
+#else
         return reinterpret_cast<size_t>(pPoint.p());
-        //return pPoint->getHash();
+#endif
     }
 
     inline bool CML::Comparator::operator() (PPoint pPointA, PPoint pPointB) const {

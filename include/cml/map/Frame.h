@@ -589,8 +589,11 @@ namespace CML {
 
 
     inline size_t Hasher::operator()(PFrame pFrame) const {
+#if CML_FULLY_REPRODUCIBLE
+        return pFrame->getId();
+#else
         return reinterpret_cast<size_t>(pFrame.p());
-        //return pFrame->getHash();
+#endif
     }
 
     inline bool CML::Comparator::operator() (PFrame pFrameA, PFrame pFrameB) const {
