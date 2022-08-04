@@ -235,7 +235,7 @@ public:
 
 
   inline bool loadFromTextFile(const std::string &filename) {
-      return loadFromText(readWholeBinaryFile(filename));
+      return loadFromText(readWholeBinaryFile(filename, true));
   }
 
   /**

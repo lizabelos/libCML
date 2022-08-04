@@ -67,7 +67,7 @@ namespace CML::Optimization::G2O {
         Parameter mDropout = createParameter("dropout", 0.0);
 
         Parameter mTimeLimit = createParameter("timeLimit", 0.015);
-        Parameter mAdjustDirectPoints = createParameter("adjustDirectPoints", false);
+        Parameter mAdjustDirectPoints = createParameter("adjustDirectPoints", true);
 
         Timer mTimer;
     };

@@ -197,37 +197,12 @@ int main(int argc, char *argv[])
     a.exec();
 }
 #else
-
 int main(int argc, char *argv[])
 {
-
     CML::initCML();
-
-    // logger.info("OpenMP Max Threads : " + std::to_string(omp_get_max_threads()));
-
-    /*for (int i = 0; i < 5; i++) {
-        test2(Filter::applyGaussian, "applyGaussian");
-        test(Filter::applyGaussianNaive, "applyGaussianNaive");
-        test3();
-    }
-    return 0;
-*/
-    /*
-    for (int i = 1; i < 51; i++) {
-        std::string si = std::to_string(i);
-        if (si.size() == 1) si = "0" + si;
-        TUMCapture *capture = new TUMCapture("/home/thomas/Datasets/TUM/sequence_" + si);
-        capture->play();
-        while (capture->next().isNotNull()) {
-            logger.important(std::to_string(i) + "->" + std::to_string(capture->remaining()));
-        }
-    }
-    return 0;
-     */
 
     typedef std::numeric_limits< double > dbl;
     std::cout.precision(dbl::max_digits10);
-
 
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 

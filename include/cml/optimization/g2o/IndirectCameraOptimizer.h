@@ -41,8 +41,15 @@ namespace CML {
                 return "Indirect Camera Optimizer";
             }
 
+            void setCheckOutliers(bool checkOutliers) {
+                mCheckOutliers.set(checkOutliers);
+            }
+
         protected:
             int evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold);
+
+        private:
+            Parameter mCheckOutliers = createParameter("checkOutliers", true);
 
         };
 

@@ -81,6 +81,7 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
 
 
 bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> optionalMotionToTry) {
+    mLastHaveSucceedCVMM = 1;
     auto currentFrameData = get(currentFrame);
     auto lastFrameData = get(mLastFrame);
 
@@ -132,6 +133,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
     }
 
     float inliersRatio = (float)numInliers / (float)matchings.size();
+    mLastOrbTrackingInliersRatio = inliersRatio;
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
@@ -153,7 +155,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
 }
 
 bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
-
+    mLastHaveSucceedCVMM = 0;
     OptPFrame referenceKeyFrame = mReferenceKeyFrame;
 
     if (referenceKeyFrame.isNull()) {
@@ -197,6 +199,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
         numInliers++;
     }
     float inliersRatio = (float)numInliers / (float)matchings.size();
+    mLastOrbTrackingInliersRatio = inliersRatio;
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 

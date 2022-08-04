@@ -11,11 +11,7 @@ CML::MapPoint::MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex
 {
     assertThrow(reference != nullptr, "with a null reference pointer");
 
-#if CML_USE_GOOGLE_HASH
-    mApparitions.set_empty_key(OptPFrame((Frame*)0));
-    mApparitions.set_deleted_key(OptPFrame((Frame*)1));
-#endif
-
+    mHash = integerHashing(mId);
 
 //    assertThrow(reference->isInside(corner.point(0), 0, 0), "corner is not inside the reference");
 

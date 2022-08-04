@@ -527,11 +527,11 @@ namespace CML {
 
             T *data = mData;
             int size = newImage.eigenMatrix().size();
-            __m128 accumulation  __attribute__ ((aligned (16)));
-            __m128 datablock  __attribute__ ((aligned (16)));
+            __m128 accumulation; //  __attribute__ ((aligned (16)));
+            __m128 datablock; //  __attribute__ ((aligned (16)));
             const int res_shifty = (kernel.getHeight() - 1) / 2;
-            float tmp[4] __attribute__ ((aligned (16)));
-            __m128 mkernel[kernel.eigenMatrix().size()]  __attribute__ ((aligned (16)));
+            float tmp[4]; // __attribute__ ((aligned (16)));
+            __m128 mkernel[kernel.eigenMatrix().size()]; //  __attribute__ ((aligned (16)));
             for (int ker_x = 0; ker_x < kernel.eigenMatrix().size(); ker_x++) {
                 tmp[0] = kernel(ker_x, 0);
                 tmp[1] = tmp[0];
@@ -541,7 +541,7 @@ namespace CML {
             }
 
 
-            for (int i = 0; i < size - (res_shifty + 3); i++) {
+            for (int i = 0; i < size - (kernel.eigenMatrix().size() + 4); i++) {
                 accumulation = _mm_setzero_ps();
                 for (int ker_y = 0; ker_y < kernel.eigenMatrix().size(); ker_y++) {
                         datablock = _mm_loadu_ps(&data[i + ker_y]);
@@ -817,6 +817,21 @@ namespace CML {
     Pair<FloatImage, Image> loadJpegImage(const uint8_t *str, size_t lenght);
 
     Pair<FloatImage, Image> loadPngImage(const std::string &path);
+
+    inline Pair<FloatImage, Image> loadImage(const std::string &path, bool isResource) {
+        if (hasEnding(path, ".jpg") || hasEnding(path, ".jpeg") || hasEnding(path, ".JPG") || hasEnding(path, ".JPEG")) {
+            std::string data = readWholeBinaryFile(path, isResource);
+            return loadJpegImage(reinterpret_cast<const uint8_t *>(data.data()), data.size());
+        }
+        if (hasEnding(path, ".png") || hasEnding(path, ".PNG")) {
+            return loadPngImage(path); // todo : use data
+        }
+        if (hasEnding(path, ".tiff") || hasEnding(path, ".TIFF") || hasEnding(path, ".tif") || hasEnding(path, ".TIF")) {
+            std::string data = readWholeBinaryFile(path, isResource);
+            return loadTiffImage(reinterpret_cast<const uint8_t *>(data.data()), data.size());
+        }
+        throw std::runtime_error("Invalid image extension : " + path);
+    }
 
 
 

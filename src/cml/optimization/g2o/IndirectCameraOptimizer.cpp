@@ -354,6 +354,15 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
 int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold) {
 
+    if (!mCheckOutliers.b()) {
+        for(size_t i=0, iend=vpEdges.size(); i<iend; i++)
+        {
+            g2o::EdgeSE3ProjectXYZ* e = vpEdges[i];
+            outliers[i] = false;
+            e->setLevel(0);
+        }
+        return 0;
+    }
 
     int nBad = 0;
     for(size_t i=0, iend=vpEdges.size(); i<iend; i++)

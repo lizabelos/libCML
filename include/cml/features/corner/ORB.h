@@ -42,7 +42,7 @@ namespace CML::Features {
             } else {
 #if CML_HAVE_LIBZIP
                 mVocabulary = new ORBVocabulary();
-                mVocabulary->loadFromText(readWholeZipFile(filename, "ORBvoc.txt"));
+                mVocabulary->loadFromText(readWholeZipFile(filename, "ORBvoc.txt", true));
                 if (mVocabulary->empty()) {
                     throw std::runtime_error("Can't load vocabulary");
                 }
@@ -112,13 +112,9 @@ namespace CML::Features {
 
     private:
         Parameter mNumCorner = createParameter("num", 1024);
-#if ANDROID
-        Parameter mUseCache = createParameter("useCache", false);
-        Parameter mBlur = createParameter("blur", false);
-#else
         Parameter mUseCache = createParameter("useCache", false);
         Parameter mBlur = createParameter("blur", true);
-#endif
+
         Parameter mIncreaseThreshold = createParameter("increaseThreshold", true);
         Parameter mIniThFAST = createParameter("iniThFAST", 20);
         Parameter mMinThFAST = createParameter("minThFAST", 7);
