@@ -69,14 +69,17 @@ float decisionTree(List<float> decisionTreeX, Parameter &weight) {
         if (decisionWeights[decisionWeightI] < 0) {
             decisionWeights[decisionWeightI] = 1.0f / -decisionWeights[decisionWeightI];
         }
-        float pweight = decisionWeights[decisionWeightI];
-        pweight = pweight + 1.0f;
-        pweight = pweight / 2.0f;
         if (decisionTreeX[i] > decisionTreeX[i + 1] * decisionWeights[decisionWeightI]) {
             decisionWeightI++;
+            float pweight = decisionWeights[decisionWeightI];
+            pweight = pweight + 1.0f;
+            pweight = pweight / 2.0f;
             accept = accept + pweight;
         } else {
             decisionWeightI++;
+            float pweight = decisionWeights[decisionWeightI];
+            pweight = pweight + 1.0f;
+            pweight = pweight / 2.0f;
             reject = reject + pweight;
         }
         decisionWeightI++;
