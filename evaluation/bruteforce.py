@@ -109,6 +109,13 @@ def bruteforceFindBest(currentParam):
     #        [t + ".checkOrientation", ["true", "false"]]
     #    ]
 
+    for i in range(12):
+        params += ["peDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]
+        currentParam["peDecisionWeightsDt:" + str(i)] = 0.0
+    for i in range(14):
+        params += ["baDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]
+        currentParam["baDecisionWeightsDt:" + str(i)] = 0.0
+
     params = params + [
         ["trackcondUncertaintyWeightOrb", weightAndInv + [-1]],
         ["trackcondUncertaintyWeightDso", weightAndInv + [-1]],
@@ -142,6 +149,21 @@ def bruteforceFindBest(currentParam):
     while True:
         bestParamModif = None
         for param in params:
+
+            for p in currentParam:
+                if ":" in p:
+                    ps = p.split(":")
+                    p_name = ps[0]
+                    currentParam[p_name] = ""
+
+            for p in currentParam:
+                if ":" in p:
+                    ps = p.split(":")
+                    p_name = ps[0]
+                    if currentParam[p_name] != "":
+                        currentParam[p_name] = currentParam[p_name] + ";"
+                    currentParam[p_name] = currentParam[p_name] + currentParam[p]
+
             allSums = []
             allSuccess = []
             futures = []
@@ -166,6 +188,8 @@ def bruteforceFindBest(currentParam):
                         name = slams_names[0]
                         context = s[0](s[1], "modslam2.yaml")
                         for p in currentParam:
+                            if ":" in p:
+                                continue
                             context.setconfig(p, currentParam[p])
                         context.setconfig(param[0], v)
                         context.setconfig(seedParamName, seed)
