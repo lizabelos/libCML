@@ -63,12 +63,21 @@ float decisionTree(List<float> decisionTreeX, Parameter &weight) {
         if (decisionWeightI + 1 >= decisionWeights.size()) {
             throw std::runtime_error("Invalid decision weight string, wanted=" + std::to_string(decisionWeights.size()) + ", got=" + std::to_string(decisionWeightI));
         }
+        if (decisionWeights[decisionWeightI] == 0) {
+            continue;
+        }
+        if (decisionWeights[decisionWeightI] < 0) {
+            decisionWeights[decisionWeightI] = 1.0f / -decisionWeights[decisionWeightI];
+        }
+        float pweight = decisionWeights[decisionWeightI];
+        pweight = pweight + 1.0f;
+        pweight = pweight / 2.0f;
         if (decisionTreeX[i] > decisionTreeX[i + 1] * decisionWeights[decisionWeightI]) {
             decisionWeightI++;
-            accept = accept + decisionWeights[decisionWeightI];
+            accept = accept + pweight;
         } else {
             decisionWeightI++;
-            reject = reject + decisionWeights[decisionWeightI];
+            reject = reject + pweight;
         }
         decisionWeightI++;
     }

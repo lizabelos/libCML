@@ -1,3 +1,4 @@
+import copy
 import os
 import random
 import re
@@ -81,6 +82,24 @@ def criteria(dataset, ate, fps):
 
     return ate / numFramesOf(dataset)
 
+def processParameters(currentParam):
+    currentParam = copy.deepcopy(currentParam)
+    currentParamCopy = copy.deepcopy(currentParam)
+    for p in currentParamCopy:
+        if ":" in p:
+            ps = p.split(":")
+            p_name = ps[0]
+            currentParam[p_name] = ""
+
+    for p in currentParamCopy:
+        if ":" in p:
+            ps = p.split(":")
+            p_name = ps[0]
+            if currentParam[p_name] != "":
+                currentParam[p_name] = currentParam[p_name] + ";"
+            currentParam[p_name] = currentParam[p_name] + str(currentParam[p])
+    return currentParam
+
 def bruteforceFindBest(currentParam):
     datasets, datasets_names, slams, slams_names = parse_config()
     alteration = list(floatrange(1,10.5,0.5))
@@ -110,10 +129,10 @@ def bruteforceFindBest(currentParam):
     #    ]
 
     for i in range(12):
-        params += ["peDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]
+        params += [["peDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]]
         currentParam["peDecisionWeightsDt:" + str(i)] = 0.0
     for i in range(14):
-        params += ["baDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]
+        params += [["baDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]]
         currentParam["baDecisionWeightsDt:" + str(i)] = 0.0
 
     params = params + [
@@ -150,20 +169,6 @@ def bruteforceFindBest(currentParam):
         bestParamModif = None
         for param in params:
 
-            for p in currentParam:
-                if ":" in p:
-                    ps = p.split(":")
-                    p_name = ps[0]
-                    currentParam[p_name] = ""
-
-            for p in currentParam:
-                if ":" in p:
-                    ps = p.split(":")
-                    p_name = ps[0]
-                    if currentParam[p_name] != "":
-                        currentParam[p_name] = currentParam[p_name] + ";"
-                    currentParam[p_name] = currentParam[p_name] + currentParam[p]
-
             allSums = []
             allSuccess = []
             futures = []
@@ -187,12 +192,17 @@ def bruteforceFindBest(currentParam):
                         s = slams[0]
                         name = slams_names[0]
                         context = s[0](s[1], "modslam2.yaml")
-                        for p in currentParam:
+
+                        currentParamCopy = copy.deepcopy(currentParam)
+                        currentParamCopy[param[0]] = v
+                        currentParamCopy[seedParamName] = seed
+                        currentParamCopy = processParameters(currentParamCopy)
+
+                        for p in currentParamCopy:
                             if ":" in p:
                                 continue
-                            context.setconfig(p, currentParam[p])
-                        context.setconfig(param[0], v)
-                        context.setconfig(seedParamName, seed)
+                            context.setconfig(p, currentParamCopy[p])
+
                         try:
                             ate = evaluateOn(context, datasets[i])
                             fps = numFramesOf(datasets[i].name()) / context.getTime()
