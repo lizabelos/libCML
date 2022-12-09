@@ -25,7 +25,7 @@ namespace CML {
             while (!mSlam.isStopped()) {
                 mSlam.getMap().getGarbageCollector().collect(gci);
                 mFunction();
-                usleep(10);
+                OS::usleep(10);
             }
         }
 

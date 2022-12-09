@@ -749,7 +749,7 @@ namespace CML {
 
 
         void saveBmp(const std::string &path) const {
-            logger.info("Saving image to " + path + ". width = " + std::to_string(getWidth()) + "; height = " + std::to_string(getHeight()) + "; channels = " + std::to_string(sizeof(T)));
+            CML_LOG_INFO("Saving image to " + path + ". width = " + std::to_string(getWidth()) + "; height = " + std::to_string(getHeight()) + "; channels = " + std::to_string(sizeof(T)));
 
             int w = getWidth();
             int h = getHeight();

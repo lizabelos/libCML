@@ -137,7 +137,7 @@ namespace CML {
                 if (i == 0 && state == DSORES_IN) {
                     DistortedVector2d distortedVector2D(res->getCenterProjectedTo().head<2>().cast<scalar_t>());
                     if (!res->elements.frame->isInside(distortedVector2D, 0, 0)) {
-                        logger.fatal("Center projected to is not inside the frame, and state is DSORES_IN !");
+                        CML_LOG_FATAL("Center projected to is not inside the frame, and state is DSORES_IN !");
                         abort();
                     }
                 }

@@ -1,5 +1,6 @@
 #include "cml/optimization/g2o/IndirectBundleAdjustment.h"
 #include "cml/optimization/g2o/g2oconfig.h"
+#include "cml/utils/Complexity.h"
 
 #include "cml/maths/Utils.h"
 
@@ -11,7 +12,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     lLocalIndirectPoints.clear();
 
     lLocalKeyFrames.insert(currentFrame);
-    for (auto frame : getMap().processIndirectCovisiblity(currentFrame, -1, frameGroup)) {
+    for (auto frame : getMap().processIndirectCovisiblity(currentFrame, mIndirectCovisiblityMax.i(), frameGroup)) {
         lLocalKeyFrames.insert(frame);
     }
 
@@ -34,13 +35,13 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     if (lLocalIndirectPoints.empty()) {
-        logger.error("G2O BA : No points");
+        CML_LOG_ERROR("G2O BA : No points");
         return false;
     }
 
 
     if (lLocalKeyFrames.size() <= 2) {
-        logger.error("G2O BA : Not enough frames");
+        CML_LOG_ERROR("G2O BA : Not enough frames");
         return false;
     }
 
@@ -94,7 +95,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     if (lFixedCameras.size() < 3) {
-        logger.error("G2O BA : Not enough fixed cameras");
+        CML_LOG_ERROR("G2O BA : Not enough fixed cameras");
         return false;
     }
 
@@ -165,33 +166,33 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
     }
 
     if (numIndirect < 10) {
-        logger.error("G2O Ba : Not enough indirect points");
+        CML_LOG_ERROR("G2O Ba : Not enough indirect points");
         return false;
     }
 
     if(pbStopFlag != nullptr) {
         if (*pbStopFlag) {
-            logger.error("G2O Ba: Stop flag is set to true");
+            CML_LOG_ERROR("G2O Ba: Stop flag is set to true");
             return false;
         }
     }
 
     if (!mOptimizer->initializeOptimization()) {
-        logger.error("G2O Initialize optimization failed");
+        CML_LOG_ERROR("G2O Initialize optimization failed");
         return false;
     }
 
-    logger.info("G2O is optimizing");
+    CML_LOG_INFO("G2O is optimizing");
     mTimer.start();
     startOptimization(mNumIteration.i(), true, false);
 
     if (mRefineIteration.i() > 0) {
 
-        logger.important("Refining : " + std::to_string(mRefineIteration.i()));
+        CML_LOG_IMPORTANT("Refining : " + std::to_string(mRefineIteration.i()));
 
         if (pbStopFlag != nullptr) {
             if (*pbStopFlag) {
-                logger.error("G2O Ba: Stop flag is set to true");
+                CML_LOG_ERROR("G2O Ba: Stop flag is set to true");
                 return true;
             }
         }
@@ -199,7 +200,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
         startOptimization(mRefineIteration.i(), true, true);
 
     } else {
-        logger.important("Not refining : " + std::to_string(mRefineIteration.i()));
+        CML_LOG_IMPORTANT("Not refining : " + std::to_string(mRefineIteration.i()));
 
     }
 
@@ -209,6 +210,7 @@ bool CML::Optimization::G2O::IndirectBundleAdjustment::localOptimize(PFrame curr
 }
 
 void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num, bool enableDropout, bool onlyRobust) {
+    signalMethodStart("G2O::IndirectBundleAdjustment::startOptimization");
 
     if (mDropout.f() <= 0) {
         enableDropout = false;
@@ -260,11 +262,11 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num
 
         mTimer.stop();
         if (mTimer.getValue() > mTimeLimit.f()) {
-            logger.important("IBA time limit reached");
+            CML_LOG_IMPORTANT("IBA time limit reached");
             return;
         }
 
-        logger.important("IBA is doing one iteration");
+        CML_LOG_IMPORTANT("IBA is doing one iteration");
         if (enableDropout) {
             mOptimizer->initializeOptimization(0);
         }
@@ -275,11 +277,13 @@ void CML::Optimization::G2O::IndirectBundleAdjustment::startOptimization(int num
 }
 
 void CML::Optimization::G2O::IndirectBundleAdjustment::apply() {
+    signalMethodStart("G2O::IndirectBundleAdjustment::apply");
+
     if (mOptimizer == nullptr) {
         return;
     }
 
-    HashMap<PPoint, List<Pair<PFrame, Vector3>>> pointsCoordinates;
+    PointHashMap<List<Pair<PFrame, Vector3>>> pointsCoordinates;
     if (mAdjustDirectPoints.b()) {
         for (auto pKF : lLocalKeyFrames) {
             for (auto pPoint : pKF->getMapPointsApparitions()) {

@@ -43,6 +43,10 @@ namespace CML {
             return mReverse;
         }
 
+        virtual inline Ptr<CaptureImageGenerator, Nullable> getGenerator() {
+            return nullptr;
+        }
+
     private:
         bool mReverse = false;
 

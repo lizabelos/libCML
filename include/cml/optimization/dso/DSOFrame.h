@@ -205,7 +205,7 @@ namespace CML {
             void setStep(Vector<10> &step) {
                 for (int i = 0; i < 10; i++) {
                     if (!std::isfinite(step(i))) {
-                        logger.error("Not finite step for frame");
+                        CML_LOG_ERROR("Not finite step for frame");
                         this->step.setZero();
                         return;
                     }
@@ -217,7 +217,7 @@ namespace CML {
                 return step;
             }
 
-            const Set<PPoint> &getPoints() const {
+            const PointSet &getPoints() const {
                 return points;
             }
 
@@ -231,7 +231,7 @@ namespace CML {
 
         protected:
             Set<DSOResidual*> residuals;
-            Set<PPoint> points;
+            PointSet points;
             int numResidualsOut = 0;
             int numMarginalized = 0;
 

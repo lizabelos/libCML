@@ -107,7 +107,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         std::string orbCachePath = captureImage.getPath() + ".orb" + std::to_string(mNumCorner.i());
         FILE *f = fopen(orbCachePath.c_str(), "rb");
         if (f != nullptr) {
-            logger.important("Using cached ORB");
+            CML_LOG_IMPORTANT("Using cached ORB");
             int count = 0;
             fread(&count, sizeof(int), 1, f);
             mCorners.resize(count);
@@ -192,7 +192,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         std::string orbCachePath = captureImage.getPath() + ".orb" + std::to_string(mNumCorner.i());
         FILE *f = fopen(orbCachePath.c_str(), "wb");
         if (f != nullptr) {
-            logger.important("Using cached ORB");
+            CML_LOG_IMPORTANT("Using cached ORB");
             int count = mCorners.size();
             fwrite(&count, sizeof(int), 1, f);
             for (int i = 0; i < count; i++) {
@@ -205,7 +205,7 @@ void CML::Features::ORB::compute(const CaptureImage &captureImage) {
         }
     }
 
-    //logger.important("Extracted " + std::to_string(mCorners.size()) + " orb coners");
+    //CML_LOG_IMPORTANT("Extracted " + std::to_string(mCorners.size()) + " orb coners");
 
 }
 
@@ -322,7 +322,7 @@ void CML::Features::ORB::computeKeyPointsOctTree() {
                 keypoints[i].setScaleFactor(mScaleFactor.f());
                 keypoints[i].setSize(scaledPatchSize);
             }
-            logger.debug("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
+            CML_LOG_DEBUG("ORB computed " + std::to_string(keypoints.size()) + " at level " + std::to_string(level));
         }
 
     }

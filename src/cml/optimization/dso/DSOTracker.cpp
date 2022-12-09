@@ -51,10 +51,10 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
       //  std::cout << "LEVEL ======================" << std::endl;
 
-       // logger.info("Photometric tracking at level " + std::to_string(level) + " with " + std::to_string(points.size()) + " points");
+       // CML_LOG_INFO("Photometric tracking at level " + std::to_string(level) + " with " + std::to_string(points.size()) + " points");
 /*
         if (points.size() < 100) {
-            logger.info("Not enogh points. Continuing at higher level");
+            CML_LOG_INFO("Not enogh points. Continuing at higher level");
             continue;
         }
 */
@@ -63,7 +63,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
         computeResidual(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, oldResidual, level, mCutoffThreshold.f() * levelCutoffRepeat[level], trackerContext);
 
         if (oldResidual.numTermsInE[level] < 20) {
-            logger.debug("Not enough terms in E");
+            CML_LOG_DEBUG("Not enough terms in E");
             oldResidual.isCorrect = false;
             return oldResidual;
         }
@@ -75,12 +75,12 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
         }
 
         if (oldResidual.numTermsInE[level] - oldResidual.numSaturated[level] < 10) {
-            logger.error("Not enough terms in E (minus saturated)");
+            CML_LOG_ERROR("Not enough terms in E (minus saturated)");
             oldResidual.isCorrect = false;
             return oldResidual;
         }
 
-        logger.debug("Using cutoff : " + std::to_string(levelCutoffRepeat[level]) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) + " )");
+        CML_LOG_DEBUG("Using cutoff : " + std::to_string(levelCutoffRepeat[level]) + " at level " + std::to_string(level) + " ( statured = " + std::to_string(oldResidual.numSaturated[level] / (scalar_t)oldResidual.numTermsInE[level]) + " )");
 
         computeHessian(frameToTrack, mCD, reference->getExposure(), currentRefToNew, currentExposure, level, trackerContext);
 
@@ -123,13 +123,13 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
                 dumpSystem(trackerContext->dampedHessian, trackerContext->jacobian);
 
                 if (mBackupSolver.b()) {
-                    logger.important("Non finite DSO Tracker increment. Trying to backup");
+                    CML_LOG_IMPORTANT("Non finite DSO Tracker increment. Trying to backup");
                     trackerContext->increment.head<6>() = trackerContext->dampedHessian.topLeftCorner<6,6>().householderQr().solve(-trackerContext->jacobian.head<6>());
                     trackerContext->increment.tail<2>().setZero();
                 }
 
                 if (!trackerContext->increment.allFinite()) {
-                    logger.error("Non finite DSO Tracker increment");
+                    CML_LOG_ERROR("Non finite DSO Tracker increment");
 
                     // break;
                     oldResidual.isCorrect = false;
@@ -149,7 +149,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
           /*  if(!trackerContext->incrementScaled.allFinite() || trackerContext->incrementScaled.hasNaN()) {
                 trackerContext->incrementScaled.setZero();
-                logger.error("Non finite DSO Tracker increment");
+                CML_LOG_ERROR("Non finite DSO Tracker increment");
             }
 */
             auto se3 = SE3::exp((SE3::Tangent)(trackerContext->incrementScaled.head<6>()));
@@ -183,7 +183,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
         if (mLastResidual.isCorrect) {
             if(oldResidual.rmse(level) > 1.5 * mLastResidual.rmse(level)) {
                 oldResidual.isCorrect = false;
-                logger.debug("The solution is not good because the rmse is too high");
+                CML_LOG_DEBUG("The solution is not good because the rmse is too high");
                 return oldResidual;
             }
         }
@@ -193,7 +193,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
             level++;
             haveRepeated = true;
         }
-            // logger.info("Repeating level");
+            // CML_LOG_INFO("Repeating level");
         //} else {
         //    haveRepeated = false;
         //}
@@ -206,24 +206,24 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
 
     if (mOptimizeA.b()) {
         if (fabs(currentExposure.getParameters()(0)) > 1.2) {
-            logger.debug("The solution is not good because of a");
+            CML_LOG_DEBUG("The solution is not good because of a");
             haveGoodLight = false;
         }
     } else {
         if (fabs(logf((float)relAff[0])) > 1.5) {
-            logger.debug("The solution is not good because of a");
+            CML_LOG_DEBUG("The solution is not good because of a");
             haveGoodLight = false;
         }
     }
 
     if (mOptimizeB.b()) {
         if (fabs(currentExposure.getParameters()(1)) > 200) {
-            logger.debug("The solution is not good because of b");
+            CML_LOG_DEBUG("The solution is not good because of b");
             haveGoodLight = false;
         }
     } else {
         if (fabs((float)relAff[1]) > 200) {
-            logger.debug("The solution is not good because of b");
+            CML_LOG_DEBUG("The solution is not good because of b");
             haveGoodLight = false;
         }
     }
@@ -231,7 +231,7 @@ CML::Optimization::DSOTracker::Residual CML::Optimization::DSOTracker::optimize(
     bool haveGoodPoints = true;
     if ((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0] > mSaturatedRatioThreshold.f()) {
         haveGoodPoints = false;
-        logger.info("Strange, the solution have a lot of saturated points : " + std::to_string((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0]));
+        CML_LOG_INFO("Strange, the solution have a lot of saturated points : " + std::to_string((scalar_t)oldResidual.numSaturated[0] / (scalar_t)oldResidual.numTermsInE[0]));
     }
 
     camera = reference->getCamera().compose(cameraOf(currentRefToNew));
@@ -404,8 +404,8 @@ void CML::Optimization::DSOTracker::computeResidual(PFrame frameToTrack, DSOTrac
 
    // std::cout << "RES SUM : " << resSum / (double)resInSum << std::endl;
 
-   logger.debug("Residual sum : " + std::to_string(resSum));
-   logger.debug("DSO Tracker num robust : " + std::to_string(numRobust));
+   CML_LOG_DEBUG("Residual sum : " + std::to_string(resSum));
+   CML_LOG_DEBUG("DSO Tracker num robust : " + std::to_string(numRobust));
 
     result.E[level] = E;
     result.numTermsInE[level] = numTermsInE;
@@ -435,7 +435,7 @@ void CML::Optimization::DSOTracker::computeHessian(PFrame frameToTrack, DSOTrack
 
     int n = trackerContext->size() - (trackerContext->size() % 4);
 
-    // logger.info("Computing the hessian with " + std::to_string(n) + " points");
+    // CML_LOG_INFO("Computing the hessian with " + std::to_string(n) + " points");
 
     assert(n%4==0);
     for(int i=0;i<n;i+=4)
@@ -491,12 +491,12 @@ void CML::Optimization::DSOTracker::computeHessian(PFrame frameToTrack, DSOTrack
 
 }
 
-void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, Set<PPoint> points) {
+void CML::Optimization::DSOTracker::makeCoarseDepthL0(PFrame reference, PointSet points) {
 
     auto mNewCD = create(reference);
 
     if (SCALEFACTOR != 2) {
-        logger.fatal("Scale Factor must be 2 for DSO Tracker");
+        CML_LOG_FATAL("Scale Factor must be 2 for DSO Tracker");
         abort();
     }
 

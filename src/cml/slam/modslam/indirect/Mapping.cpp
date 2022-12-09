@@ -23,7 +23,7 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     //auto currentFrameData = get(currentFrame);
 
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
-        logger.info("Stopping indirect map because one frame is in the queue");
+        CML_LOG_INFO("Stopping indirect map because one frame is in the queue");
         timer.stop();
         mIndirectMappingQueue.notifyPop();
         return;
@@ -52,7 +52,7 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     List<PPoint> newImmaturePoints = indirectCreateNewImmaturePoint(currentFrame);
 
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
-        logger.info("Stopping indirect map because one frame is in the queue");
+        CML_LOG_INFO("Stopping indirect map because one frame is in the queue");
         timer.stop();
         mIndirectMappingQueue.notifyPop();
         return;
@@ -61,7 +61,7 @@ void Hybrid::indirectMap(PFrame currentFrame) {
     indirectSearchInNeighbors(currentFrame);
 
     if (mIndirectMappingQueue.getCurrentSize() > 1) {
-        logger.info("Stopping indirect map because one frame is in the queue");
+        CML_LOG_INFO("Stopping indirect map because one frame is in the queue");
         timer.stop();
         mIndirectMappingQueue.notifyPop();
         return;
@@ -71,7 +71,7 @@ void Hybrid::indirectMap(PFrame currentFrame) {
 
         indirectLocalOptimize(currentFrame);
         if (mIndirectMappingQueue.getCurrentSize() > 1) {
-            logger.info("Stopping indirect map because one frame is in the queue");
+            CML_LOG_INFO("Stopping indirect map because one frame is in the queue");
             timer.stop();
             mIndirectMappingQueue.notifyPop();
             return;
@@ -151,7 +151,7 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
 
         if (matching.getMapPoint().isNotNull()) {
             // If we are here, this means that the matchings are not consistent
-            // logger.warn("Matching for triangulation have map point");
+            // CML_LOG_WARN("Matching for triangulation have map point");
             // matching.getFrameB()->setMapPoint(matching.getIndexB(matching.getFrameB()), matching.getMapPoint());
             // matching.getFrameA()->setMapPoint(matching.getIndexA(matching.getFrameA()), matching.getMapPoint());
         } else {
@@ -201,7 +201,7 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
 
             if (scaleConsistencyCondition && frontCondition && parallaxCondition && finiteCondition) {
 
-                PPoint mapPoint = getMap().createMapPoint(matching.getFrameB(), matching.getIndexB(matching.getFrameB()),INDIRECT);
+                PPoint mapPoint = getMap().createMapPoint(matching.getFrameB(), matching.getIndexB(matching.getFrameB()),CML::INDIRECTTYPE);
 
                 auto frameAdata = get(matching.getFrameA());
 
@@ -226,11 +226,11 @@ List<PPoint> Hybrid::indirectCreateNewImmaturePointFromMatchings(const List<Matc
 
     }
 
-    logger.debug("Mapped " + std::to_string(newImmatures.size()) + " 3D points");
-    logger.debug("Scale consistency failures : " + std::to_string(scaleConsistencyFailures));
-    logger.debug("Front failures : " + std::to_string(frontFailures));
-    logger.debug("Parallax failures : " + std::to_string(parallaxFailures));
-    logger.debug("Finite failures : " + std::to_string(finiteFailures));
+    CML_LOG_DEBUG("Mapped " + std::to_string(newImmatures.size()) + " 3D points");
+    CML_LOG_DEBUG("Scale consistency failures : " + std::to_string(scaleConsistencyFailures));
+    CML_LOG_DEBUG("Front failures : " + std::to_string(frontFailures));
+    CML_LOG_DEBUG("Parallax failures : " + std::to_string(parallaxFailures));
+    CML_LOG_DEBUG("Finite failures : " + std::to_string(finiteFailures));
 
 
     return newImmatures;
@@ -393,7 +393,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     // Retrieve neighbor keyframes
     int nn=20;
 
-    Set<PFrame> covisibleFrames;
+    FrameSet covisibleFrames;
     for(auto pKFi : getMap().processIndirectCovisiblity(currentFrame, nn, INDIRECTKEYFRAME))
     {
         covisibleFrames.insert(pKFi);
@@ -424,7 +424,7 @@ void Hybrid::indirectSearchInNeighbors(PFrame currentFrame)
     }
 
 
-    Set<PPoint> covisibleMapPointsSet;
+    PointSet covisibleMapPointsSet;
 
     for(auto frame : covisibleFrames) {
         for (auto point : frame->getGroupMapPoints(getMap().INDIRECTGROUP)) {

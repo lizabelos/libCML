@@ -197,7 +197,7 @@ namespace CML::Features {
 
         List<Matching> trackByProjection(const BoWFrameAndGroupAndDescriptor &A, const BoWFrameAndGroup &B, int th = 1);
 
-        Set<PPoint> fuse(const BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints);
+        PointSet fuse(const BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints);
 
         std::string getName() override {
             return "BoWTracker";

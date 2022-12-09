@@ -24,15 +24,27 @@ extern "C" {
 
 namespace CML {
 
-    class CaptureFFMPEG : public AbstractMultithreadFiniteCapture {
+    class CaptureFFMPEG : public AbstractCapture {
 
     public:
         CaptureFFMPEG(const std::string &path, unsigned int height, size_t cacheSize);
         ~CaptureFFMPEG();
 
-        Ptr<CaptureImage, Nullable> multithreadNext() override;
+        Ptr<CaptureImage, Nullable> next() override;
+
+        inline void play() final {
+
+        }
+
+        inline void stop() final {
+
+        }
 
         void ffmpegRun();
+
+        inline CML::Ptr<CML::CaptureImageGenerator, CML::Nullable> getGenerator() final {
+            return mCaptureImageGenerator;
+        }
 
     private:
         std::thread mThread;
@@ -72,6 +84,10 @@ namespace CML {
         void stop() final;
 
         Ptr<CaptureImage, Nullable> next() final;
+
+        inline CML::Ptr<CML::CaptureImageGenerator, CML::Nullable> getGenerator() final {
+            return mCapturePtr->getGenerator();
+        }
 
     private:
         bool mInit = false;

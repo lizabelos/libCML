@@ -25,6 +25,17 @@ void CML::CaptureImage::makeUnactive() {
     mParent->makeUnactive(*this);
 }
 
+void CML::CaptureImage::postRemoveDistortion(const Array2D<Vector2f> &undistortionMap) {
+    for (int i = 0; i < getPyramidLevels(); i++) {
+        mGrayImages[i]->copyToThis(InternalCalibration::removeDistortion(*mGrayImages[i].p(), undistortionMap));
+        mGradientImages[i]->copyToThis(InternalCalibration::removeDistortion(*mGradientImages[i].p(), undistortionMap));
+        mGradientNormWeighted[i]->copyToThis(InternalCalibration::removeDistortion(*mGradientNormWeighted[i].p(), undistortionMap));
+        if (haveColorImage()) {
+            mColorImages[i]->copyToThis(InternalCalibration::removeDistortion(*mColorImages[i].p(), undistortionMap));
+        }
+    }
+}
+
 CML::CaptureImageGenerator::CaptureImageGenerator(int width, int height, int defaultPoolSize, int keyPoolSize, int pyramidSize) {
 
     if (pyramidSize == -1) {
@@ -105,7 +116,7 @@ CML::CaptureImageGenerator::~CaptureImageGenerator() {
 CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::generate(const CaptureImageMaker &captureImageMaker) {
 
     if (!captureImageMaker.mColorImage.has_value() && !captureImageMaker.mGrayImage.has_value()) {
-        logger.fatal("Need image to generate capture image");
+        CML_LOG_FATAL("Need image to generate capture image");
         abort();
     }
 
@@ -260,7 +271,7 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
 void CML::CaptureImageGenerator::makeKey(CaptureImage &cf) {
 
     if (cf.mKeypool) {
-        logger.error("The capture image is already in the keyframe pool !");
+        CML_LOG_ERROR("The capture image is already in the keyframe pool !");
         return;
     }
 

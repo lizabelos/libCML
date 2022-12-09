@@ -6,9 +6,20 @@
 
 CML::PoolAllocator CML::MapPoint::allocator{16384};
 
-CML::MapPoint::MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex, MapPointType type, scalar_t *coordinate, scalar_t *color, scalar_t *uncertainty, unsigned int *groups)
-: mId(id), mReference(reference), mReferenceFeatureIndex(referenceIndex), mWorldCoordinate(coordinate), mUncertainty(uncertainty), mColor(color), mGroups(groups)
+void CML::MapPoint::recreate(size_t id, PFrame reference, FeatureIndex referenceIndex, MapPointType type, scalar_t *coordinate, scalar_t *color, scalar_t *uncertainty, unsigned int *groups)
 {
+    signalMethodStart("MapPoint::recreate");
+
+    mPrivate.reset();
+
+    mId = id;
+    mReference = reference;
+    mReferenceFeatureIndex = referenceIndex;
+    mWorldCoordinate = coordinate;
+    mUncertainty = uncertainty;
+    mColor = color;
+    mGroups = groups;
+
     assertThrow(reference != nullptr, "with a null reference pointer");
 
     mHash = integerHashing(mId);
@@ -26,9 +37,9 @@ CML::MapPoint::MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex
     // reference->getCamera().subscribeObserver(this);
 
     switch (type) {
-        case DIRECT:
+        case DIRECTTYPE:
             break;
-        case INDIRECT:
+        case INDIRECTTYPE:
             break;
         default:
             assertThrow(false, "invalid type");
@@ -88,32 +99,49 @@ CML::MapPoint::MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex
 
 }
 
-CML::MapPoint::~MapPoint() {
-
-    for (auto [frame, mode] : mApparitions) {
-        bool isIndirect = (mode >> 1) & 1U;
-        bool isDirect = (mode >> 2) & 1U;
-        if (isIndirect) {
-            for (auto observer: mObservers) {
-                observer->onRemoveIndirectApparition(this, frame);
+void CML::MapPoint::destroy() {
+    signalMethodStart("MapPoint::destroy");
+    auto apparitionsDirect = getDirectApparitions();
+    auto indirectApparitions = getIndirectApparitions();
+    {
+        signalMethodStart("MapPoint::destroy::removeDirectApparition");
+        for (auto frame: apparitionsDirect) {
+            for (auto observer: apparitionsDirect) {
+                observer->onRemoveDirectApparition(this, frame);
             }
-            for (auto [observer, mode] : mApparitions) {
-                observer->onRemoveIndirectApparition(this, frame);
+            for (auto observer: indirectApparitions) {
+                observer->onRemoveDirectApparition(this, frame);
+            }
+            for (auto observer: mObservers) {
+                observer->onRemoveDirectApparition(this, frame);
             }
         }
-        if (isDirect) {
-            for (auto observer: mObservers) {
-                observer->onRemoveDirectApparition(this, frame);
+    }
+    {
+        signalMethodStart("MapPoint::destroy::removeIndirectApparition");
+        for (auto frame: indirectApparitions) {
+            for (auto observer: apparitionsDirect) {
+                observer->onRemoveIndirectApparition(this, frame);
             }
-            for (auto [observer, mode] : mApparitions) {
-                observer->onRemoveDirectApparition(this, frame);
+            for (auto observer: indirectApparitions) {
+                observer->onRemoveIndirectApparition(this, frame);
+            }
+            for (auto observer: mObservers) {
+                observer->onRemoveIndirectApparition(this, frame);
             }
         }
     }
     for (auto observer : mObservers) {
+        signalMethodStart("MapPoint::destroy::removeObserver");
         observer->onMapPointDestroyed(this);
     }
-    freeDescriptor();
+    {
+        signalMethodStart("MapPoint::destroy::clear");
+        freeDescriptor();
+        mApparitionsIndirect.clear();
+        mApparitionsDirect.clear();
+        mObservers.clear();
+    }
 }
 
 CML::scalar_t CML::MapPoint::getReferenceInverseDepth() const {
@@ -164,15 +192,12 @@ void CML::MapPoint::setWorldCoordinate(WorldPoint worldCoordinate) {
 }
 
 void CML::MapPoint::addIndirectApparition(PFrame frame, const Corner &where) {
+    signalMethodStart("MapPoint::addIndirectApparition");
 //    assertThrow(mIndirectApparitions.count(frame) == 0, "Already added the frame");
 #if CML_MAPPOINT_STOREINDIRECTFRAME
     {
         LockGuard lg(mApparitionsMutex);
-        if (mApparitions.count(frame) == 0) {
-            mApparitions[frame] = 0;
-        }
-        uint8_t &mode = mApparitions[frame];
-        mode ^= (-(unsigned int) true ^ mode) & (1U << 1);
+        mApparitionsIndirect.insert(frame);
     }
 #endif
     if (mLastSeen.isNull()) mLastSeen = frame;
@@ -184,7 +209,10 @@ void CML::MapPoint::addIndirectApparition(PFrame frame, const Corner &where) {
     for (auto observer: mObservers) {
         observer->onAddIndirectApparition(this, frame);
     }
-    for (auto [observer, mode] : mApparitions) {
+    Set<OptPFrame> observers;
+    observers.insert(mApparitionsIndirect.begin(), mApparitionsIndirect.end());
+    observers.insert(mApparitionsDirect.begin(), mApparitionsDirect.end());
+    for (auto observer : observers) {
         observer->onAddIndirectApparition(this, frame);
     }
 
@@ -198,14 +226,11 @@ void CML::MapPoint::addIndirectApparition(PFrame frame, const Corner &where) {
 }
 
 void CML::MapPoint::addDirectApparition(PFrame frame) {
+    signalMethodStart("MapPoint::addDirectApparition");
 #if CML_MAPPOINT_STOREDIRECTFRAME
     {
         LockGuard lg(mApparitionsMutex);
-        if (mApparitions.count(frame) == 0) {
-            mApparitions[frame] = 0;
-        }
-        uint8_t &mode = mApparitions[frame];
-        mode ^= (-(unsigned int) true ^ mode) & (1U << 2);
+        mApparitionsDirect.insert(frame);
     }
 #endif
 
@@ -214,7 +239,10 @@ void CML::MapPoint::addDirectApparition(PFrame frame) {
     for (auto observer: mObservers) {
         observer->onAddDirectApparition(this, frame);
     }
-    for (auto [observer, mode] : mApparitions) {
+    Set<OptPFrame> observers;
+    observers.insert(mApparitionsIndirect.begin(), mApparitionsIndirect.end());
+    observers.insert(mApparitionsDirect.begin(), mApparitionsDirect.end());
+    for (auto observer : observers) {
         observer->onAddDirectApparition(this, frame);
     }
 
@@ -223,40 +251,43 @@ void CML::MapPoint::addDirectApparition(PFrame frame) {
             frame->onMapPointGroupChange(this, i, true);
         }
     }
+
 }
 
 void CML::MapPoint::removeIndirectApparition(PFrame frame) {
+    signalMethodStart("MapPoint::removeIndirectApparition");
 #if CML_MAPPOINT_STOREINDIRECTFRAME
     LockGuard lg(mApparitionsMutex);
-    uint8_t &mode = mApparitions[frame];
-    mode ^= (-(unsigned int) false ^ mode) & (1U << 1);
-    if (mode == 0) {
-        mApparitions.erase(frame);
-    }
+    mApparitionsIndirect.erase(frame);
 #endif
     mIndirectApparitionsNumber--;
     for (auto observer: mObservers) {
         observer->onRemoveIndirectApparition(this, frame);
     }
-    for (auto [observer, mode] : mApparitions) {
+    Set<OptPFrame> observers;
+    observers.insert(mApparitionsIndirect.begin(), mApparitionsIndirect.end());
+    observers.insert(mApparitionsDirect.begin(), mApparitionsDirect.end());
+    for (auto observer : observers) {
         observer->onRemoveIndirectApparition(this, frame);
     }
+
 }
 
 void CML::MapPoint::removeDirectApparition(PFrame frame) {
+    signalMethodStart("MapPoint::removeDirectApparition");
 #if CML_MAPPOINT_STOREDIRECTFRAME
     LockGuard lg(mApparitionsMutex);
-    uint8_t &mode = mApparitions[frame];
-    mode ^= (-(unsigned int) false ^ mode) & (1U << 1);
-    if (mode == 0) {
-        mApparitions.erase(frame);
-    }
+    mApparitionsDirect.erase(frame);
 #endif
     mDirectApparitionsNumber--;
     for (auto observer: mObservers) {
         observer->onRemoveDirectApparition(this, frame);
     }
-    for (auto [observer, mode] : mApparitions) {
+    Set<OptPFrame> observers;
+    observers.insert(mApparitionsIndirect.begin(), mApparitionsIndirect.end());
+    observers.insert(mApparitionsDirect.begin(), mApparitionsDirect.end());
+    for (auto observer : observers) {
         observer->onRemoveDirectApparition(this, frame);
     }
+
 }

@@ -11,20 +11,9 @@ from evaluator import evaluateOn
 from parseconfig import parse_config
 
 THREAD_POOL = ThreadPoolExecutor(max_workers=10)
-NUM_GENERATIONS = 1000
+NUM_GENERATIONS = 200
 ADDITIONAL_PARAMETERS = [
-#    ["numOrbCorner", [300, 3000], lambda x: int(x)],
-#    ["dsoTracer.desiredPointDensity", [300, 3000], lambda x: int(x)],
-#    ["dsoTracer.immatureDensity", [300, 3000], lambda x: int(x)],
-#    ["dsoInitializer.pointDensity", [300, 3000], lambda x: int(x)],
-     ["dsoInitializer.regularizationWeight", [0.2,1], lambda x: float(x)],
-#    ["dsoInitializer.densityFactor", [0.2,1], lambda x: float(x)],
-     ["orbInlierNumThreshold", [0, 100], lambda x: int(x)],
-     ["orbInlierRatioThreshold", [0, 1], lambda x: float(x)],
-     ["orbKeyframeReflimit", [100, 500], lambda x: int(x)],
-     ["orbKeyframeRatio", [0.75, 0.96], lambda x: float(x)],
-     ["dsoKeyframeWeight", [0.8, 1.2], lambda x: float(x)],
-     ["dsoKeyframeResidualRatio", [1.5, 4], lambda x: float(x)],
+
 ]
 BATCH_SIZE = 3
 DURATION_LIMIT = 1.25

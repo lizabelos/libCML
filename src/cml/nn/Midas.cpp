@@ -1,7 +1,7 @@
 #include "cml/nn/Midas.h"
 
 CML::NN::Midas::Midas() {
-    logger.info("Loading Midas model from 'resources/midas-model-small-70d6b9c8.pt'...");
+    CML_LOG_INFO("Loading Midas model from 'resources/midas-model-small-70d6b9c8.pt'...");
     module = torch::jit::load("../resources/midas-model-small-70d6b9c8.pt", at::kCPU);
 }
 

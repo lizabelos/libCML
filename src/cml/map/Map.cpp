@@ -26,13 +26,14 @@ CML::Map::Map() {
     mBufferFrameCenterSize.emplace_back(0);
 
     if (MAPPED != 0) {
+        CML_LOG_FATAL("Map::Map(), MAPPED is not 0");
         abort();
     }
 }
 
 CML::Map::~Map() {
 
-    Set<PPoint> points = mMapPoints;
+    PointSet points = mMapPoints;
     for (auto point : points) {
         removeMapPoint(point);
     }
@@ -61,6 +62,7 @@ CML::Map::~Map() {
 
 CML::PPoint CML::Map::createMapPoint(PFrame reference, FeatureIndex referenceIndex, MapPointType type)
 {
+    signalMethodStart("Map::createMapPoint");
     assertThrow(reference != nullptr, "called createMapPoint with a null reference pointer");
     // assertThrow(reference->isInside(corner.point(0), 0, 0), "corner is not inside the reference");
     // PPoint object = mMapPointAllocator.allocate(1);
@@ -93,11 +95,26 @@ CML::PPoint CML::Map::createMapPoint(PFrame reference, FeatureIndex referenceInd
         }
     }
 
-    PPoint object = new MapPoint(id, reference, referenceIndex, type,
-                                                     &mBufferCoordinates[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
-                                                     &mBufferColors[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
-                                                     &mBufferUncertainty[bufferId][rowId * CML_MAPPOINT_SPARSITY],
-                                                     &mBufferGroups[bufferId][rowId * CML_MAPPOINT_SPARSITY]);
+    OptPPoint object;
+
+    if (mReusableMapPoints.empty()) {
+
+        object = new MapPoint(id, reference, referenceIndex, type,
+                              &mBufferCoordinates[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
+                              &mBufferColors[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
+                              &mBufferUncertainty[bufferId][rowId * CML_MAPPOINT_SPARSITY],
+                              &mBufferGroups[bufferId][rowId * CML_MAPPOINT_SPARSITY]);
+    } else {
+        object = mReusableMapPoints.front();
+        mReusableMapPoints.pop_front();
+        object->recreate(id, reference, referenceIndex, type,
+                      &mBufferCoordinates[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
+                      &mBufferColors[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
+                      &mBufferUncertainty[bufferId][rowId * CML_MAPPOINT_SPARSITY],
+                      &mBufferGroups[bufferId][rowId * CML_MAPPOINT_SPARSITY]);
+    }
+
+
     object->subscribeObserver(this);
 
     {
@@ -107,18 +124,21 @@ CML::PPoint CML::Map::createMapPoint(PFrame reference, FeatureIndex referenceInd
 
     object->setGroup(MAPPED, true);
 
-    if (type == INDIRECT) {
+    if (type == INDIRECTTYPE) {
         object->setGroup(INDIRECTGROUP, true);
     }
 
-    if (type == DIRECT) {
+    if (type == DIRECTTYPE) {
         object->setGroup(DIRECTGROUP, true);
     }
+
 
     return object;
 }
 
 void CML::Map::removeMapPoint(PPoint mapPoint, bool singleHolder) {
+
+    signalMethodStart("Map::removeMapPoint");
 
     {
         LockGuard lg(mMapPointsMutex);
@@ -137,7 +157,7 @@ void CML::Map::removeMapPoint(PPoint mapPoint, bool singleHolder) {
 
     assertThrow(!mapPoint->isGroup(0), "Some strange bug");
 
-    Set<PFrame> frames;
+    FrameSet frames;
     for (auto frame : mapPoint->getDirectApparitions()) {
         frames.insert(frame);
     }
@@ -154,17 +174,22 @@ void CML::Map::removeMapPoint(PPoint mapPoint, bool singleHolder) {
     mapPoint->getPrivate().freeAll(mMapPointsPrivateDataContext, mGarbageCollector);
 
     if (singleHolder) {
-        delete mapPoint.p();
+        //delete mapPoint.p();
+        mapPoint->destroy();
+        mReusableMapPoints.push_back(mapPoint);
     } else {
         mGarbageCollector.erase(mapPoint.p());
     }
 
-    return;
+
 
 }
 
 
 CML::PFrame CML::Map::createFrame(Ptr<CaptureImage, NonNullable> captureFrame) {
+
+    signalMethodStart("Map::createFrame");
+
     int id = mFrameCounter++;
 
     size_t bufferId;
@@ -179,15 +204,25 @@ CML::PFrame CML::Map::createFrame(Ptr<CaptureImage, NonNullable> captureFrame) {
         }
     }
 
-    PFrame frame = new Frame(id, captureFrame, &mBufferFrameCenter[bufferId][rowId * 3]);
+    OptPFrame previousFrame;
+    if (mFrames.size() > 0) {
+        previousFrame = getLastFrame();
+    }
+
+    PFrame frame = new Frame(id, captureFrame, &mBufferFrameCenter[bufferId][rowId * 3], previousFrame);
     frame->setGroup(VALIDFRAME, true);
 
     mBufferFrameCenterSize[bufferId]++;
+
+
 
     return frame;
 }
 
 void CML::Map::addFrame(PFrame frame) {
+
+    signalMethodStart("Map::addFrame");
+
     assertThrow(frame != nullptr, "called addFrame with a null pointer");
     {
         LockGuard lg(mFramesMutex);
@@ -202,33 +237,41 @@ void CML::Map::addFrame(PFrame frame) {
             observer->onAddFrame(*this, frame);
         }
     }
+
+
 }
 
-CML::Set<CML::PPoint> CML::Map::getMapPoints() {
+CML::PointSet CML::Map::getMapPoints() {
+    signalMethodStart("Map::getMapPoints");
     LockGuard lg(mMapPointsMutex);
     return mMapPoints;
 }
 
 int CML::Map::getMapPointsNumber() {
+    signalMethodStart("Map::getMapPointsNumber");
     return mMapPoints.size();
 }
 
-CML::Set<CML::PPoint> CML::Map::getGroupMapPoints(int groupId) {
+CML::PointSet CML::Map::getGroupMapPoints(int groupId) {
+    signalMethodStart("Map::getGroupMapPoints");
     LockGuard lg(mGroupsMapPointMutexes[groupId]);
     return mGroupsMapPoint[groupId];
 }
 
 CML::OrderedSet<CML::PFrame, CML::Comparator> CML::Map::getFrames() {
+    signalMethodStart("Map::getFrames");
     LockGuard lg(mFramesMutex);
     return mFrames;
 }
 
 CML::PFrame CML::Map::getLastFrame() {
+    signalMethodStart("Map::getLastFrame");
     LockGuard lg(mFramesMutex);
     return *mFrames.begin();
 }
 
 CML::PFrame CML::Map::getLastFrame(int n) {
+    signalMethodStart("Map::getLastFrame");
     if (n >= mFrames.size()) {
         return *(mFrames.rbegin());
     }
@@ -239,16 +282,19 @@ CML::PFrame CML::Map::getLastFrame(int n) {
 }
 
 unsigned int CML::Map::getFramesNumber() {
+    signalMethodStart("Map::getFramesNumber");
     LockGuard lg(mFramesMutex);
     return mFrames.size();
 }
 
 unsigned int CML::Map::getGroupFramesNumber(int groupId) {
+    signalMethodStart("Map::getGroupFramesNumber");
     LockGuard lg(mGroupsFrameMutexes[groupId]);
     return mGroupsFrames[groupId].size();
 }
 
 CML::OptPFrame CML::Map::getLastGroupFrame(int groupId) {
+    signalMethodStart("Map::getLastGroupFrame");
     LockGuard lg(mGroupsFrameMutexes[groupId]);
     if (mGroupsFrames[groupId].empty()) {
         return {};
@@ -257,6 +303,7 @@ CML::OptPFrame CML::Map::getLastGroupFrame(int groupId) {
 }
 
 CML::OptPFrame CML::Map::getLastGroupFrame(int groupId, int n) {
+    signalMethodStart("Map::getLastGroupFrame");
     LockGuard lg(mGroupsFrameMutexes[groupId]);
     if (mGroupsFrames[groupId].empty()) {
         return {};
@@ -267,6 +314,7 @@ CML::OptPFrame CML::Map::getLastGroupFrame(int groupId, int n) {
 }
 
 CML::OrderedSet<CML::PFrame, CML::Comparator> CML::Map::getGroupFrames(int groupId) {
+    signalMethodStart("Map::getGroupFrames");
     if (groupId == -1) {
         return getFrames();
     }
@@ -312,6 +360,7 @@ void CML::Map::reset() {
 }
 
 void CML::Map::onFrameGroupChange(PFrame frame, int groupId, bool state) {
+    signalMethodStart("Map::onFrameGroupChange");
     assertThrow(groupId >= 0 && groupId < FRAME_GROUP_MAXSIZE, "Max group out of range");
 
     if (groupId == KEYFRAME && state == true) {
@@ -342,9 +391,11 @@ void CML::Map::onFrameGroupChange(PFrame frame, int groupId, bool state) {
         // refreshErrorFromGroundtruth();
     }
 
+
 }
 
 void CML::Map::onFrameDelete(CML::PFrame frame) {
+    signalMethodStart("Map::onFrameDelete");
     {
         LockGuard lg(mFramesMutex);
         mFrames.erase(frame);
@@ -354,9 +405,11 @@ void CML::Map::onFrameDelete(CML::PFrame frame) {
         LockGuard lg(mGroupsFrameMutexes[i]);
         mGroupsFrames[i].erase(frame);
     }
+
 }
 
 void CML::Map::onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {
+    signalMethodStart("Map::onMapPointGroupChange");
 
     assertThrow(groupId >= 0 && groupId < MAPOBJECT_GROUP_MAXSIZE, "Max group out of range");
 
@@ -379,17 +432,20 @@ void CML::Map::onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {
 }
 
 void CML::Map::onMapPointDestroyed(PPoint mapPoint) {
+    signalMethodStart("Map::onMapPointDestroyed");
 
     {
         LockGuard lg(mMapObjectAvailableIdsMutex);
         mMapObjectAvailableIds.push_back(mapPoint->getId());
     }
 
+
 }
 
 #define CML_USE_OLDER_COVISIBLITY_GRAPH 1
 
 CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int max, int groupId, int th) {
+    signalMethodStart("Map::processIndirectCovisiblity");
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
@@ -425,7 +481,7 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
             continue;
         }
         if (pair.first->isGroup(groupId)) {
-            candidatesList.emplace_back(pair);
+            candidatesList.emplace_back(pair.first, pair.second);
         }
     }
 
@@ -448,12 +504,15 @@ CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int ma
         if (count < th) return result;
         if (max != -1 && (int)result.size() == max) return result;
     }
+
+
     return result;
 
 
 }
 
 CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max, int groupId) {
+    signalMethodStart("Map::processDirectCovisiblity");
 
 
 #if CML_USE_OLDER_COVISIBLITY_GRAPH
@@ -486,7 +545,7 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
             continue;
         }
         if (pair.first->isGroup(groupId)) {
-            candidatesList.emplace_back(pair);
+            candidatesList.emplace_back(pair.first, pair.second);
         }
     }
 
@@ -508,9 +567,9 @@ CML::List<CML::PFrame> CML::Map::processDirectCovisiblity(PFrame frame, int max,
         result.emplace_back(candidate);
         if (max != -1 && (int)result.size() == max) return result;
     }
+
+
     return result;
-
-
 }
 
 
@@ -535,7 +594,7 @@ void CML::Map::refreshErrorFromGroundtruth() {
 
 void CML::Map::exportResults(std::string path, MapResultFormat format, bool exportGroundtruth, bool reversed) {
 
-    logger.important("Writing the results to " + path);
+    CML_LOG_IMPORTANT("Writing the results to " + path);
 
     List<Camera> cameras;
 
@@ -551,13 +610,13 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
         std::reverse(cameras.begin(), cameras.end());
     }
 
-    logger.important("Writing " + std::to_string(cameras.size()) + " poses");
+    CML_LOG_IMPORTANT("Writing " + std::to_string(cameras.size()) + " poses");
 
 
 
     if (format == MAP_RESULT_FORMAT_TUM) {
 
-        logger.important("Writing with TUM format");
+        CML_LOG_IMPORTANT("Writing with TUM format");
 
 
         std::ofstream file;
@@ -582,7 +641,7 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
 
     if (format == MAP_RESULT_FORMAT_KITTI) {
 
-        logger.important("Writing with KITTI format");
+        CML_LOG_IMPORTANT("Writing with KITTI format");
 
         std::ofstream file;
         file.open(path);
@@ -616,13 +675,13 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
         if (ateAllframesN > 0) {
             ateAllframesRMSE = ateAllframesRMSE / (scalar_t)ateAllframesN;
             ateAllframesRMSE = sqrt(ateAllframesRMSE);
-            logger.info("ATE RMSE : " + std::to_string(ateAllframesRMSE));
+            CML_LOG_INFO("ATE RMSE : " + std::to_string(ateAllframesRMSE));
         }
 
         if (ateKeyframesN > 0) {
             ateKeyframesRMSE = ateKeyframesRMSE / (scalar_t)ateKeyframesN;
             ateKeyframesRMSE = sqrt(ateKeyframesRMSE);
-            logger.info("ATE Key RMSE : " + std::to_string(ateKeyframesRMSE));
+            CML_LOG_INFO("ATE Key RMSE : " + std::to_string(ateKeyframesRMSE));
         }
 
     }
@@ -694,22 +753,23 @@ void CML::Map::exportResults(std::string path, MapResultFormat format, bool expo
 
     }
 
-    logger.important("Writing finished");
+    CML_LOG_IMPORTANT("Writing finished");
 
 
 }
 
 bool CML::Map::mergeMapPoints(PPoint mapPointA, PPoint mapPointB) {
+    signalMethodStart("Map::mergeMapPoints");
     if (mapPointA == mapPointB) {
-        logger.debug("You tried to merge the same map point");
+        CML_LOG_DEBUG("You tried to merge the same map point");
         return true;
     }
     if (!mapPointA->isGroup(0)) {
-        logger.fatal("merge map point with a point which belong to mapped group. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("merge map point with a point which belong to mapped group. ( continuing anyway, this may be a recently remove point )");
         return false;
     }
     if (!mapPointB->isGroup(0)) {
-        logger.fatal("merge map point with a point which belong to mapped group. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("merge map point with a point which belong to mapped group. ( continuing anyway, this may be a recently remove point )");
         return false;
     }
 
@@ -727,7 +787,7 @@ bool CML::Map::mergeMapPoints(PPoint mapPointA, PPoint mapPointB) {
     // For each frame in the indirect apparitions of B, check that A is not already inside in a another index
     for (auto [frame, index] : indirectApparitions) {
         if (frame->getIndex(mapPointA).hasValidValue()) {
-            logger.debug("Can't merge map points because of a conflict");
+            CML_LOG_DEBUG("Can't merge map points because of a conflict");
             return false;
         }
     }
@@ -740,13 +800,15 @@ bool CML::Map::mergeMapPoints(PPoint mapPointA, PPoint mapPointB) {
     for (auto frame : directApparitions) {
         frame->addDirectApparitions(mapPointA);
     }
-    logger.debug("Merged two map points");
+    CML_LOG_DEBUG("Merged two map points");
+
     return true;
 }
 
 bool CML::Map::canMargePoints(PPoint mapPointA, PPoint mapPointB) {
+    signalMethodStart("Map::canMargePoints");
     if (mapPointA == mapPointB) {
-        logger.debug("You tried to merge the same map point");
+        CML_LOG_DEBUG("You tried to merge the same map point");
         return false;
     }
     List<Pair<PFrame, FeatureIndex>> apparitions;
@@ -760,5 +822,6 @@ bool CML::Map::canMargePoints(PPoint mapPointA, PPoint mapPointB) {
             return false;
         }
     }
+
     return true;
 }

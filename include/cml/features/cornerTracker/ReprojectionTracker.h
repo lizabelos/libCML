@@ -30,7 +30,7 @@ namespace CML::Features {
 
             this->getTimer().start();
 
-            Set<PPoint> toExclude;
+            PointSet toExclude;
             for (auto m : initialMatching) {
                 if (m.getMapPoint().isNotNull()) {
                     toExclude.insert(m.getMapPoint());

@@ -11,6 +11,7 @@
 #include <cml/features/Features.h>
 #include <cml/utils/GarbageCollector.h>
 #include <cml/map/GroupsManager.h>
+#include <cml/utils/Complexity.h>
 
 #include <memory>
 #include <vector>
@@ -74,13 +75,14 @@ namespace CML {
 
         void addFrame(PFrame frame);
 
-        Set<PPoint> getMapPoints();
+        PointSet getMapPoints();
 
         int getMapPointsNumber();
 
-        Set<PPoint> getGroupMapPoints(int groupId);
+        PointSet getGroupMapPoints(int groupId);
 
         inline List<PPoint> getGroupMapPointsAsList(int groupId) {
+            signalMethodStart("Map::getGroupMapPointsAsList");
             auto points = getGroupMapPoints(groupId);
             return List<PPoint>(points.begin(), points.end());
         }
@@ -88,6 +90,7 @@ namespace CML {
         OrderedSet<PFrame, Comparator> getFrames();
 
         inline List<PFrame> getFrameAsList() {
+            signalMethodStart("Map::getFrameAsList");
             auto frames = getFrames();
             return List<PFrame>(frames.begin(), frames.end());
         }
@@ -101,6 +104,7 @@ namespace CML {
         unsigned int getGroupFramesNumber(int groupId);
 
         inline List<PFrame> getGroupFrameAsList(int groupId) {
+            signalMethodStart("Map::getGroupFrameAsList");
             auto frames = getGroupFrames(groupId);
             return List<PFrame>(frames.begin(), frames.end());
         }
@@ -197,25 +201,15 @@ namespace CML {
 
             List<Camera> results;
 
-            List<PFrame> frames = getFrameAsList();
-
-            int i = 0;
-            for (; i < frames.size(); i++) {
-                if (frames[i] == frame) {
-                    break;
-                }
-            }
-
-            i = i + 2;
-
+            OptPFrame previous = frame->getPreviousFrame();
             int n = 0;
-            for (; i < frames.size() && n < nFrames; i++, n++) {
+            while (n < nFrames && previous.isNotNull()) {
 
-                List<Camera> motionToTries = constantVelocityMotionModel(frames[i - 1]->getCamera(), frames[i]->getCamera());
+                List<Camera> motionToTries = constantVelocityMotionModel(previous->getCamera(), frame->getCamera());
 
                 for (auto motionToTry : motionToTries) {
 
-                    Camera camera = frames[i - 1]->getCamera();
+                    Camera camera = previous->getCamera();
 
                     for (int j = 0; j < n + 1; j++) {
 
@@ -227,9 +221,9 @@ namespace CML {
 
                 }
 
-
+                frame = previous;
+                previous = frame->getPreviousFrame();
             }
-
 
             return results;
 
@@ -246,7 +240,8 @@ namespace CML {
 
     private:
         Mutex mMapPointsMutex;
-        Set<PPoint> mMapPoints;
+        PointSet mMapPoints;
+        LinkedList<PPoint> mReusableMapPoints;
 
         Mutex mFramesMutex;
         OrderedSet<PFrame, Comparator> mFrames;
@@ -255,7 +250,7 @@ namespace CML {
         PrivateDataContext mFramePrivateDataContext, mMapPointsPrivateDataContext;
 
         std::array<OrderedSet<PFrame, Comparator>, MAXGROUPSIZE> mGroupsFrames;
-        std::array<Set<PPoint>, MAXGROUPSIZE> mGroupsMapPoint;
+        std::array<PointSet, MAXGROUPSIZE> mGroupsMapPoint;
         std::array<Mutex, MAXGROUPSIZE> mGroupsFrameMutexes;
         std::array<Mutex, MAXGROUPSIZE> mGroupsMapPointMutexes;
 

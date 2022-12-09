@@ -103,11 +103,16 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
 
     mVignette = Array2D<float>(mWidth, mHeight, 1);
 
-    mCaptureImageGenerator = new CaptureImageGenerator(mCameraParameters->getOutputSize()[0], mCameraParameters->getOutputSize()[1]);
+    mCaptureImageGenerator = new CaptureImageGenerator(mWidth, mHeight);
     try {
         mCameraParameters = parseInternalTumCalibration(path + ".txt", mCaptureImageGenerator->getOutputSize());
     } catch (...) {
-        mCameraParameters = parseInternalTumCalibration(dirnameOf(path) + "/calib.txt", mCaptureImageGenerator->getOutputSize());
+        CML::Vector2 originalSize(640,480);
+        CML::PinholeUndistorter undistorter(CML::Vector2(1.0, 1.7778), CML::Vector2(0.5, 0.5));
+        undistorter = undistorter.scaleAndRecenter(originalSize, CML::Vector2(-0.5, -0.5));
+        mCameraParameters = new CML::InternalCalibration(undistorter, originalSize);
+
+        //mCameraParameters = parseInternalTumCalibration(dirnameOf(path) + "/calib.txt", mCaptureImageGenerator->getOutputSize());
     }
 
     mThread = std::thread(&CaptureFFMPEG::ffmpegRun, this);
@@ -129,7 +134,7 @@ CML::CaptureFFMPEG::~CaptureFFMPEG() {
 
 }
 
-CML::Ptr<CML::CaptureImage, CML::Nullable> CML::CaptureFFMPEG::multithreadNext() {
+CML::Ptr<CML::CaptureImage, CML::Nullable> CML::CaptureFFMPEG::next() {
     Ptr<CaptureImage, Nullable> result = *mQueue.getPopElement();
     mQueue.notifyPop();
     return result;
@@ -144,7 +149,7 @@ void CML::CaptureFFMPEG::ffmpegRun() {
     double fps = av_q2d(mFormatCtx->streams[mVideoStream]->r_frame_rate);
     int f = 0;
 
-    while(av_read_frame(mFormatCtx, &packet)>=0 && !isStopped()) {
+    while(av_read_frame(mFormatCtx, &packet)>=0) {
 
         if (packet.stream_index == mVideoStream) {
 
@@ -154,7 +159,7 @@ void CML::CaptureFFMPEG::ffmpegRun() {
                 throw std::runtime_error("Error while sending a packet to the decoder");
             }
 
-            while (response >= 0 && !isStopped())
+            while (response >= 0)
             {
 
                 response = avcodec_receive_frame(mCodecCtx, mFrame);
@@ -200,11 +205,7 @@ void CML::CaptureFFMPEG::ffmpegRun() {
 
     }
 
-    if (!isStopped()) {
-        logger.info("Video finisehd !");
-    } else {
-        logger.info("Video interrupted !");
-    }
+    CML_LOG_INFO("Video finisehd !");
 
     *mQueue.getPushElement() = Ptr<CaptureImage, Nullable>();
     mQueue.notifyPush();

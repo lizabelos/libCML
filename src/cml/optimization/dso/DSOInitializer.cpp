@@ -90,7 +90,7 @@ bool CML::Optimization::DSOInitializer::setFirst(PFrame reference) {
             }
         }
 
-        logger.info(std::to_string(mPoints[lvl].size()) + " points at level " + std::to_string(lvl));
+        CML_LOG_INFO(std::to_string(mPoints[lvl].size()) + " points at level " + std::to_string(lvl));
         if (mPoints[lvl].size() < 10) {
             return false;
         }
@@ -125,7 +125,7 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
 
 
     if (mReference != reference || !mIsInit) {
-        logger.info("Initializing initializer");
+        CML_LOG_INFO("Initializing initializer");
         mIsInit = setFirst(reference);
         mCurrentCamera = frameToTrack->getCamera();
         mCurrentExposure.setParametersAndExposure(frameToTrack->getExposure());
@@ -156,7 +156,7 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
     mFrameToTrack = frameToTrack;
 
     assertThrow(mPoints[0].size() > 0, "No points...");
-    logger.info("Initializing using " + std::to_string(mPoints[0].size()) + " points");
+    CML_LOG_INFO("Initializing using " + std::to_string(mPoints[0].size()) + " points");
 
     makeNN();
 
@@ -262,7 +262,7 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
             if(accept)
             {
 
-                logger.info(std::to_string(mStepNum) + "; Accepting the step : " + std::to_string(resNew[0] / resNew[2]) + " < " + std::to_string(resOld[0] / resOld[2]) + ". Level = " + std::to_string(lvl));
+                CML_LOG_INFO(std::to_string(mStepNum) + "; Accepting the step : " + std::to_string(resNew[0] / resNew[2]) + " < " + std::to_string(resOld[0] / resOld[2]) + ". Level = " + std::to_string(lvl));
 
                 if(resNew[1] == mAlphaK * mPoints[lvl].size()) {
                     mSnapped = true;
@@ -288,7 +288,7 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
             }
             else
             {
-                logger.info(std::to_string(mStepNum) + "; Not accepting the step : " + std::to_string(resNew[0] / resNew[2]) + " > " + std::to_string(resOld[0] / resOld[2]) + ". Level = " + std::to_string(lvl));
+                CML_LOG_INFO(std::to_string(mStepNum) + "; Not accepting the step : " + std::to_string(resNew[0] / resNew[2]) + " > " + std::to_string(resOld[0] / resOld[2]) + ". Level = " + std::to_string(lvl));
 
 
                 fails++;
@@ -422,7 +422,7 @@ void CML::Optimization::DSOInitializer::onInitializationSuccess() {
             continue;
         }
 
-        auto point = getMap().createMapPoint(reference, FeatureIndex(groupId, i), DIRECT);
+        auto point = getMap().createMapPoint(reference, FeatureIndex(groupId, i), DIRECTTYPE);
         reference->addDirectApparitions(point);
 
        // auto pointGlobalData = mContext.get(point);

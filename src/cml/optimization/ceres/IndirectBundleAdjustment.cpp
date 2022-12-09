@@ -13,12 +13,12 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::localOptimize(int frame
 
 
     OrderedSet<PFrame, Comparator> frames = getMap().getGroupFrames(frameGroupId);
-    HashMap<PPoint, int> pointsCount;
-    HashMap<PFrame, int> framesCount;
+    PointHashMap<int> pointsCount;
+    FrameHashMap<int> framesCount;
 
 
-    HashMap<PPoint, double*> pointsData;
-    HashMap<PFrame, Pair<double*, double*>> framesData;
+    PointHashMap<double*> pointsData;
+    FrameHashMap<Pair<double*, double*>> framesData;
 
     OptPFrame lastFrame;
     OptPFrame lastLastFrame;
@@ -165,16 +165,16 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::localOptimize(int frame
         // options. // TODO
     }
 
-    logger.info("Optimizing " + std::to_string(framesData.size()) + " frames and " + std::to_string(pointsData.size()) + " points");
+    CML_LOG_INFO("Optimizing " + std::to_string(framesData.size()) + " frames and " + std::to_string(pointsData.size()) + " points");
 
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
     if (!summary.IsSolutionUsable()) {
-        logger.error("Ceres Message : (IBA)\n" + summary.message);
+        CML_LOG_ERROR("Ceres Message : (IBA)\n" + summary.message);
         return false;
     } else {
-        if (!summary.message.empty()) logger.info("Ceres Message : (IBA)\n" + summary.message);
+        if (!summary.message.empty()) CML_LOG_INFO("Ceres Message : (IBA)\n" + summary.message);
     }
 
 /*
@@ -188,7 +188,7 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::localOptimize(int frame
 
 
     if (!covariance->Compute(covarianceBlocks, &problem)) {
-        logger.error("Rank deficient jacobian matrix ! The computation of the covariance will be very slow !");
+        CML_LOG_ERROR("Rank deficient jacobian matrix ! The computation of the covariance will be very slow !");
         delete covariance;
         covOptions.algorithm_type = ceres::DENSE_SVD;
         covOptions.null_space_rank = -1;
@@ -196,12 +196,12 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::localOptimize(int frame
 
         if (!covariance->Compute(covarianceBlocks, &problem)) {
             delete covariance;
-            logger.error("Fail to compute the covariance !");
+            CML_LOG_ERROR("Fail to compute the covariance !");
             return false;
         }
 
     } else {
-        logger.info("Fast covariance computation succeed !");
+        CML_LOG_INFO("Fast covariance computation succeed !");
     }
 */
     for (auto [frame, data] : framesData) {
@@ -240,8 +240,8 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::optimizeSinglePoint(CML
 
     ceres::Solver::Options options;
 
-    HashMap<PPoint, double*> pointsData;
-    HashMap<PFrame, Pair<double*, double*>> framesData;
+    PointHashMap<double*> pointsData;
+    FrameHashMap<Pair<double*, double*>> framesData;
 
     OptPFrame lastFrame;
     OptPFrame lastLastFrame;
@@ -329,16 +329,16 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::optimizeSinglePoint(CML
     options.max_num_iterations = 100;
 
 
-    logger.info("Optimizing " + std::to_string(framesData.size()) + " frames and " + std::to_string(pointsData.size()) + " points");
+    CML_LOG_INFO("Optimizing " + std::to_string(framesData.size()) + " frames and " + std::to_string(pointsData.size()) + " points");
 
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
     if (!summary.IsSolutionUsable()) {
-        logger.error("Ceres Message : (IBA)\n" + summary.message);
+        CML_LOG_ERROR("Ceres Message : (IBA)\n" + summary.message);
         return false;
     } else {
-        if (!summary.message.empty()) logger.info("Ceres Message : (IBA)\n" + summary.message);
+        if (!summary.message.empty()) CML_LOG_INFO("Ceres Message : (IBA)\n" + summary.message);
     }
 
     ceres::Covariance *covariance;
@@ -354,7 +354,7 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::optimizeSinglePoint(CML
 
 
         if (!covariance->Compute(covarianceBlocks, &problem)) {
-            logger.error("Rank deficient jacobian matrix !");
+            CML_LOG_ERROR("Rank deficient jacobian matrix !");
             /*delete covariance;
             covOptions.algorithm_type = ceres::DENSE_SVD;
             covOptions.null_space_rank = -1;
@@ -362,13 +362,13 @@ bool CML::Optimization::Ceres::IndirectBundleAdjustment::optimizeSinglePoint(CML
 
             if (!covariance->Compute(covarianceBlocks, &problem)) {
                 delete covariance;
-                logger.error("Fail to compute the covariance !");
+                CML_LOG_ERROR("Fail to compute the covariance !");
                 return false;
             }*/
             return false;
 
         } else {
-            logger.info("Fast covariance computation succeed !");
+            CML_LOG_INFO("Fast covariance computation succeed !");
         }
 
     }

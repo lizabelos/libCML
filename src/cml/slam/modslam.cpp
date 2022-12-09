@@ -3,6 +3,7 @@
 #include <limits>
 
 #include <cml/slam/modslam/Hybrid.h>
+#include <cml/utils/Complexity.h>
 
 #if CML_ENABLE_GUI
 #include <QApplication>
@@ -61,59 +62,64 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
         Ptr<AbstractCapture, Nullable> capture = new CML::VideoCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 #endif
 
 #if CML_HAVE_LIBZIP
+    CML_LOG_INFO("Trying to load TUM dataset");
     try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::TUMCapture(path);
+        CML::TUMCapture *capture = new CML::TUMCapture(path);
+        capture->decompressAll();
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 
+    CML_LOG_INFO("Trying to load dataset as a ZipStereopolisCapture");
     try {
-        Ptr<AbstractCapture, Nullable> capture = new CML::ZipStereopolisCapture(path);
+        CML::ZipStereopolisCapture *capture = new CML::ZipStereopolisCapture(path);
+        capture->decompressAll();
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 #endif
 
+    CML_LOG_INFO("Trying to load dataset as a KittyCapture");
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::KittyCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 /*
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::EurocCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::RobotCarCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 
    try {
         Ptr<AbstractCapture, Nullable> capture = new CML::Eth3DCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 
     try {
         Ptr<AbstractCapture, Nullable> capture = new CML::TartanairCapture(path);
         return capture;
     } catch (const std::exception &e) {
-        logger.error(e.what());
+        CML_LOG_ERROR(e.what());
     }
 */
     return nullptr;
@@ -201,12 +207,14 @@ int main(int argc, char *argv[])
 {
     CML::initCML();
 
+    //CML::Test::testNaiveMap();
+
     typedef std::numeric_limits< double > dbl;
     std::cout.precision(dbl::max_digits10);
 
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
-    logger.setLogLevel(CML::IMPORTANT);
+    logger.setLogLevel(CML::INFO);
 
     printTypeSize();
 
@@ -242,7 +250,7 @@ int main(int argc, char *argv[])
         captureDeter = loadDataset(value);
 #endif
         if (capture.isNull()) {
-            logger.error("Can't load dataset '" + value + "'");
+            CML_LOG_ERROR("Can't load dataset '" + value + "'");
         }
     });
     program.add_argument("-b", "--reverse").nargs(0).help("Reverse mode").default_value(false).implicit_value(true);
@@ -253,7 +261,7 @@ int main(int argc, char *argv[])
 //#endif
 #if CML_HAVE_YAML_CPP
     program.add_argument("-c", "--config").nargs(1).help("Configuration file for the slam").action([&configuration, &slam, &slamDeter, &executionPath](const std::string &value){
-        logger.info("Parsing : " + value);
+        CML_LOG_INFO("Parsing : " + value);
         configuration = YAML::LoadFile(value);
         slam->setConfiguration(configuration);
 #if TEST_DETERMINISITY
@@ -321,12 +329,12 @@ int main(int argc, char *argv[])
 #endif
 
     if (capture.isNull()) {
-        logger.error("No dataset.");
+        CML_LOG_ERROR("No dataset.");
         return EXIT_FAILURE;
     }
 
     if (slam.isNull()) {
-        logger.error("No slam. Please specify a configuration file.");
+        CML_LOG_ERROR("No slam. Please specify a configuration file.");
         return EXIT_FAILURE;
     }
 
@@ -334,7 +342,12 @@ int main(int argc, char *argv[])
 #if TEST_DETERMINISITY
         slamDeter->start(captureDeter);
 #endif
+        Timer timer;
+        timer.start();
         slam->startSingleThread(capture);
+        timer.stop();
+        std::cout << "Time : " << timer.getValue() << std::endl;
+        dumpComplexityReport();
     }
 
 #if CML_ENABLE_GUI
@@ -351,7 +364,7 @@ int main(int argc, char *argv[])
         MainSlamWidget w(slam, !saveImagePath.empty());
 
         if (!saveImagePath.empty()) {
-            logger.important("Saving the images to " + saveImagePath);
+            CML_LOG_IMPORTANT("Saving the images to " + saveImagePath);
             w.saveImagesTo(saveImagePath);
         }
 
@@ -366,9 +379,10 @@ int main(int argc, char *argv[])
     }
 #endif
 
+
     if (slam->getCapture()->remaining() == 0) {
 
-        logger.info("Exporting the results");
+        CML_LOG_INFO("Exporting the results");
         if (resultFormat == "tum") {
             slam->getMap().exportResults(resultPath, MAP_RESULT_FORMAT_TUM, false, capture->isReverse());
         }

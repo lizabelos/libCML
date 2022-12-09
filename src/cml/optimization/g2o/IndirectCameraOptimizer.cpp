@@ -155,12 +155,12 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         g2o::SparseBlockMatrixX spinv;
         bool computeMarginalsSucceed = optimizer.computeMarginals(spinv, optimizer.vertex(0));
         if (!computeMarginalsSucceed) {
-            logger.error("Can't compute marginals");
+            CML_LOG_ERROR("Can't compute marginals");
             return result;
         }
         auto block = spinv.block(0, 0);
         if (block == nullptr) {
-            logger.error("Can't compute marginals");
+            CML_LOG_ERROR("Can't compute marginals");
             return result;
         }
 

@@ -12,8 +12,8 @@ CML::Optional<CML::Camera> CML::Optimization::Ceres::IndirectCameraOptimizer::lo
     ceres::Solver::Options options;
 
 
-    HashMap<PPoint, double*> pointsData;
-    HashMap<PFrame, Pair<double*, double*>> framesData;
+    PointHashMap<double*> pointsData;
+    FrameHashMap<Pair<double*, double*>> framesData;
 
     {
 
@@ -76,10 +76,10 @@ CML::Optional<CML::Camera> CML::Optimization::Ceres::IndirectCameraOptimizer::lo
     ceres::Solve(options, &problem, &summary);
 
     if (!summary.IsSolutionUsable()) {
-        logger.error("Ceres Message : (ICO::localize)\n" + summary.message);
+        CML_LOG_ERROR("Ceres Message : (ICO::localize)\n" + summary.message);
         return Optional<Camera>();
     } else {
-        if (!summary.message.empty()) logger.info("Ceres Message : (ICO::localize)\n" + summary.message);
+        if (!summary.message.empty()) CML_LOG_INFO("Ceres Message : (ICO::localize)\n" + summary.message);
     }
 
     return Camera(Vector3(framesData[frame].first[0], framesData[frame].first[1], framesData[frame].first[2]), Quaternion(framesData[frame].second[0], framesData[frame].second[1], framesData[frame].second[2], framesData[frame].second[3]));

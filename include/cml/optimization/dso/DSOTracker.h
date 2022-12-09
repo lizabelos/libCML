@@ -316,13 +316,13 @@ namespace CML {
 
                 if(i != 0)
                 {
-                    logger.info("Re-track attempt " + std::to_string(i));
+                    CML_LOG_INFO("Re-track attempt " + std::to_string(i));
                 }
 
                 if(!haveOneGood)
                 {
                     if (mFailureMode.i() == 1) {
-                        logger.error("Big error ! Hope we can recover... (Mode 1)");
+                        CML_LOG_ERROR("Big error ! Hope we can recover... (Mode 1)");
                         camera = cameras[0];
 
                         exposure.setParametersAndExposure(frameToTrack->getExposure());
@@ -333,7 +333,7 @@ namespace CML {
 
                         haveOneGood = true;
                     } else if (mFailureMode.i() == 2) {
-                        logger.error("Big error ! Hope we can recover... (Mode 2)");
+                        CML_LOG_ERROR("Big error ! Hope we can recover... (Mode 2)");
                         camera = cameras[0];
 
                         exposure.setParametersAndExposure(frameToTrack->getExposure());
@@ -349,7 +349,7 @@ namespace CML {
 
                         haveOneGood = true;
                     } else {
-                        logger.error("Big error ! Hope we can recover... (Mode 0)");
+                        CML_LOG_ERROR("Big error ! Hope we can recover... (Mode 0)");
                         return false;
                     }
                 } else {
@@ -407,7 +407,7 @@ namespace CML {
                 return rmse;
             }
 
-            void makeCoarseDepthL0(PFrame reference, Set<PPoint> points);
+            void makeCoarseDepthL0(PFrame reference, PointSet points);
 
             void viewOnCapture(DrawBoard &drawBoard, PFrame frame) final;
 

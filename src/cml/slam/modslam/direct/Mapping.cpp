@@ -45,7 +45,7 @@ void Hybrid::directMakeNonKeyFrame(PFrame currentFrame) {
 }
 
 void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
-    logger.info("Mapping of frame : " + std::to_string(currentFrame->getId()));
+    CML_LOG_INFO("Mapping of frame : " + std::to_string(currentFrame->getId()));
 
     auto currentFrameData = get(currentFrame);
 
@@ -59,8 +59,8 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
 
     mPhotometricTracer->traceNewCoarse(currentFrame, mPhotometricBA->ACTIVEKEYFRAME);
     mPhotometricBA->addNewFrame(currentFrame, mPhotometricTracer->IMMATUREPOINT);
-    Set<PPoint> photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
-    logger.info("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
+    PointSet photometricPoints = mPhotometricTracer->activatePoints(mPhotometricBA->ACTIVEKEYFRAME, mPhotometricBA->ACTIVEPOINT);
+    CML_LOG_INFO("Activating " + std::to_string(photometricPoints.size()) + " photometric points");
     mPhotometricBA->addPoints(photometricPoints);
 
     timer.start();
@@ -68,7 +68,7 @@ void Hybrid::directMap(PFrame currentFrame, bool callFromInitialization) {
     timer.stopAndPrint("Photometric BA run");
 
     if (mBaMode == BADIRECT && !ok) {
-        logger.error("BA failed.");
+        CML_LOG_ERROR("BA failed.");
        // restartOrStop("BA failed");
         return;
     }

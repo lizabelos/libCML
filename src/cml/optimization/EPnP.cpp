@@ -619,7 +619,7 @@ void CML::Optimization::EPnPInternal::qr_solve(Matrix<Dynamic, Dynamic> & A, Mat
 
         if (eta == 0) {
             A1[k] = A2[k] = 0.0;
-            logger.error("God damnit, A is singular, this shouldn't happen.");
+            CML_LOG_ERROR("God damnit, A is singular, this shouldn't happen.");
             return;
         } else {
             scalar_t * ppAik = ppAkk, sum = 0.0, inv_eta = 1. / eta;

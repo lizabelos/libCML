@@ -66,7 +66,7 @@ Hybrid::~Hybrid() {
 
 
 void Hybrid::onReset() {
-    CML::logger.info("Resetting...");
+    CML_LOG_INFO("Resetting...");
     mState = NOT_INITIALIZED;
     mReferenceKeyFrame = nullptr;
     mLastDirectKeyFrame = nullptr;
@@ -82,8 +82,8 @@ void Hybrid::onReset() {
     mDirectNeedToKetchupMatching = false;
     mFirstTrackingMatchingNumber = -1;
     mBaMode = BADIRECT;
-    mFrameToFree = HashMap<PFrame, int>();
-    mLocalKeyFrames = Set<PFrame>();
+    mFrameToFree = FrameHashMap<int>();
+    mLocalKeyFrames = FrameSet();
     mLastRelocFrame = nullptr;
 }
 
@@ -99,7 +99,7 @@ void Hybrid::run() {
         mHybridTracer->setPointDensity(mNumOrbCorner.i() / 8);
     }
 
-    CML::logger.info("Running...");
+    CML_LOG_INFO("Running...");
     Ptr<SlamThread, Nullable> directMappingThread;
     if (mEnableDirect.b() && !mLinearizeDirect.b()) {
         directMappingThread = new SlamThread(*this, "Direct Mapping", [this] { directMappingLoop(); });
@@ -117,6 +117,10 @@ void Hybrid::run() {
     beforeStart();
 
     while (!isStopped()) {
+
+        if (currentFrame.isNotNull()) {
+            //currentFrame->computeVirtualRealityImage(CML::AbstractSlam::getMap().getGroupMapPoints(getMap().DIRECTGROUP));
+        }
 
         currentFrame = getNextFrame();
         if (currentFrame.isNull()) {
@@ -143,7 +147,7 @@ void Hybrid::run() {
 
 
 
-    CML::logger.info("End of SLAM");
+    CML_LOG_INFO("End of SLAM");
 
 }
 
@@ -187,7 +191,7 @@ void Hybrid::processFrame(PFrame currentFrame) {
             mShouldPreferDso = poseEstimationDecision();
             // assertThrow(mShouldPreferDso, "Should prefer dso");
             if (mShouldPreferDso) {
-                logger.info("Should Prefer Dso");
+                CML_LOG_INFO("Should Prefer Dso");
                 mBacondTrack.add(0);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(0);
@@ -195,7 +199,7 @@ void Hybrid::processFrame(PFrame currentFrame) {
                 trackWithDso(currentFrame);
                 mDirectPETimer->stop();
             } else {
-                logger.info("Using Orb with Dso Refinement");
+                CML_LOG_INFO("Using Orb with Dso Refinement");
                 mBacondTrack.add(1);
                 mTrackingOk = false;
                 mStatTrackDec->addValue(1);
@@ -243,14 +247,14 @@ void Hybrid::processFrame(PFrame currentFrame) {
                     if (mBaMode == BADIRECT) {
                         mDirectBATimer->start();
                         mStatBADec->addValue(0);
-                        logger.important("Ba mode Direct");
+                        CML_LOG_IMPORTANT("Ba mode Direct");
                         directPostprocess(currentFrame, needDirectKF);
                         indirectPostprocess(currentFrame, needIndirectKF);
                         mDirectBATimer->stop();
                     } else {
                         mIndirectBATimer->start();
                         mStatBADec->addValue(1);
-                        logger.important("Ba mode Indirect");
+                        CML_LOG_IMPORTANT("Ba mode Indirect");
                         indirectPostprocess(currentFrame, needIndirectKF);
                         directPostprocess(currentFrame, needDirectKF);
                         mIndirectBATimer->stop();
@@ -264,7 +268,7 @@ void Hybrid::processFrame(PFrame currentFrame) {
 
         } else {
 
-            logger.error("Tracking is not okay");
+            CML_LOG_ERROR("Tracking is not okay");
             freePrivate(currentFrame, "Hybrid::run (tracking is not okay)"); // If the tracking is not ok, do nothing with this frame, consider it as outlier
 
         }
@@ -283,7 +287,7 @@ void Hybrid::indirectPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableIndirect.b()) {
         return;
     }
-    logger.debug("Indirect postprocess");
+    CML_LOG_DEBUG("Indirect postprocess");
     if (needKF || (mBaMode != BAINDIRECT && mLastNumTrackedPoints < 15)) {
         //currentFrame->setGroup(getMap().KEYFRAME, true);
         if (mLinearizeIndirect.b()) {
@@ -303,7 +307,7 @@ void Hybrid::directPostprocess(PFrame currentFrame, bool needKF) {
     if (!mEnableDirect.b()) {
         return;
     }
-    logger.debug("Direct postprocess");
+    CML_LOG_DEBUG("Direct postprocess");
     if (needKF) {
         if (mLinearizeDirect.b()) {
             directMap(currentFrame);
@@ -351,7 +355,7 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
     }
 
     if (!mTrackingOk) {
-        logger.error("ORB Tracking failed");
+        CML_LOG_ERROR("ORB Tracking failed");
     }
 
     /* if (!mTrackingOk) {
@@ -368,7 +372,7 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
             mLastPhotometricTrackingResidual = mPhotometricTracker->optimize(mLastPhotometricTrackingResidual, 0, currentFrame, mPhotometricTracker->getLastComputed(), camera, exposure);
             if (mLastPhotometricTrackingResidual.isCorrect && mLastPhotometricTrackingResidual.saturatedRatio() < 0.15) { // todo : treshold here and in other file
                 currentFrame->setCamera(camera);
-                logger.info("Refined with DSO");
+                CML_LOG_INFO("Refined with DSO");
                 mode = mode + 0;
                 modeSum = modeSum + 1;
             } else {
@@ -451,10 +455,10 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
             try {
                 mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>(); // Put the points between 0 and 2
                 mHaveValidDepthMap = true;
-                logger.important("Successfully loaded neural network depth map for first frame");
+                CML_LOG_IMPORTANT("Successfully loaded neural network depth map for first frame");
             } catch (...) {
                 mHaveValidDepthMap = false;
-                logger.error("Can't load neural network depth map for first frame");
+                CML_LOG_ERROR("Can't load neural network depth map for first frame");
                 abort();
             }
         }

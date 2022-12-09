@@ -219,7 +219,7 @@ namespace CML {
             }
         }
 
-        logger.debug("By checking the rotation, we removed " + std::to_string(numRemoved) + " matchings");
+        CML_LOG_DEBUG("By checking the rotation, we removed " + std::to_string(numRemoved) + " matchings");
 
         return result;
     }

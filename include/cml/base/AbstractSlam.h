@@ -76,7 +76,7 @@ namespace CML {
             refreshParameters();
             if (mUnusedParameters.size() > 0) {
                 for (auto p : mUnusedParameters) {
-                    logger.fatal("Unused parameter : " + p);
+                    CML_LOG_FATAL("Unused parameter : " + p);
                 }
                 throw std::runtime_error("Unused parameters");
             }
@@ -100,30 +100,34 @@ namespace CML {
             if (!getConfiguration()[name].IsDefined()) {
                 return;
             }
-            try {
+            //try {
                 switch (parameter.type()) {
                     case PARAM_INTEGER:
+                        CML_LOG_IMPORTANT("Int parameter : " + name);
                         parameter.set(getConfiguration()[name].as<int>());
                         mUnusedParameters.erase(name);
                         break;
                     case PARAM_FLOATING:
+                        CML_LOG_IMPORTANT("Float parameter : " + name);
                         parameter.set(getConfiguration()[name].as<float>());
                         mUnusedParameters.erase(name);
                         break;
                     case PARAM_BOOLEAN:
+                        CML_LOG_IMPORTANT("Bool parameter : " + name);
                         parameter.set(getConfiguration()[name].as<bool>());
                         mUnusedParameters.erase(name);
                         break;
                     case PARAM_STRING:
-                        parameter.set(getConfiguration()[name].as<std::string>());
+                        CML_LOG_IMPORTANT("String parameter : " + name);
+                        parameter.set(getConfiguration()[name].Scalar());
                         mUnusedParameters.erase(name);
                         break;
                     default:
                         throw std::runtime_error("Invalid parameter type : " + name);
                 }
-            } catch (...) {
+            /*} catch (...) {
                 throw std::runtime_error("Invalid parameter value : " + name + "=" + getConfiguration()[name].as<std::string>());
-            }
+            }*/
 #endif
         }
     protected:

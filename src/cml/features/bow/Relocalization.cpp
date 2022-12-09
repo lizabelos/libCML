@@ -12,7 +12,7 @@ void CML::Features::Relocalization::onFrameChangeGroup(Map &map, PFrame frame, i
 
 
 CML::List<CML::PFrame> CML::Features::Relocalization::detectRelocalizationCandidates(PFrame frame) {
-    HashMap<PFrame, int> lKFsSharingWords;
+    FrameHashMap<int> lKFsSharingWords;
 
     // Search all keyframes that share a word with current frame
     for (int i = 0; i < frame->numFeaturesGroup(); i++) if (frame->haveBoW(i)) {
@@ -39,7 +39,7 @@ CML::List<CML::PFrame> CML::Features::Relocalization::detectRelocalizationCandid
     }
     int minCommonWords = maxCommonWords*0.8f;
 
-    HashMap<PFrame, float> lScoreAndMatch;
+    FrameHashMap<float> lScoreAndMatch;
 
     int nscores=0;
 
@@ -99,7 +99,7 @@ CML::List<CML::PFrame> CML::Features::Relocalization::detectRelocalizationCandid
 
     // Return all those keyframes with a score higher than 0.75*bestScore
     float minScoreToRetain = 0.75f*bestAccScore;
-    Set<PFrame> spAlreadyAddedKF;
+    FrameSet spAlreadyAddedKF;
     List<PFrame> vpRelocCandidates;
     vpRelocCandidates.reserve(lAccScoreAndMatch.size());
     for(auto [si, pKFi] : lAccScoreAndMatch)

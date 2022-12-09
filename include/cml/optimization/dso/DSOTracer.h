@@ -46,7 +46,7 @@ namespace CML {
 
             void traceNewCoarse(PFrame frameToTrace, int frameGroup);
 
-            Set<PPoint> activatePoints(int frameGroup, int pointGroup);
+            PointSet activatePoints(int frameGroup, int pointGroup);
 
             int optimizeImmaturePoint(PPoint point, int minObs, int frameGroup);
 
@@ -94,7 +94,7 @@ namespace CML {
 
                 return true;
                 /*
-                Set<PPoint> lastTraced, lastlastTraced;
+                PointSet lastTraced, lastlastTraced;
 
                 {
                     LockGuard lg(mLastTracedMutex);

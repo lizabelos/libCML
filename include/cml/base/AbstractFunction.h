@@ -141,12 +141,12 @@ namespace CML {
 
         void refreshParameters() {
             for (auto parm : getParameters()) {
-                logger.important("Set Parameters : " + parm.name());
+                CML_LOG_IMPORTANT("Set Parameters : " + parm.name());
                 onNewParameter(parm.name(), parm);
             }
             for (auto child : getChildFunctions()) {
                 if (child->getAlias() != "") {
-                    logger.important("Refreshing " + child->getAlias());
+                    CML_LOG_IMPORTANT("Refreshing " + child->getAlias());
                     child->refreshParameters();
                 }
             }

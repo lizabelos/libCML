@@ -100,7 +100,7 @@ def sortWithKey(x, y):
 def numFramesOf(dataset):
 
     if dataset.startswith("TUM"):
-        return 6
+        return 4000
 
     numFrames=[4541,1101,4661,801,271,2761,1101,1101,4071,1591,1201]
 
@@ -340,6 +340,8 @@ class PlotSet:
                 self.all_y[j] = self.all_y[j] * delta + self.all_y[j - 1] * delta_inv + self.all_y[j + 1] * delta_inv
 
     def plotBaseline(self, axis, ourResults):
+        if not "KITTI" in self.dataset:
+            return
         orbResult = [67,None,43,1.0,0.9,43,49,17,58,60,9]
         dsoResult = [114,None,120,2.1,1.5,52,59,17,111,63,16]
         numDataset = int(self.dataset.split(" ")[1])
@@ -356,7 +358,7 @@ class PlotSet:
         #    axis.axhline(ourResults[numDataset] / baseline, label='ModSLAM', color='red')
         #    axis.text(minX, ourResults[numDataset] / baseline, "ModSLAM")
 
-    def plot(self, axis, paramFilter = None, xticks = None):
+    def plot(self, axis, paramFilter = None, xticks = None, plotConfidence = False):
         self.sort()
         if paramFilter is not None:
             axis.set_xticks(xticks[0], xticks[1])
@@ -389,10 +391,11 @@ class PlotSet:
         filtered_lower_y = movingAverage(filtered_lower_y, 5, 0.5)
         filtered_upper_y = movingAverage(filtered_upper_y, 5, 0.5)
 
-        if len(filtered_x) > 0:
-            axis.fill_between(filtered_x, filtered_lower_y, filtered_upper_y, facecolor='red', alpha=0.2, zorder=1000, label="95% confidence interval smoothed")
-        else:
-            print("No confidence interval for " + self.paramName)
+        if plotConfidence:
+            if len(filtered_x) > 0:
+                axis.fill_between(filtered_x, filtered_lower_y, filtered_upper_y, facecolor='red', alpha=0.2, zorder=1000, label="95% confidence interval smoothed")
+            else:
+                print("No confidence interval for " + self.paramName)
         axis.plot(self.all_x, self.all_y, marker="o", zorder=1000, color='red', linestyle = 'None', label="Absolute Trajectory Error",  markersize=2)
         axis.tick_params(axis='y', labelcolor='red')
 
@@ -536,7 +539,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
                 values.append(rangedBasedDict)
 
     cols = 3
-    rows = 4
+    rows = int(math.ceil(len(values) / cols)) + 1
 
     if len(values) < 5:
         return False
@@ -604,7 +607,7 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
         #    axis.set_xscale("log")
 
         axis.set_xlim([minX, maxX])
-        axis.set_ylim([minY, maxY])
+        #axis.set_ylim([minY, maxY])
 
         value.plot(axis, paramFilter=paramFilter, xticks=xticks)
         value.plotError(axis)
@@ -639,9 +642,13 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
         if separate:
             # print("Saving plot to plot/" + folder + "/" + param + "/" + value.dataset + ".pdf")
-            os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
-            fig.savefig(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".pdf", bbox_inches="tight", dpi=1000)
-            totex.save(OUTPUT_DIR + folder + "/" + param + "/" + value.dataset + ".tex")
+            os.makedirs(OUTPUT_DIR + folder + "/" + param + suffix, exist_ok=True)
+            fig.savefig(OUTPUT_DIR + folder + "/" + param + suffix + "/" + value.dataset + ".pdf", bbox_inches="tight", dpi=1000)
+            # save params
+            f = open(OUTPUT_DIR + folder + "/" + param + suffix + "/" + value.dataset + ".yaml", "w")
+            yaml.dump(paramFilter, f)
+            f.close()
+            # totex.save(OUTPUT_DIR + folder + "/" + param + suffix + "/" + value.dataset + ".tex")
 
         i = i + 1
 
@@ -683,21 +690,28 @@ def plot(d, param, datasets, folder, removeConstant = False, onlyAverage = False
 
     # function to show the plot
     #plt.show()
-    if separate:
-        print("Saving plot to plot/" + folder + "/" + param + suffix + "/" + "avg" + ".pdf")
-        os.makedirs(OUTPUT_DIR + folder + "/" + param, exist_ok=True)
-        fig.tight_layout()
-        fig.savefig(OUTPUT_DIR + folder + "/" + param + suffix + "/" + "avg" + ".pdf", bbox_inches="tight", dpi=1000)
-    else:
+    if not separate:
         print("Saving plot to plot/" + folder + "/" + param + suffix + ".pdf")
         os.makedirs(OUTPUT_DIR + folder, exist_ok=True)
         fig.tight_layout()
         fig.savefig(OUTPUT_DIR + folder + "/" + param + suffix + ".pdf", bbox_inches="tight", dpi=1000)
     return True
 
-def computeBestResults(d):
+def copyDictAndSet(d, v):
+    d2 = {}
+    for k in d:
+        d2[k] = v
+    return d2
 
-    lim = [67,50,43,1.0,0.9,43,49,17,58,60,9]
+def dictMean(d):
+    return sum(d.values()) / len(d)
+
+def dictSum(d):
+    return sum(d.values())
+
+def computeBestResults(d, datasetLimits):
+
+    # lim = [67,50,43,1.0,0.9,43,49,17,58,60,9]
 
     alreadyTaken = set()
 
@@ -706,55 +720,59 @@ def computeBestResults(d):
     for ref_id in d:
         if ref_id in alreadyTaken:
             continue
-        res = [9999 for x in lim]
-        isbest = [0 for x in lim]
-        originalates = [0 for x in lim]
-        taken = [None for x in lim]
+        if d[ref_id]["datasetname"] not in datasetLimits:
+            continue
+        res = copyDictAndSet(datasetLimits, 9999)
+        isbest = copyDictAndSet(datasetLimits, 0)
+        originalates = copyDictAndSet(datasetLimits, 0)
+        taken = copyDictAndSet(datasetLimits, None)
         if not "same" in d[ref_id]["edges"]:
             continue
         for id in [ref_id] + list(d[ref_id]["edges"]["same"]):
             alreadyTaken.add(id)
+            if d[id]["datasetname"] not in datasetLimits:
+                continue
             datasetname = d[id]["datasetname"]
-            if taken[int(datasetname.split(" ")[1])] is not None:
+            if taken[datasetname] is not None:
                 try:
                     ate = float(d[id]["ate"]) / numFramesOf(datasetname)
-                    if not math.isclose(ate,res[int(datasetname.split(" ")[1])]):
-                        print("CRITICAL : Something is wrong : " + str(ate) + "/" + str(res[int(datasetname.split(" ")[1])]))
-                        print(taken[int(datasetname.split(" ")[1])])
+                    if not math.isclose(ate,res[datasetname]):
+                        print("CRITICAL : Something is wrong : " + str(ate) + "/" + str(res[datasetname]))
+                        print(taken[datasetname])
                         print(id)
                 except ValueError:
                     print("CRITICAL : Something is wrong")
                 continue
             try:
                 ate = float(d[id]["ate"]) / numFramesOf(datasetname)
-                res[int(datasetname.split(" ")[1])] = ate
-                originalates[int(datasetname.split(" ")[1])] = float(d[id]["ate"])
-                if ate < lim[int(datasetname.split(" ")[1])] / numFramesOf(datasetname):
-                    isbest[int(datasetname.split(" ")[1])] = 1
-                taken[int(datasetname.split(" ")[1])] = id
+                res[datasetname] = ate
+                originalates[datasetname] = float(d[id]["ate"])
+                if ate < datasetLimits[datasetname] / numFramesOf(datasetname):
+                    isbest[datasetname] = 1
+                taken[datasetname] = id
             except ValueError:
                 continue
-        if any([x == 9999 for x in res]):
-            continue
-        ate = mean(res)
-        if ate > 1000:
-            continue
+        #if any([x == 9999 for x in res]):
+        #    continue
+        ate = dictMean(res)
+        #if ate > 1000:
+        #    continue
         paramCopy = copy.deepcopy(d[ref_id])
         del paramCopy["datasetname"]
         del paramCopy["edges"]
         del paramCopy["ate"]
-        allErrors.append([ate, sum(isbest), paramCopy, res, isbest, originalates])
+        allErrors.append([ate, dictSum(isbest), paramCopy, res, isbest, originalates])
 
     allErrors.sort(key=lambda k:k[0])
 
     if len(allErrors) > 0:
-        print("Best average : " + str(allErrors[0][0]))
-        print("Num best : " + str(allErrors[0][1]))
-        print("Comparaison : " + str(allErrors[0][0] * len(lim) * 100 / 350) + "%")
-        print(allErrors[0][3])
-        print(allErrors[0][4])
+        # print("Best average : " + str(allErrors[0][0]))
+        # print("Num best : " + str(allErrors[0][1]))
+        # print("Comparaison : " + str(allErrors[0][0] * len(lim) * 100 / 350) + "%")
+        # print(allErrors[0][3])
+        # print(allErrors[0][4])
         print(allErrors[0][5])
-        print(allErrors[0][2])
+        # print(allErrors[0][2])
 
     return allErrors
 
@@ -799,7 +817,30 @@ def processFile(filenames,foldername):
 
     d = makeGraphEdges(d, params)
 
-    bestResults = computeBestResults(d)
+    datasetLimits = {}
+    kittilim = [67,50,43,1.0,0.9,43,49,17,58,60,9]
+    for i in range(0, 11):
+        datasetLimits["KITTI " + str(i).zfill(2)] = kittilim[i]
+    for i in range(1, 51):
+        datasetLimits["TUM " + str(i).zfill(2)] = 6
+
+    bestResults = computeBestResults(d, datasetLimits)
+
+    # Compute result with most best
+    bestNumBest = 0
+    resultWithHigherNumBest = None
+    for bestResult in bestResults:
+        if bestResult[1] > bestNumBest:
+            bestNumBest = bestResult[1]
+            resultWithHigherNumBest = bestResult
+
+    if True:
+        print("Best average : " + str(resultWithHigherNumBest[0]))
+        print("Num best : " + str(resultWithHigherNumBest[1]))
+        print(resultWithHigherNumBest[3])
+        print(resultWithHigherNumBest[4])
+        print(resultWithHigherNumBest[5])
+        print(resultWithHigherNumBest[2])
 
     bestResultsToTest = {}
 
@@ -858,16 +899,18 @@ def processFile(filenames,foldername):
 
             if os.path.isfile(OUTPUT_DIR + "/" + foldername + "/" + param + suffix + ".pdf"):
                 continue
-            res = plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2], suffix=suffix)
+            plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2], suffix=suffix, separate=False)
+            plot(d, param, datasets, ours=bestResults[i][3], folder=foldername, onlyAverage=True, paramFilter=bestResults[i][2], suffix=suffix, separate=True)
 
 if __name__ == "__main__":
-    dirname = "jsons"
-    filenames = [dirname+"/"+x for x in os.listdir(dirname) if x.endswith(".json")]
-    processFile(filenames, "merged")
+    #dirname = "jsons"
+    #filenames = [dirname+"/"+x for x in os.listdir(dirname) if x.endswith(".json")]
+    #processFile(filenames, "merged")
 
-    #dirname = "oldjson"
-    #filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
-    #for filename in filenames:
-    #    processFile(dirname+"/"+filename,filename.split(".")[0])
+    dirname = "jsons"
+    # filenames = [x for x in os.listdir(dirname) if x.endswith(".json")]
+    filenames = ["787f82896c83445d2e3b55acbccc3735274c6bdb00de6fe948f568f009d96808.json"]
+    for filename in filenames:
+        processFile([dirname+"/"+filename],filename.split(".")[0])
 
     #os.system("pdflatex -interaction nonstopmode -file-line-error .\output.tex")

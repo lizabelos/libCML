@@ -127,7 +127,7 @@ protected:
 
         auto referenceFrameData = get(mReferenceKeyFrame);
         for (int i = 0; i < mReferenceKeyFrame->getFeaturePoints(referenceFrameData->featureId).size(); i++) {
-            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(referenceFrameData->featureId, i), MapPointType::INDIRECT);
+            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(referenceFrameData->featureId, i), MapPointType::INDIRECTTYPE);
             mReferenceKeyFrame->setMapPoint(FeatureIndex(referenceFrameData->featureId, i), mapPoint);
             mapPoint->setReferenceInverseDepth(1);
             mapPoint->setGroup(this->getMap().MAPPED, true);
@@ -143,9 +143,9 @@ protected:
         mPixelSelector->compute(mReferenceKeyFrame->getCaptureFrame(), directCorners, directTypes, 2000);
 
         directFid = mReferenceKeyFrame->addFeaturePoints(directCorners);
-        Set<PPoint> directPoints;
+        PointSet directPoints;
         for (int i = 0; i < mReferenceKeyFrame->getFeaturePoints(directFid).size(); i++) {
-            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(directFid, i), MapPointType::DIRECT);
+            auto mapPoint = this->getMap().createMapPoint(mReferenceKeyFrame, FeatureIndex(directFid, i), MapPointType::DIRECTTYPE);
             mReferenceKeyFrame->setMapPoint(FeatureIndex(directFid, i), mapPoint);
             mapPoint->setReferenceInverseDepth(1);
             mapPoint->setGroup(this->getMap().MAPPED, true);
@@ -323,12 +323,12 @@ private:
     int mLastHaveSucceedCVMM = 0;
 
     Mutex mFrameToFreeMutex;
-    HashMap<PFrame, int> mFrameToFree;
+    FrameHashMap<int> mFrameToFree;
 
     Queue<OptPFrame, 100> mDirectMappingQueue;
    // Queue<OptPFrame, 100> mLoopClosingQueue;
     Queue<OptPFrame, 100> mIndirectMappingQueue;
-    Set<PFrame> mLocalKeyFrames;
+    FrameSet mLocalKeyFrames;
     OptPFrame mReferenceKeyFrame;
     OptPFrame mLastRelocFrame;
 

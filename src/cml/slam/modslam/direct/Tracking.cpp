@@ -49,11 +49,11 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
     //bool trackingResidualTooBig = false;
 
     if (flowTooBig) {
-        logger.info("Creating new keyframe because of flow");
+        CML_LOG_INFO("Creating new keyframe because of flow");
     }
 
     if (trackingResidualTooBig) {
-        logger.info("Creating new keyframe because of tracking residual too big : " +
+        CML_LOG_INFO("Creating new keyframe because of tracking residual too big : " +
                     std::to_string(mLastPhotometricTrackingResidual.rmse()) + " > 2 x " +
                     std::to_string(mPhotometricTracker->getFirstRMSE(mLastDirectKeyFrame))
         );

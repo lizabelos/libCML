@@ -339,7 +339,7 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
         return;
     }
 
-    DSOResidual *r = new DSOResidual(OptimizationPair(frame, point, DIRECT));
+    DSOResidual *r = new DSOResidual(OptimizationPair(frame, point, DIRECTTYPE));
 
     auto pointData = get(point);
     auto hostData = get(point->getReferenceFrame());
@@ -379,7 +379,7 @@ void CML::Optimization::DSOBundleAdjustment::createResidual(PFrame frame, PPoint
 
 }
 
-void CML::Optimization::DSOBundleAdjustment::addPoints(const Set<PPoint>& points) {
+void CML::Optimization::DSOBundleAdjustment::addPoints(const PointSet& points) {
 
     for (auto point : points) {
 
@@ -636,7 +636,7 @@ void CML::Optimization::DSOBundleAdjustment::flagFramesForMarginalization(PFrame
                     num++;
                 }
             }
-            logger.debug("Marginalization of a frame ( because of in/out ) with " + std::to_string(num) + " active points");
+            CML_LOG_DEBUG("Marginalization of a frame ( because of in/out ) with " + std::to_string(num) + " active points");
             frameData->flaggedForMarginalization = true;
             flagged++;
         }
@@ -659,7 +659,7 @@ void CML::Optimization::DSOBundleAdjustment::flagFramesForMarginalization(PFrame
             auto referenceData = get(reference);
 
             if(referenceData->keyid > latestData->keyid - minFrameAge.i() || referenceData->keyid == 0) {
-                logger.debug("Not computing distance score because reference id (" + std::to_string(referenceData->keyid) + ") > last id (" + std::to_string(latestData->keyid) + ") - " + std::to_string(minFrameAge.i()));
+                CML_LOG_DEBUG("Not computing distance score because reference id (" + std::to_string(referenceData->keyid) + ") > last id (" + std::to_string(latestData->keyid) + ") - " + std::to_string(minFrameAge.i()));
                 continue;
             }
             //if(fh==frameHessians.front() == 0) continue;
@@ -683,7 +683,7 @@ void CML::Optimization::DSOBundleAdjustment::flagFramesForMarginalization(PFrame
             double distanceLLBack = reference->getCamera().to(getFrames().back()->getCamera()).getTranslation().norm();
             distScore *= -sqrt(distanceLLBack);
 
-            logger.debug("Distance Score : " + std::to_string(distScore));
+            CML_LOG_DEBUG("Distance Score : " + std::to_string(distScore));
 
             if(distScore < smallestScore)
             {
@@ -700,7 +700,7 @@ void CML::Optimization::DSOBundleAdjustment::flagFramesForMarginalization(PFrame
                 num++;
             }
         }
-        logger.debug("Marginalization of a frame ( because of score ) " + std::to_string(num) + " active points");
+        CML_LOG_DEBUG("Marginalization of a frame ( because of score ) " + std::to_string(num) + " active points");
 
 
         get(toMarginalize)->flaggedForMarginalization = true;
@@ -744,7 +744,7 @@ CML::List<CML::PFrame> CML::Optimization::DSOBundleAdjustment::marginalizeFrames
 bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
 
     if (updatePointsOnly) {
-        logger.important("DSO Bundle adjustment run in update points only");
+        CML_LOG_IMPORTANT("DSO Bundle adjustment run in update points only");
     }
 
     Timer timer;
@@ -754,10 +754,10 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         updateCamera(frame);
     }
 
-    mOutliers = Set<PPoint>();
+    mOutliers = PointSet();
 
     if (getPoints().empty()) {
-        logger.error("No points...");
+        CML_LOG_ERROR("No points...");
         return false;
     }
 
@@ -811,7 +811,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         timer.start();
         // Solve the system, and compute the step
         if (!solveSystem(it, lambda)) {
-            logger.error("DSO Bundle Adjustment failed to solve the system !");
+            CML_LOG_ERROR("DSO Bundle Adjustment failed to solve the system !");
             return false;
         }
 
@@ -842,7 +842,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
 
         if(newTotalEnergy < lastTotalEnergy || mForceAccept.b())
         {
-            logger.info("Applying bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) + ". Last Total Energy = " + std::to_string(lastTotalEnergy));
+            CML_LOG_INFO("Applying bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) + ". Last Total Energy = " + std::to_string(lastTotalEnergy));
 
             mStatisticEnergyP->addValue(newEnergy[0]);
             mStatisticEnergyR->addValue(newEnergy[1]);
@@ -862,10 +862,10 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         else
         {
             if (!std::isfinite(newTotalEnergy)) {
-                logger.error("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
+                CML_LOG_ERROR("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
                              ". Last Total Energy = " + std::to_string(lastTotalEnergy));
             } else {
-                logger.info("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
+                CML_LOG_INFO("Skipping bundle adjustment step. New energy = " + std::to_string(newTotalEnergy) +
                             ". Last Total Energy = " + std::to_string(lastTotalEnergy));
             }
             loadSateBackup();
@@ -900,7 +900,7 @@ bool CML::Optimization::DSOBundleAdjustment::run(bool updatePointsOnly) {
         if (mAbortBAOnFailture) {
             abort();
         }
-        logger.error("Not finite energy");
+        CML_LOG_ERROR("Not finite energy");
         return false;
     }
 
@@ -1487,7 +1487,7 @@ bool CML::Optimization::DSOBundleAdjustment::solveSystem(int iteration, double l
     }
 
     if (numPointStepNotFinite > 0) {
-        logger.error("DSO Bundle adjustment have " + std::to_string(numPointStepNotFinite) + " which don't have a finite step");
+        CML_LOG_ERROR("DSO Bundle adjustment have " + std::to_string(numPointStepNotFinite) + " which don't have a finite step");
         return false;
     }
 
@@ -1498,7 +1498,7 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
     // Precomputation
 
-    HashMap<PFrame, int> frameToId;
+    FrameHashMap<int> frameToId;
     DSOFramePrecomputed precomputedArray[getFrames().size()][getFrames().size()];
     scalar_t stats = 0;
     Set<DSOResidual *> toRemove;
@@ -1530,7 +1530,7 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 #pragma omp single
 #endif
         {
-            logger.info("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
+            CML_LOG_INFO("Linearizing " + std::to_string(mActiveResiduals.size()) + " residuals");
 #if CML_USE_OPENMP
             int ompNumThread = omp_get_num_threads();
 #else
@@ -1634,9 +1634,9 @@ CML::Vector3 CML::Optimization::DSOBundleAdjustment::linearizeAll(bool fixLinear
 
         }
 
-        logger.warn("Dropping " + std::to_string(toRemove.size()) + " residuals ( " + std::to_string(numResidualRemoveOnLastFrame) + " outlier on last frame )");
-        Set<PPoint> outliers = removeResiduals(toRemove);
-        logger.warn(std::to_string(outliers.size()) + " points have no residual.");
+        CML_LOG_WARN("Dropping " + std::to_string(toRemove.size()) + " residuals ( " + std::to_string(numResidualRemoveOnLastFrame) + " outlier on last frame )");
+        PointSet outliers = removeResiduals(toRemove);
+        CML_LOG_WARN(std::to_string(outliers.size()) + " points have no residual.");
         mOutliers.insert(outliers.begin(), outliers.end());
 
     }
@@ -2335,9 +2335,9 @@ void CML::Optimization::DSOBundleAdjustment::tryMarginalize() {
 
     }
 
-    logger.info("DSO BA is using actually " + std::to_string(getPoints().size()) + " points");
-    logger.info("DSO BA is dropping " + std::to_string(pointToDrop.size()) + " points");
-    logger.info("DSO BA will marginalize " + std::to_string(pointToMarginalize.size()) + " more points");
+    CML_LOG_INFO("DSO BA is using actually " + std::to_string(getPoints().size()) + " points");
+    CML_LOG_INFO("DSO BA is dropping " + std::to_string(pointToDrop.size()) + " points");
+    CML_LOG_INFO("DSO BA will marginalize " + std::to_string(pointToMarginalize.size()) + " more points");
 
 
     for (auto point : pointToDrop) {
@@ -2475,10 +2475,10 @@ void CML::Optimization::DSOBundleAdjustment::marginalizePointsF()
     computeDelta();
     setZero();
 
-    Set<PPoint> allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
+    PointSet allPointsToMarg = getMap().getGroupMapPoints(DSOTOMARGINALIZE);
 
     if (allPointsToMarg.size() > 0) {
-        logger.info("DSO Bundle Adjustment marginalize " + std::to_string(allPointsToMarg.size()) + " points");
+        CML_LOG_INFO("DSO Bundle Adjustment marginalize " + std::to_string(allPointsToMarg.size()) + " points");
     }
 
     int nres = 0;

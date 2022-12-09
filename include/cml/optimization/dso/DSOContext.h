@@ -59,7 +59,7 @@ namespace CML {
                 point->getPrivate().free(mPointPrivateDataInstance, "DSOContext::free");
             }
 
-            const Set<PPoint> &getPoints() {
+            const PointSet &getPoints() {
                 return mPoints;
             }
 
@@ -97,7 +97,7 @@ namespace CML {
                 }
                 Set<DSOResidual*> residualsToRemove = get(point)->residuals; // Important to make a copy, and not pass as reference
                 if (marginalize) {
-                    Set<PFrame> frames;
+                    FrameSet frames;
                     for (auto residual : residualsToRemove) {
                         frames.insert(residual->elements.frame);
                     }
@@ -110,8 +110,8 @@ namespace CML {
                 assertThrow(mPoints.count(point) == 0, "Remove point seems to have a problem");
             }
 
-            void removePoints(const Set<PPoint> &points) {
-                logger.debug("Removing " + std::to_string(points.size()) + " points");
+            void removePoints(const PointSet &points) {
+                CML_LOG_DEBUG("Removing " + std::to_string(points.size()) + " points");
 
                 Set<DSOResidual*> residualsToRemove;
                 for (auto point : points) {
@@ -129,10 +129,10 @@ namespace CML {
             }
 
             void addFrame(PFrame frameToInsert) {
-                logger.debug("Adding one frame");
+                CML_LOG_DEBUG("Adding one frame");
 
                 if (haveFrame(frameToInsert)) {
-                    logger.warn("Frame already inserted");
+                    CML_LOG_WARN("Frame already inserted");
                     return;
                 }
                 for (auto frame : mFrames) {
@@ -152,9 +152,9 @@ namespace CML {
             }
 
             void removeFrame(PFrame frameToRemove) {
-                logger.debug("Removing one frame");
+                CML_LOG_DEBUG("Removing one frame");
 
-                Set<PPoint> pointsToRemove = get(frameToRemove)->points;
+                PointSet pointsToRemove = get(frameToRemove)->points;
                 removePoints(pointsToRemove);
                 Set<DSOResidual*> residualsToRemove = get(frameToRemove)->residuals;
                 removeResiduals(residualsToRemove);
@@ -201,8 +201,8 @@ namespace CML {
                 get(residualToInsert->elements.frame)->residuals.insert(residualToInsert);
             }
 
-            Set<PPoint> removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
-                logger.debug("Removing " + std::to_string(residualsToRemove.size()) + " residuals");
+            PointSet removeResiduals(const Set<DSOResidual*> &residualsToRemove) {
+                CML_LOG_DEBUG("Removing " + std::to_string(residualsToRemove.size()) + " residuals");
                 for (auto residualToRemove : residualsToRemove) {
                     mResiduals.erase(residualToRemove);
                     get(residualToRemove->elements.mapPoint)->residuals.erase(residualToRemove);
@@ -215,8 +215,8 @@ namespace CML {
             }
 
         protected:
-            Set<PPoint> removeAllPointsWithoutResidual() {
-                Set<PPoint> pointsToRemove;
+            PointSet removeAllPointsWithoutResidual() {
+                PointSet pointsToRemove;
                 for (auto point : mPoints) {
                     if (get(point)->residuals.empty()) pointsToRemove.insert(point);
                 }
@@ -237,7 +237,7 @@ namespace CML {
 
             PrivateDataInstance mPointPrivateDataInstance, mFramePrivateDataInstance;
 
-            Set<PPoint> mPoints;
+            PointSet mPoints;
             List<PFrame> mFrames;
 
             Set<DSOResidual*> mResiduals;

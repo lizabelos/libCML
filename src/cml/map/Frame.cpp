@@ -48,13 +48,13 @@ void CML::Frame::setCamera(const Camera &camera, bool updateDeforms) {
     }
 }
 
-void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera> &frames) {
-    Set<PFrame> skip;
+void CML::Frame::setCameraAndDeform(const FrameHashMap<Camera> &frames) {
+    FrameSet skip;
     setCameraAndDeform(frames, skip);
 }
 
 
-void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera> &frames, Set<PFrame> &skip) {
+void CML::Frame::setCameraAndDeform(const FrameHashMap<Camera> &frames, FrameSet &skip) {
 
     bool isFirst = skip.size() == 0;
 
@@ -62,8 +62,8 @@ void CML::Frame::setCameraAndDeform(const HashMap<PFrame, Camera> &frames, Set<P
         return;
     }
 
-    Set<PFrame> framesToDeform;
-    HashMap<PFrame, Camera> newFramesAndCamera;
+    FrameSet framesToDeform;
+    FrameHashMap<Camera> newFramesAndCamera;
 
     for (auto [frame, camera] : frames) {
 
@@ -123,6 +123,7 @@ void CML::Frame::setCameraWithoutObserver(const Camera &camera) {
 }
 
 void CML::Frame::processNearestNeighbors(int group, Vector2 position, int num, List<NearestNeighbor> &result) const {
+    signalMethodStart("Frame::processNearestNeighbors");
     std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
     {
@@ -131,9 +132,11 @@ void CML::Frame::processNearestNeighbors(int group, Vector2 position, int num, L
     }
 
     pointKdTree->searchInRadiusNum(position, num, result);
+
 }
 
 void CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, float distance, List<NearestNeighbor> &result) const {
+    signalMethodStart("Frame::processNearestNeighborsInRadius");
 
     std::shared_ptr<PointGrid<Corner>> pointKdTree;
 
@@ -144,9 +147,11 @@ void CML::Frame::processNearestNeighborsInRadius(int group, Vector2 position, fl
 
     pointKdTree->searchInRadius(position, distance, result);
 
+
 }
 
 int CML::Frame::addFeaturePoints(const List<Corner> &features, Ptr<Features::BoW, Nullable> bow) {
+    signalMethodStart("Frame::addFeaturePoints");
 
     assertThrow(features.size() > 0, "Empty features list");
 
@@ -164,40 +169,42 @@ int CML::Frame::addFeaturePoints(const List<Corner> &features, Ptr<Features::BoW
     std::copy(features.begin(), features.end(), std::back_inserter(mFeaturePoints[group]));
     mFeaturePointTree[group] = std::make_shared<PointGrid<Corner>>(mFeaturePoints[group], Vector2i(0,0), Vector2i(getWidth(0), getHeight(0)));
 
+
     return group;
 
 }
 
 bool CML::Frame::setMapPoint(FeatureIndex i, OptPPoint mapPoint) {
+    signalMethodStart("Frame::setMapPoint");
 
     LockGuard lg(mMapPointsMutex);
 
     if (mapPoint.isNull()) {
-        logger.fatal("set map point with a null point. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("set map point with a null point. ( continuing anyway, this may be a recently remove point )");
         return false;
     }
 
     if (!mapPoint->isGroup(0)) {
-        logger.fatal("set map point with a point which not belong to mapped group. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("set map point with a point which not belong to mapped group. ( continuing anyway, this may be a recently remove point )");
         return false;
     }
 
     if (mMapPoints[i.group][i.index].isNotNull()) {
         if (mMapPoints[i.group][i.index] == mapPoint) {
-            logger.debug("setMapPoint twice (consistent result)");
+            CML_LOG_DEBUG("setMapPoint twice (consistent result)");
             return true;
         } else {
-            logger.debug("setMapPoint twice (same index, result not consistent)");
+            CML_LOG_DEBUG("setMapPoint twice (same index, result not consistent)");
             return false;
         }
     }
 
     if (mMapPointsIndex.count(mapPoint) > 0) {
         if (mMapPointsIndex[mapPoint] == i) {
-            logger.debug("setMapPoint twice (consistent result)");
+            CML_LOG_DEBUG("setMapPoint twice (consistent result)");
             return true;
         } else {
-            logger.debug("setMapPoint twice (same MapPoint, result not consistent)");
+            CML_LOG_DEBUG("setMapPoint twice (same MapPoint, result not consistent)");
             return false;
         }
     }
@@ -213,6 +220,7 @@ bool CML::Frame::setMapPoint(FeatureIndex i, OptPPoint mapPoint) {
     }
     mapPoint->addIndirectApparition(this, corner);
     // mapPoint->subscribeObserver(this);
+
 
     return true;
 }
@@ -236,6 +244,7 @@ CML::scalar_t CML::Frame::processSceneMedianDepth(const int q) {
 }*/
 
 void CML::Frame::removeMapPoint(PPoint mapPoint) {
+    signalMethodStart("Frame::removeMapPoint");
 
     LockGuard lg1(mMapPointsMutex);
     LockGuard lg2(mMapPointsApparitionsMutex);
@@ -259,9 +268,11 @@ void CML::Frame::removeMapPoint(PPoint mapPoint) {
         mapPoint->removeDirectApparition(this);
     }
 
+
 }
 
 void CML::Frame::onMapPointErased(PPoint mapPoint) {
+    signalMethodStart("Frame::onMapPointErased");
     LockGuard lg1(mMapPointsMutex);
     LockGuard lg2(mMapPointsApparitionsMutex);
 
@@ -277,18 +288,20 @@ void CML::Frame::onMapPointErased(PPoint mapPoint) {
     if (apparitionSearch != mMapPointsApparitions.end()) {
         mMapPointsApparitions.erase(mapPoint);
     }
+
 }
 
 void CML::Frame::addDirectApparitions(OptPPoint mapPoint) {
+    signalMethodStart("Frame::addDirectApparitions");
     LockGuard lg(mMapPointsApparitionsMutex);
 
     if (mapPoint.isNull()) {
-        logger.fatal("add direct apparitions with a null point. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("add direct apparitions with a null point. ( continuing anyway, this may be a recently remove point )");
         return;
     }
 
     if (!mapPoint->isGroup(0)) {
-        logger.fatal("add direct apparitions a point which not belong to mapped group. ( continuing anyway, this may be a recently remove point )");
+        CML_LOG_FATAL("add direct apparitions a point which not belong to mapped group. ( continuing anyway, this may be a recently remove point )");
         return;
     }
 
@@ -297,9 +310,11 @@ void CML::Frame::addDirectApparitions(OptPPoint mapPoint) {
         mapPoint->addDirectApparition(this);
         // mapPoint->subscribeObserver(this);
     }
+
 }
 
 void CML::Frame::onMapPointGroupChange(PPoint mapPoint, int groupId, bool state) {
+    //signalMethodStart("Frame::onMapPointGroupChange");
 
     assertThrow(groupId >= 0 && groupId < MAPOBJECT_GROUP_MAXSIZE, "Max group out of range");
 
@@ -363,6 +378,7 @@ CML::Camera CML::Frame::computeNewCameraFromDeforms() {
 }
 
 int CML::Frame::shared(int groupId, PFrame other) {
+    signalMethodStart("Frame::shared");
     int numCommon;
 
     auto points = getGroupMapPoints(groupId);
@@ -372,10 +388,12 @@ int CML::Frame::shared(int groupId, PFrame other) {
         }
     }
 
+
     return numCommon;
 }
 
 CML::scalar_t CML::Frame::computeMedianDepth(bool useDirect, bool useIndirect) {
+    signalMethodStart("Frame::computeMedianDepth");
     MedianComputer<scalar_t> medianComputer;
 
     if (useDirect) {
@@ -397,5 +415,353 @@ CML::scalar_t CML::Frame::computeMedianDepth(bool useDirect, bool useIndirect) {
     if (!medianComputer.isInitialized()) {
         return 0;
     }
-    return medianComputer.getMedian();
+    scalar_t result = medianComputer.getMedian();
+
+    return result;
+}
+
+namespace CML {
+    float sign(Vector2 p1, Vector2 p2, Vector2 p3) {
+        return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
+    }
+
+    bool pointInTriangle(Vector2 pt, Vector2 v1, Vector2 v2, Vector2 v3) {
+        float d1, d2, d3;
+        bool has_neg, has_pos;
+
+        d1 = sign(pt, v1, v2);
+        d2 = sign(pt, v2, v3);
+        d3 = sign(pt, v3, v1);
+
+        has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+        has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+        return !(has_neg && has_pos);
+    }
+
+    template<typename T> T min(T&&t)
+    {
+        return std::forward<T>(t);
+    }
+
+    template<typename T0, typename T1, typename... Ts> typename std::common_type<T0, T1, Ts...>::type min(T0&& val1, T1&& val2, Ts&&... vs)
+    {
+        if (val2 < val1) return min(val2, std::forward<Ts>(vs)...);
+        else return min(val1, std::forward<Ts>(vs)...);
+    }
+
+    template<typename T> T max(T&&t)
+    {
+        return std::forward<T>(t);
+    }
+
+    template<typename T0, typename T1, typename... Ts> typename std::common_type<T0, T1, Ts...>::type max(T0&& val1, T1&& val2, Ts&&... vs)
+    {
+        if (val2 > val1) return max(val2, std::forward<Ts>(vs)...);
+        else return max(val1, std::forward<Ts>(vs)...);
+    }
+
+
+    void triangle(Array2D<Vector2> &depthMap, Image &image, Vector3 a, ColorRGBA ac, Vector3 b, ColorRGBA bc, Vector3 c, ColorRGBA cc) {
+
+        int minX = min(a(0), b(0), c(0)) - 1;
+        int minY = min(a(1), b(1), c(1)) - 1;
+        int maxX = max(a(0), b(0), c(0)) + 1;
+        int maxY = max(a(1), b(1), c(1)) + 1;
+
+        minX = max(minX, 0);
+        minY = max(minY, 0);
+        maxX = min(maxX, image.getWidth());
+        maxY = min(maxY, image.getHeight());
+
+        for (int y = minY; y < maxY; y++) {
+
+            for (int x = minX; x < maxX; x++) {
+
+                Vector2 p(x, y);
+
+                if (pointInTriangle(p, a.head<2>(), b.head<2>(), c.head<2>())) {
+
+                    float weightA = (p - a.head<2>()).norm();
+                    float weightB = (p - b.head<2>()).norm();
+                    float weightC = (p - c.head<2>()).norm();
+                    float weightTotal = weightA + weightB + weightC;
+                    weightA /= weightTotal;
+                    weightB /= weightTotal;
+                    weightC /= weightTotal;
+
+                    float depth = a(2) * weightA + b(2) * weightB + c(2) * weightC; // interpolate depth;
+                    Vector3f colorE = ac.eigen().cast<float>() * weightA + bc.eigen().cast<float>() * weightB + cc.eigen().cast<float>() * weightC; // interpolate color
+                    ColorRGBA color(colorE.x(), colorE.y(), colorE.z());
+
+                    int depthMapX = x * depthMap.getWidth() / image.getWidth();
+                    int depthMapY = y * depthMap.getHeight() / image.getHeight();
+
+                    if (depth <= 0) {
+                        //image(x, y) = ColorRGBA(0,0,255,255);
+                    } else if (!std::isfinite(depthMap(depthMapX, depthMapY)(0)) || depthMap(depthMapX, depthMapY)(0) > depth) {
+                        depthMap(depthMapX, depthMapY)(0) = depth;
+                        image(x, y) = color;
+                    } else {
+                        //image(x, y) = ColorRGBA(255,0,0,255);
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    void loadObj(const std::string &path, List<Vector3> &triangles, List<ColorRGBA> &colors) {
+
+        // load obj file
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            std::cout << "Error: could not open file " << path << std::endl;
+            return;
+        }
+
+        List<Vector3> vertices;
+        List<List<int>> faces;
+        List<ColorRGBA> verticesColors;
+
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.substr(0, 2) == "v ") {
+                std::istringstream s(line.substr(2));
+                Vector3 v; s >> v(0); s >> v(1); s >> v(2);
+                v.y() = -v.y();
+                vertices.push_back(v);
+            }
+            else if (line.substr(0, 2) == "f ") {
+                // Split the face to face id/texture id/normal id
+                std::vector<std::string> splitted;
+                List<int> face;
+                split(line, splitted, ' ');
+                for (int j = 1; j < splitted.size(); j++) {
+                    std::vector<std::string> splitted2;
+                    split(splitted[j], splitted2, '/');
+                    face.emplace_back(std::stoi(splitted2[0]));
+                }
+                faces.emplace_back(face);
+            }
+            else if (line.substr(0, 2) == "c ") {
+                std::istringstream s(line.substr(2));
+                ColorRGBA c;
+                s >> c(0); s >> c(1); s >> c(2); s >> c(3);
+                verticesColors.push_back(c);
+            }
+        }
+
+        // convert to triangles
+         float factor = 0.2;
+        Vector3 offset(-2,-1,7.0);
+        for (size_t i = 0; i < faces.size(); i++) {
+            if (faces[i].size() == 3) {
+                triangles.push_back(vertices[faces[i][0] - 1]  * factor + offset);
+                triangles.push_back(vertices[faces[i][1] - 1]  * factor + offset);
+                triangles.push_back(vertices[faces[i][2] - 1]  * factor + offset);
+                if (verticesColors.size() > 0) {
+                    colors.push_back(verticesColors[faces[i][0] - 1]);
+                    colors.push_back(verticesColors[faces[i][1] - 1]);
+                    colors.push_back(verticesColors[faces[i][2] - 1]);
+                } else {
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                }
+            }
+            else if (faces[i].size() == 4) {
+                triangles.push_back(vertices[faces[i][0] - 1] * factor + offset);
+                triangles.push_back(vertices[faces[i][1] - 1] * factor + offset);
+                triangles.push_back(vertices[faces[i][2] - 1] * factor + offset);
+                triangles.push_back(vertices[faces[i][1] - 1] * factor + offset);
+                triangles.push_back(vertices[faces[i][2] - 1] * factor + offset);
+                triangles.push_back(vertices[faces[i][3] - 1] * factor + offset);
+                if (verticesColors.size() > 0) {
+                    colors.push_back(verticesColors[faces[i][0] - 1]);
+                    colors.push_back(verticesColors[faces[i][1] - 1]);
+                    colors.push_back(verticesColors[faces[i][2] - 1]);
+                    colors.push_back(verticesColors[faces[i][1] - 1]);
+                    colors.push_back(verticesColors[faces[i][2] - 1]);
+                    colors.push_back(verticesColors[faces[i][3] - 1]);
+                } else {
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                    colors.push_back(ColorRGBA(128));
+                }
+            }
+            else {
+                std::cout << "Error: face " << i << " has " << faces[i].size() << " vertices" << std::endl;
+            }
+        }
+
+    }
+
+}
+
+
+void CML::Frame::computeVirtualRealityImage(const PointSet &points) {
+
+    if (getId() % 10 != 0) {
+        return;
+    }
+
+    CML_LOG_IMPORTANT("Computing virtual reality image");
+
+    int levelForDepthMap = 2;
+
+    Array2D<Vector2> depthMap(getWidth(levelForDepthMap), getHeight(levelForDepthMap), Vector2(0, 0));
+    Array2D<bool> depthMapProjected(getWidth(levelForDepthMap), getHeight(levelForDepthMap), false);
+
+    int removeBecauseOfUncertainty = 0, removedBecauseNotInside = 0;
+    for (auto point : points) {
+        if (point->getUncertainty() > 1) {
+            removeBecauseOfUncertainty++;
+            continue;
+        }
+        DistortedVector2d p2d = distort(point->getWorldCoordinate().project(getCamera()), levelForDepthMap);
+        Vector3 rposition = point->getWorldCoordinate().relative(getCamera());
+        if (rposition(2) < 0) {
+            continue;
+        }
+        if (isInside(p2d, levelForDepthMap, 0)) {
+            depthMap(p2d.x(), p2d.y()) += Vector2(rposition(2) / point->getUncertainty(), 1.0f / point->getUncertainty());
+            depthMapProjected(p2d.x(), p2d.y()) = true;
+        } else {
+            removedBecauseNotInside++;
+        }
+    }
+
+    CML_LOG_IMPORTANT("For " + std::to_string(points.size()) + " points, " + std::to_string(removeBecauseOfUncertainty) + " have been removed for uncertainty, and " + std::to_string(removedBecauseNotInside) + " have been remove because not inside");
+
+
+
+    List<Vector2> nns;
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+            if (x != 0 || y != 0) {
+                nns.emplace_back(x, y);
+            }
+        }
+    }
+
+    const float colorThreshold = 50;
+
+    // Your are modifying the depth map with the modified depth map shiiiiiiiiiiit
+   for (int i = 0; i < 1000; i++) {
+
+       Array2D<Vector2> tmpDepthMap = depthMap;
+
+       for (int y = 1; y < depthMap.getHeight() - 1; y++) {
+            for (int x = 1; x < depthMap.getWidth() - 1; x++) {
+                for (auto nn : nns) {
+
+                    Vector2i c(x, y);
+                    Vector2i p = c + nn.cast<int>();
+
+
+                    //depthMap(p) += depthMap(c) * 0.1f;
+
+                    float colorDiff = abs(getCaptureFrame().getGrayImage(levelForDepthMap).get(c.x(), c.y()) - getCaptureFrame().getGrayImage(levelForDepthMap).get(p.x(), p.y())) + 1;
+
+                    float weight = 0.001f / colorDiff;
+                    tmpDepthMap(p) += Vector2(depthMap(c) * weight);
+
+                }
+
+
+            }
+
+        }
+
+       depthMap = tmpDepthMap;
+
+   }
+
+
+   List<float> allDepths;
+    for (int y = 0; y < depthMap.getHeight(); y++) {
+
+        for (int x = 0; x < depthMap.getWidth(); x++) {
+
+            if (depthMap(x, y)(1) == 0 || depthMap(x, y)(0) == 0) {
+                depthMap(x, y)(0) = 100000;
+                continue;
+            }
+
+            depthMap(x, y) /= depthMap(x, y)(1); // we allow infinite. infinite = depth 0
+            //depthMap(x, y)(0) = 1.0f / depthMap(x, y)(0); // from idepth to depth
+            if (std::isfinite( depthMap(x, y)(0))) {
+                allDepths.emplace_back(depthMap(x, y)(0));
+            } else {
+                CML_LOG_ERROR("NON FINITE");
+            }
+        }
+
+    }
+
+    List<Vector3> triangles;
+    List<ColorRGBA> colors;
+
+    loadObj("resources/80-pikachu/Pikachu OBJ.obj", triangles, colors);
+
+    auto colorTransition = Exposure().to(getExposure());
+    for (int i = 0; i < colors.size(); i++) {
+        colors[i] = ColorRGBA(colorTransition(colors[i].r()), colorTransition(colors[i].g()), colorTransition(colors[i].b()));
+    }
+
+    List<Vector3> projections;
+    projections.resize(triangles.size());
+
+    for (int i = 0; i < projections.size(); i++) {
+        projections[i].head<2>() = distort(WorldPoint::fromAbsolute(triangles[i]).project(getCamera()), 0);
+        projections[i](2) = WorldPoint::fromAbsolute(triangles[i]).relative(getCamera()).z();
+    }
+
+    CML_LOG_IMPORTANT("Retrieving color image");
+
+
+    Image tmpImage = getCaptureFrame().getGrayImage(0).cast<ColorRGBA>();
+  //  tmpImage.horizontalFlip().saveBmp("z_undistortred" + std::to_string(getId()) + ".bmp");
+
+    CML_LOG_IMPORTANT("Drawing");
+
+    for (int i = 0; i < projections.size(); i = i + 3) {
+        triangle(depthMap, tmpImage, projections[i], colors[i], projections[i+1], colors[i+1], projections[i+2], colors[i+2]);
+    }
+
+
+    CML_LOG_IMPORTANT("Saving image");
+
+   // tmpImage.horizontalFlip().saveBmp("z_vr_" + std::to_string(getId()) + ".bmp");
+
+    if (allDepths.size() > 0) {
+        float med = median(allDepths);
+
+        CML_LOG_IMPORTANT("Median depth : " + std::to_string(med));
+
+        for (int y = 0; y < depthMap.getHeight(); y++) {
+
+            for (int x = 0; x < depthMap.getWidth(); x++) {
+
+                float color = depthMap(x, y)(0) * 255 / (med * 2.0f);
+                if (color > 255) color = 255;
+                if (color < 0) color = 0;
+                tmpImage(x, y) = ColorRGBA(color);
+            }
+
+        }
+
+        tmpImage.horizontalFlip().saveBmp("z_depthmap_" + std::to_string(getId()) + ".bmp");
+    }
+
+
+
 }

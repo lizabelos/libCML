@@ -58,6 +58,22 @@ QtWebcamCapture::QtWebcamCapture(size_t poolSize, QObject *parent) : QVideoSink(
     qDebug() << "mMediaCaptureSession->setVideoOutput";
     mMediaCaptureSession->setVideoSink(this);
 
+
+
+    //if (mCalibration == nullptr) {
+        // Todo : this is the parameters for a google pixel 3a
+        CML::Vector2 originalSize(640,480);
+        CML::PinholeUndistorter undistorter(CML::Vector2(1.0, 1.7778), CML::Vector2(0.5, 0.5));
+        undistorter = undistorter.scaleAndRecenter(originalSize, CML::Vector2(-0.5, -0.5));
+        mCalibration = new CML::InternalCalibration(undistorter, originalSize);
+
+
+        mVignette = CML::Array2D<float>(640,480, 1);
+        mCaptureImageGenerator = new CML::CaptureImageGenerator(640,480);
+
+    //}
+
+
     qDebug() << "mCamera->start";
     mCamera->start();
 
@@ -124,7 +140,7 @@ void QtWebcamCapture::hvideoFrameChanged(const QVideoFrame &frame) {
     if (frame.isValid()) {
         qDebug() << "Valid next frame";
 
-        CML::logger.important("Webcam new frame : " + std::to_string(frame.width()) + "x" + std::to_string(frame.height()));
+        CML_LOG_IMPORTANT("Webcam new frame : " + std::to_string(frame.width()) + "x" + std::to_string(frame.height()));
 
         QImage qimage = frame.toImage();
         qimage.convertTo(QImage::Format_RGBA8888);
@@ -132,19 +148,6 @@ void QtWebcamCapture::hvideoFrameChanged(const QVideoFrame &frame) {
 
         CML::Image image(qimage.width(), qimage.height());
         memcpy(image.data(), qimage.bits(), qimage.width() * qimage.height() * 4);
-
-        if (mCalibration == nullptr) {
-            // Todo : this is the parameters for a google pixel 3a
-            CML::Vector2 originalSize(qimage.width(), qimage.height());
-            CML::PinholeUndistorter undistorter(CML::Vector2(1.0, 1.7778), CML::Vector2(0.5, 0.5));
-            undistorter = undistorter.scaleAndRecenter(originalSize, CML::Vector2(-0.5, -0.5));
-            mCalibration = new CML::InternalCalibration(undistorter, originalSize);
-
-
-            mVignette = CML::Array2D<float>(qimage.width(), qimage.height(), 1);
-            mCaptureImageGenerator = new CML::CaptureImageGenerator(qimage.width(), qimage.height());
-
-        }
 
         CML::Ptr<CML::CaptureImage, CML::Nullable> nextFrame = mCaptureImageGenerator->create()
                 .setImage(image)

@@ -7,6 +7,7 @@
 #include <cml/features/Features.h>
 #include <cml/utils/GarbageCollector.h>
 #include <cml/utils/PoolAllocator.h>
+#include <cml/utils/Complexity.h>
 
 namespace CML {
 
@@ -69,13 +70,24 @@ namespace CML {
 
         };
 
-        MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex, MapPointType type, scalar_t *coordinate, scalar_t *color, scalar_t *uncertainty, unsigned int *groups);
+        inline MapPoint(size_t id, PFrame reference, FeatureIndex referenceIndex, MapPointType type, scalar_t *coordinate, scalar_t *color, scalar_t *uncertainty, unsigned int *groups) {
+            recreate(id, reference, referenceIndex, type, coordinate, color, uncertainty, groups);
+        }
 
         MapPoint(const MapPoint &) = delete;
 
         MapPoint &operator=(const MapPoint &) = delete;
 
-        ~MapPoint() final;
+        inline ~MapPoint() final {
+            destroy();
+        }
+
+    protected:
+        void recreate(size_t id, PFrame reference, FeatureIndex referenceIndex, MapPointType type, scalar_t *coordinate, scalar_t *color, scalar_t *uncertainty, unsigned int *groups);
+
+        void destroy();
+
+    public:
 
         EIGEN_STRONG_INLINE std::size_t getId() const {
             return mId;
@@ -109,71 +121,56 @@ namespace CML {
 
 #if CML_MAPPOINT_STOREINDIRECTFRAME
         EIGEN_STRONG_INLINE List<PFrame> getIndirectApparitions() const {
+            signalMethodStart("MapPoint::getIndirectApparitions()");
             LockGuard lg(mApparitionsMutex);
             List<PFrame> result;
-            result.reserve(mApparitions.size());
-            for (auto [frame, mode] : mApparitions) {
-                bool isIndirect = (mode >> 1) & 1U;
-                if (isIndirect) {
-                    result.emplace_back(frame);
-                }
-            }
+            getIndirectApparitions(result);
             return result;
         }
 
         EIGEN_STRONG_INLINE void getIndirectApparitions(List<PFrame> &result) const {
+            signalMethodStart("MapPoint::getIndirectApparitions(List<PFrame> &)");
             LockGuard lg(mApparitionsMutex);
             result.clear();
-            result.reserve(mApparitions.size());
-            for (auto [frame, mode] : mApparitions) {
-                bool isIndirect = (mode >> 1) & 1U;
-                if (isIndirect) {
-                    result.emplace_back(frame);
-                }
-            }
+            result.reserve(mApparitionsIndirect.size());
+            result.insert(result.end(), mApparitionsIndirect.begin(), mApparitionsIndirect.end());
         }
 
         EIGEN_STRONG_INLINE bool haveIndirectApparition(PFrame frame) {
+            signalMethodStart("MapPoint::haveIndirectApparition");
             LockGuard lg(mApparitionsMutex);
-            if (mApparitions.contains(frame)) {
-                bool isIndirect = (mApparitions[frame] >> 1) & 1U;
-                return isIndirect;
+            if (mApparitionsIndirect.contains(frame)) {
+                return true;
             }
             return false;
         }
 #endif
 
         EIGEN_STRONG_INLINE unsigned short getIndirectApparitionNumber() const {
+            signalMethodStart("MapPoint::getIndirectApparitionNumber");
             return mIndirectApparitionsNumber;
         }
 
 #if CML_MAPPOINT_STOREDIRECTFRAME
         EIGEN_STRONG_INLINE List<PFrame> getDirectApparitions() const {
+            signalMethodStart("MapPoint::getDirectApparitions()");
             LockGuard lg(mApparitionsMutex);
             List<PFrame> result;
-            result.reserve(mApparitions.size());
-            for (auto [frame, mode] : mApparitions) {
-                bool isDirect = (mode >> 2) & 1U;
-                if (isDirect) {
-                    result.emplace_back(frame);
-                }
-            }
+            getDirectApparitions(result);
             return result;
         }
 
         EIGEN_STRONG_INLINE void getDirectApparitions(List<PFrame> &result) const {
+            signalMethodStart("MapPoint::getDirectApparitions(List<PFrame> &)");
             LockGuard lg(mApparitionsMutex);
-            result.reserve(mApparitions.size());
-            for (auto [frame, mode] : mApparitions) {
-                bool isDirect = (mode >> 2) & 1U;
-                if (isDirect) {
-                    result.emplace_back(frame);
-                }
-            }
+            result.clear();
+            result.reserve(mApparitionsDirect.size());
+            result.insert(result.end(), mApparitionsDirect.begin(), mApparitionsDirect.end());
         }
 #endif
 
         EIGEN_STRONG_INLINE unsigned short getDirectApparitionNumber() const {
+            signalMethodStart("MapPoint::getDirectApparitionNumber");
             return mDirectApparitionsNumber;
         }
 
@@ -182,6 +179,7 @@ namespace CML {
         }
 
         EIGEN_STRONG_INLINE PrivateData &getPrivate() {
+            signalMethodStart("MapPoint::getPrivate");
             return mPrivate;
         }
 
@@ -204,6 +202,7 @@ namespace CML {
         void setGroup(int groupId, bool state);
 
         [[nodiscard]] inline bool isGroup(int groupId) const {
+            signalMethodStart("MapPoint::isGroup");
             if (groupId == -1) {
                 return true;
             }
@@ -211,6 +210,7 @@ namespace CML {
         }
 
         inline int getGroups() const {
+            signalMethodStart("MapPoint::getGroups");
             return *mGroups;
         }
 
@@ -256,6 +256,7 @@ namespace CML {
         }
 
         void freeDescriptor() {
+            signalMethodStart("MapPoint::freeDescriptor");
             if (mDescriptor != nullptr) {
                 delete mDescriptor.p();
                 mDescriptor = nullptr;
@@ -263,6 +264,7 @@ namespace CML {
         }
 
         template <typename D> void setDescriptor(const D &descriptor) {
+            signalMethodStart("MapPoint::setDescriptor");
             freeDescriptor();
             mDescriptor = new D(descriptor);
         }
@@ -283,7 +285,8 @@ namespace CML {
         void clearApparitions() {
 #if CML_MAPPOINT_STOREINDIRECTFRAME || CML_MAPPOINT_STOREDIRECTFRAME
             LockGuard lg(mApparitionsMutex);
-            mApparitions.clear();
+            mApparitionsIndirect.clear();
+            mApparitionsDirect.clear();
 #endif
             mIndirectApparitionsNumber = 0;
             mDirectApparitionsNumber = 0;
@@ -303,7 +306,8 @@ namespace CML {
 
         mutable Mutex mApparitionsMutex;
 #if CML_MAPPOINT_STOREINDIRECTFRAME || CML_MAPPOINT_STOREDIRECTFRAME
-        HashMap<OptPFrame, uint8_t> mApparitions;
+        //HashMap<OptPFrame, uint8_t> mApparitions;
+        Set<OptPFrame> mApparitionsIndirect, mApparitionsDirect;
 #endif
         LinkedList<Ptr<Observer, NonNullable>> mObservers;
 #if CML_MAPPOINT_STOREPATCH
@@ -339,11 +343,7 @@ namespace CML {
     };
 
     inline size_t Hasher::operator()(PPoint pPoint) const {
-#if CML_FULLY_REPRODUCIBLE
-        return pPoint->getId();
-#else
-        return reinterpret_cast<size_t>(pPoint.p());
-#endif
+        return pPoint->hash();
     }
 
     inline bool CML::Comparator::operator() (PPoint pPointA, PPoint pPointB) const {
@@ -358,6 +358,7 @@ namespace CML {
 namespace CML {
 
     EIGEN_STRONG_INLINE void MapPoint::setGroup(int groupId, bool state) {
+        signalMethodStart("MapPoint::setGroup");
         assertThrow(groupId >= 0 && groupId < MAPOBJECT_GROUP_MAXSIZE, "Invalid group id");
         if (groupId != 0 && !isGroup(0) && state == true) {
             return;
@@ -377,6 +378,7 @@ namespace CML {
                 mGroups[i] = mGroups[0];
             }
         }
+
     }
 
     EIGEN_STRONG_INLINE Corner MapPoint::getReferenceCorner() const {

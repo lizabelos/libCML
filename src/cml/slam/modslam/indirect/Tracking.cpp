@@ -66,7 +66,7 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
         }
     }
     if (descriptors.size() == 0) {
-        logger.debug("This is strange...");
+        CML_LOG_DEBUG("This is strange...");
         return Optional<Binary256Descriptor>();
     }
     if (descriptors.size() <= 2) {
@@ -109,17 +109,17 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
     }
 
     assertDeterministic("Number of matching for indirect tracking with motion model", matchings.size());
-    logger.info("Found " + std::to_string(matchings.size()) + " matchings from last frame");
+    CML_LOG_INFO("Found " + std::to_string(matchings.size()) + " matchings from last frame");
 
     if (matchings.size() < 20) {
-        logger.important("Not accepting the tracking with motion model because of the number of matchings");
+        CML_LOG_IMPORTANT("Not accepting the tracking with motion model because of the number of matchings");
         return false;
     }
 
     List<bool> outliers;
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, motionToTry, matchings, outliers, mTrackcondUncertaintyWeight.f() > 0);
     if (!mLastIndirectTrackingResult.isOk) {
-        logger.important("Not accepting the tracking with motion model because the optimization failed");
+        CML_LOG_IMPORTANT("Not accepting the tracking with motion model because the optimization failed");
         return false;
     }
 
@@ -149,7 +149,7 @@ bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> 
         }
         return true;
     } else {
-        logger.important("Not accepting the tracking with motion model because too many outliers");
+        CML_LOG_IMPORTANT("Not accepting the tracking with motion model because too many outliers");
         return false;
     }
 }
@@ -159,7 +159,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
     OptPFrame referenceKeyFrame = mReferenceKeyFrame;
 
     if (referenceKeyFrame.isNull()) {
-        logger.important("No reference keyframe");
+        CML_LOG_IMPORTANT("No reference keyframe");
         return false;
     }
 
@@ -174,19 +174,19 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
             {referenceKeyFrame, referenceKeyFrameData->featureId, referenceKeyFrameData->descriptors}
     );
 
-    logger.info("Found " + std::to_string(matchings.size()) + " matchings from reference");
+    CML_LOG_INFO("Found " + std::to_string(matchings.size()) + " matchings from reference");
     assertDeterministic("Number of matchings for indirect tracking with motion model", matchings.size());
 
 
     if (matchings.size() < 15) {
-        logger.important("Not enough matchings");
+        CML_LOG_IMPORTANT("Not enough matchings");
         return false;
     }
 
     List<bool> outliers;
     mLastIndirectTrackingResult = mPnP->optimize(currentFrame, mLastFrame->getCamera(), matchings, outliers, mTrackcondUncertaintyWeight.f() > 0);
     if (!mLastIndirectTrackingResult.isOk) {
-        logger.important("Reference PnP failed");
+        CML_LOG_IMPORTANT("Reference PnP failed");
         return false;
     }
 
@@ -215,7 +215,7 @@ bool Hybrid::indirectTrackReferenceKeyFrame(PFrame currentFrame) {
         }
         return true;
     } else {
-        logger.important("Too few inliers from reference : " + std::to_string(numInliers));
+        CML_LOG_IMPORTANT("Too few inliers from reference : " + std::to_string(numInliers));
         return false;
     }
 
@@ -297,7 +297,7 @@ void Hybrid::indirectSearchLocalPoints(PFrame currentFrame) {
 
     auto currentFrameData = get(currentFrame);
     if (currentFrameData->featureId == -1) {
-        logger.error("Indirect search local points : no features...");
+        CML_LOG_ERROR("Indirect search local points : no features...");
         return;
     }
 
@@ -339,11 +339,11 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
     // Each map point vote for the keyframes in which it has been observed
     auto currentFrameData = get(currentFrame);
     if (currentFrameData->featureId == -1) {
-        logger.error("Update local key frames : no features ?");
+        CML_LOG_ERROR("Update local key frames : no features ?");
         return;
     }
 
-    HashMap<PFrame, int> keyframeCounter;
+    FrameHashMap<int> keyframeCounter;
     keyframeCounter.reserve(100);
 
     List<PFrame> tmpIndirectApparitions;
@@ -388,7 +388,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
 
 
     // Include also some not-already-included keyframes that are neighbors to already-included keyframes
-    Set<PFrame> localKeyFrames = mLocalKeyFrames; // todo : recursive ??
+    FrameSet localKeyFrames = mLocalKeyFrames; // todo : recursive ??
     for (auto pKF : localKeyFrames)
     {
         // Limit the number of keyframes
@@ -416,7 +416,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
 }
 
 void Hybrid::indirectUpdateLocalPoints(PFrame currentFrame) {
-    Set<PPoint> toUnactive = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT), toActive;
+    PointSet toUnactive = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT), toActive;
 
     for (auto pKF : mLocalKeyFrames)
     {
@@ -459,7 +459,7 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
 
     auto currentFrameData = get(currentFrame);
     if (currentFrameData->featureId == -1) {
-        logger.error("Indirect new need key frame : no features...");
+        CML_LOG_ERROR("Indirect new need key frame : no features...");
         return false;
     }
 
@@ -489,9 +489,9 @@ bool Hybrid::indirectNeedNewKeyFrame(PFrame currentFrame) {
     //scalar_t threshold = exp(log(numTrackedRef) * 0.975);
 
     scalar_t threshold = numTrackedRef * mOrbKeyframeRatio.f();
-    logger.info("Num tracked ref : " + std::to_string(numTrackedRef));
-    logger.info("Indirect keyframe threshold : " + std::to_string(threshold));
-    logger.info("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
+    CML_LOG_INFO("Num tracked ref : " + std::to_string(numTrackedRef));
+    CML_LOG_INFO("Indirect keyframe threshold : " + std::to_string(threshold));
+    CML_LOG_INFO("Last Num Tracked : " + std::to_string(mLastNumTrackedPoints));
 
     /*if (mLastNumTrackedPoints > 200) {
         return false;

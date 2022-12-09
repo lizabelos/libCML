@@ -184,17 +184,17 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path, Vec
     int i = std::sscanf(line[0].c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf", &ic[0], &ic[1], &ic[2], &ic[3], &ic[4], &ic[5], &ic[6], &ic[7]);
 
     if (i == 4) {
-        logger.info("Using PinHole only");
+        CML_LOG_INFO("Using PinHole only");
         originalPinhole = PinholeUndistorter(Vector2(ic[0], ic[1]), Vector2(ic[2], ic[3]));
     }
     else if (i == 5) {
-        logger.info("Using PinHole + FOV");
+        CML_LOG_INFO("Using PinHole + FOV");
         originalPinhole = PinholeUndistorter(Vector2(ic[0], ic[1]), Vector2(ic[2], ic[3]));
         preundistorter = new FOVUndistorter(ic[4]);
     }
     else if(i == 8)
     {
-        logger.info("Using PinHole + Radtan");
+        CML_LOG_INFO("Using PinHole + Radtan");
         originalPinhole = PinholeUndistorter(Vector2(ic[0], ic[1]), Vector2(ic[2], ic[3]));
         preundistorter = new RadtanUndistorter(ic[4], ic[5], ic[6], ic[7]);
     } else {
@@ -265,7 +265,7 @@ CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path, Vec
     //    result = new InternalCalibration(originalPinhole, originalSize, preundistorter, newPinhole, newSize, undistortMap);
     //}
     for (int lvl = 0; lvl < 3; lvl++) {
-        logger.info(result->toString(lvl));
+        CML_LOG_INFO(result->toString(lvl));
     }
     return result;
 }

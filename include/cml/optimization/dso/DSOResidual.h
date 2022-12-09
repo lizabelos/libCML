@@ -141,7 +141,7 @@ namespace CML {
             void abortIfWrongCenterProjectedTo() {
                 DistortedVector2d distortedVector2D(mCenterProjectedTo.head<2>().cast<scalar_t>());
                 if (!elements.frame->isInside(distortedVector2D, 0, 0)) {
-                    logger.fatal("DSORES_IN but center projected to not in");
+                    CML_LOG_FATAL("DSORES_IN but center projected to not in");
                     abort();
                 }
             }

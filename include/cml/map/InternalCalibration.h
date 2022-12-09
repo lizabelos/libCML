@@ -415,7 +415,7 @@ namespace CML {
                 } else break;
             }
 
-            logger.important(
+            CML_LOG_IMPORTANT(
                     "Using a factor of " + std::to_string(factor) + " for calibration undistortion ("
                     + std::to_string(input.getWidth()) + "x" + std::to_string(input.getHeight()) + " ===> "
                     + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + ")"
@@ -438,13 +438,34 @@ namespace CML {
 
         }
 
+        template <typename T> static Array2D<T> removeDistortion(Array2D<T> input, const Array2D<Vector2f> &undistortionMap) {
+
+            Array2D<T> output(input.getWidth(), input.getHeight());
+            int wh = input.getWidth() * input.getHeight();
+
+#if CML_USE_OPENMP
+#pragma omp  for schedule(static)
+#endif
+            for (int i = 0; i < wh; i++) {
+                if (std::isfinite(undistortionMap.data()[i][0]) &&
+                        undistortionMap.data()[i].x() >= 0 && undistortionMap.data()[i].x() < input.getWidth() &&
+                        undistortionMap.data()[i].y() >= 0 && undistortionMap.data()[i].y() < input.getHeight()
+                ) {
+                    output.data()[i] = input.get(undistortionMap.data()[i].x(), undistortionMap.data()[i].y());
+                }
+            }
+
+            return output;
+
+        }
+
         template <typename T> Array2D<T> fastRemoveDistortion(const Array2D<T> &input, int outputWidth = 0, int outputHeight = 0) const {
 
             if (mPreundistorter == nullptr) return input;
 
             assertThrow(input.getWidth() == mOriginalSize.x() && input.getHeight() == mOriginalSize.y(), "Invalid input size");
 
-            Array2D<T> output(mNewSize.x(), mNewSize.y(), 0.0f);
+            Array2D<T> output(mNewSize.x(), mNewSize.y());
 
             int wh = mNewSize.x() * mNewSize.y();
 

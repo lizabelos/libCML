@@ -14,7 +14,7 @@ CML::TUMCapture::TUMCapture(std::string path) {
 
     loadZip(path + "/images.zip", ".jpg");
 
-    logger.info("Parsing time file...");
+    CML_LOG_INFO("Parsing time file...");
     std::ifstream timesFile;
     timesFile.open((path + "/times.txt").c_str());
 
@@ -54,7 +54,7 @@ CML::TUMCapture::TUMCapture(std::string path) {
         }
     }
 
-    logger.info("Parsing groundtruth file...");
+    CML_LOG_INFO("Parsing groundtruth file...");
     std::ifstream groundtruthFile;
     groundtruthFile.open((path + "/groundtruthSync.txt").c_str());
     while(!groundtruthFile.eof() && groundtruthFile.good())
@@ -75,9 +75,9 @@ CML::TUMCapture::TUMCapture(std::string path) {
             mTranslations.emplace_back(translation);
             mRotations.emplace_back(rotation);
         } else {
-            logger.warn("Invalid line in groundtruthSync.txt : " + std::string(buf) + ". sscanf(...) = " + std::to_string(res));
+            CML_LOG_WARN("Invalid line in groundtruthSync.txt : " + std::string(buf) + ". sscanf(...) = " + std::to_string(res));
             for (int i = 0; i < std::min(8, res); i++) {
-                logger.info("values[" + std::to_string(i) + "] = " + std::to_string(v[i]));
+                CML_LOG_INFO("values[" + std::to_string(i) + "] = " + std::to_string(v[i]));
             }
         }
 
@@ -110,10 +110,10 @@ CML::TUMCapture::TUMCapture(std::string path) {
     }
 */
     if (mTranslations.size() == mTimestamps.size()) {
-        logger.info("We found a valid groudtruth");
+        CML_LOG_INFO("We found a valid groudtruth");
         mGoodGroundtruth = true;
     } else {
-        logger.error("We found an invalid groudtruth. Found " + std::to_string(mTimestamps.size()) + " timestamps and " + std::to_string(mTranslations.size()) + " cameras.");
+        CML_LOG_ERROR("We found an invalid groudtruth. Found " + std::to_string(mTimestamps.size()) + " timestamps and " + std::to_string(mTranslations.size()) + " cameras.");
         mGoodGroundtruth = false;
     }
 
@@ -122,7 +122,7 @@ CML::TUMCapture::TUMCapture(std::string path) {
     mHeight = image.getHeight();
     mCaptureImageGenerator = new CaptureImageGenerator(mWidth, mHeight);
     mCameraParameters = parseInternalTumCalibration(path + "/camera.txt", mCaptureImageGenerator->getOutputSize());
-    logger.error(mCameraParameters->getPinhole().toString());
+    CML_LOG_ERROR(mCameraParameters->getPinhole().toString());
 
     mCurrentIndex = 0;
 
@@ -130,7 +130,7 @@ CML::TUMCapture::TUMCapture(std::string path) {
     mVignette = new FloatImage;
     *mVignette = loadPngImage(mPath + "/vignette.png").first;
 
-    logger.info("TUM Capture " + path + " is open");
+    CML_LOG_INFO("TUM Capture " + path + " is open");
 
 
 }

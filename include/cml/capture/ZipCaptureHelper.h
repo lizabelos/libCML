@@ -26,7 +26,7 @@ namespace CML {
             }
 
             int numEntries = zip_get_num_entries(mZipArchive, 0);
-            logger.info("Found " + std::to_string(numEntries) + " files inside the zip");
+            CML_LOG_INFO("Found " + std::to_string(numEntries) + " files inside the zip");
             mZipFilePath.reserve(numEntries);
 
             for(int k = 0; k < numEntries; k++)
@@ -66,7 +66,7 @@ namespace CML {
                 f = fopen(extractedFilePath.c_str(), "rb");
                 if (f != nullptr) {
 
-                    logger.debug("Using extracted image");
+                    CML_LOG_DEBUG("Using extracted image");
 
                     *size = 0;
                     while (true) {
@@ -81,7 +81,7 @@ namespace CML {
                 }
                 f = fopen((mExtractPath + "/" + codedFilename).c_str(), "wb");
                 if (f == nullptr) {
-                    logger.error("Can't create file " + (mExtractPath + "/" + filename));
+                    CML_LOG_ERROR("Can't create file " + (mExtractPath + "/" + filename));
                     extractedFilePath = "";
                 }
             }
@@ -115,6 +115,17 @@ namespace CML {
 
         inline int getImageNumber() {
             return mZipFilePath.size();
+        }
+
+    public:
+        inline void decompressAll() {
+            uint8_t *data;
+            size_t size;
+            CML_LOG_IMPORTANT("Decompressing all files");
+            for (int k = 0; k < getImageNumber(); k++) {
+                CML_LOG_IMPORTANT("Decompressing " + std::to_string(k) + "/" + std::to_string(getImageNumber()));
+                decompressFile(k, &data, &size);
+            }
         }
 
     private:

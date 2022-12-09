@@ -35,8 +35,8 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
 
     setWindowTitle("libCML GUI");
 
-    logger.important("Available geometry width : " + std::to_string(screen()->availableGeometry().width()));
-    logger.important("DPI X : " + std::to_string(logicalDpiX()));
+    CML_LOG_IMPORTANT("Available geometry width : " + std::to_string(screen()->availableGeometry().width()));
+    CML_LOG_IMPORTANT("DPI X : " + std::to_string(logicalDpiX()));
 
     bool isBigScreen;
     /*if (screen()->availableGeometry().width() > 1200) {
@@ -189,7 +189,7 @@ int parseLine(char* line){
 
 void CML::MainSlamWidget::timerEvent(QTimerEvent *e) {
 
-    float memoryUsage = CML::memoryUsage();
+    float memoryUsage = CML::OS::memoryUsage();
     mRamUsageLabel.setText(QString::fromStdString(std::to_string(memoryUsage) + " MB used"));
 
     if (mSLAM == nullptr) {

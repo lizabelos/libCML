@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file alias="resources/ORBvoc.zip">resources/ORBvoc.zip</file>
+        <file alias="resources/reference.jpg">resources/reference.jpg</file>
     </qresource>
 </RCC>

@@ -9,7 +9,7 @@ bool CML::Robust::RobustRaulmurInitializer::track(CML::Map &map, CML::PFrame fra
     float sigma2 = sigma * sigma;
 
     if (matchings.size() < 30) {
-        logger.warn("Raulmur failed because of not enough matching");
+        CML_LOG_WARN("Raulmur failed because of not enough matching");
         return false;
     }
 
@@ -37,8 +37,8 @@ bool CML::Robust::RobustRaulmurInitializer::track(CML::Map &map, CML::PFrame fra
     scalar_t scoreF = mRobustFundamental.compute(referenceDistorted, normalizedB, normalizationMatrixB, frameToTrackDistorted, normalizedA, normalizationMatrixA, F);
     scalar_t scoreH = mRobustHomography.compute(referenceDistorted, normalizedB, normalizationMatrixB, frameToTrackDistorted, normalizedA, normalizationMatrixA, H);
 
-    logger.info("Robust Raulmur Fundamental Score : " + std::to_string(scoreF));
-    logger.info("Robust Raulmur Homography Score : " + std::to_string(scoreH));
+    CML_LOG_INFO("Robust Raulmur Fundamental Score : " + std::to_string(scoreF));
+    CML_LOG_INFO("Robust Raulmur Homography Score : " + std::to_string(scoreH));
 
     List<Camera> hypothesisCamera;
 
@@ -57,10 +57,10 @@ bool CML::Robust::RobustRaulmurInitializer::track(CML::Map &map, CML::PFrame fra
             mLastBestHypothesis = hypothesisCamera;
         }
 
-        logger.info("Found Hypothesis : " + std::to_string(hypothesisCamera.size()));
+        CML_LOG_INFO("Found Hypothesis : " + std::to_string(hypothesisCamera.size()));
 
         if (hypothesisCamera.empty()) {
-            logger.warn("Raulmur failed because of no hypothesis");
+            CML_LOG_WARN("Raulmur failed because of no hypothesis");
             return false;
         }
 
@@ -102,10 +102,10 @@ bool CML::Robust::RobustRaulmurInitializer::track(CML::Map &map, CML::PFrame fra
             mLastBestHypothesis = hypothesisCamera;
         }
 
-        logger.info("Found Hypothesis : " + std::to_string(hypothesisCamera.size()));
+        CML_LOG_INFO("Found Hypothesis : " + std::to_string(hypothesisCamera.size()));
 
         if (hypothesisCamera.empty()) {
-            logger.warn("Raulmur failed because of no hypothesis");
+            CML_LOG_WARN("Raulmur failed because of no hypothesis");
             return false;
         }
 
@@ -164,7 +164,7 @@ bool CML::Robust::RobustRaulmurInitializer::track(CML::Map &map, CML::PFrame fra
 
     for (size_t i = 0; i < matchings.size(); i++) {
         if (bestInliers[i]) {
-            PPoint newMapPoint = map.createMapPoint(referenceFrame, matchings[i].getIndexB(referenceFrame), INDIRECT);
+            PPoint newMapPoint = map.createMapPoint(referenceFrame, matchings[i].getIndexB(referenceFrame), INDIRECTTYPE);
             referenceFrame->setMapPoint(matchings[i].getIndexB(referenceFrame), newMapPoint);
             frameToTrack->setMapPoint(matchings[i].getIndexA(frameToTrack), newMapPoint);
             newMapPoint->setWorldCoordinate(WorldPoint::fromAbsolute(bestPoints3d[i] * scaling));

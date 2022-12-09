@@ -43,7 +43,7 @@ CML::EurocCapture::EurocCapture(const std::string &path) {
 
     mIsInit = true;
 
-    logger.info("Euroc dataset " + path + " is open");
+    CML_LOG_INFO("Euroc dataset " + path + " is open");
 }
 
 CML::EurocCapture::~EurocCapture() {

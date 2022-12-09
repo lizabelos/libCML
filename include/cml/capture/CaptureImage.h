@@ -22,6 +22,10 @@ namespace CML {
     public:
         friend class CaptureImageGenerator;
 
+        CaptureImage() {
+
+        }
+
         bool stillInMemory() const;
 
         inline scalar_t getEvaluationTimestamp() final {
@@ -53,7 +57,7 @@ namespace CML {
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
             if (checkInMemory) {
                 if (!stillInMemory()) {
-                    logger.fatal("Image is not loaded in memory");
+                    CML_LOG_FATAL("Image is not loaded in memory");
                     abort();
                 }
             }
@@ -70,7 +74,7 @@ namespace CML {
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
             if (checkInMemory) {
                 if (!stillInMemory()) {
-                    logger.fatal("Image is not loaded in memory");
+                    CML_LOG_FATAL("Image is not loaded in memory");
                     abort();
                 }
             }
@@ -82,7 +86,7 @@ namespace CML {
             assertThrow(level < getPyramidLevels(), "Invalid level : " + std::to_string(level) + ". Have " + std::to_string(getPyramidLevels()) + " levels");
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
             if (!stillInMemory()) {
-                logger.fatal("Image is not loaded in memory");
+                CML_LOG_FATAL("Image is not loaded in memory");
                 abort();
             }
 #endif
@@ -93,7 +97,7 @@ namespace CML {
             assertThrow(level < getPyramidLevels(), "Invalid level : " + std::to_string(level) + ". Have " + std::to_string(getPyramidLevels()) + " levels");
 #if CML_CAPTUREIMAGE_STILLINMEMORYASSERT
             if (!stillInMemory()) {
-                logger.fatal("Image is not loaded in memory");
+                CML_LOG_FATAL("Image is not loaded in memory");
                 abort();
             }
 #endif
@@ -157,10 +161,9 @@ namespace CML {
 
         void makeUnactive();
 
-    protected:
-        CaptureImage() {
+        void postRemoveDistortion(const Array2D<Vector2f> &undistortionMap);
 
-        }
+    protected:
 
         CaptureImageGenerator *mParent;
 

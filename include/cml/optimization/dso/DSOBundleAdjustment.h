@@ -27,7 +27,7 @@ namespace CML {
 
             void createResidual(PFrame frame, PPoint point);
 
-            void addPoints(const Set<PPoint>& points);
+            void addPoints(const PointSet& points);
 
             void addNewFrame(PFrame frame, int immatureGroup);
 
@@ -47,7 +47,7 @@ namespace CML {
 
             void computeNullspaces();
 
-            const Set<PPoint> &getOutliers() {
+            const PointSet &getOutliers() {
                 return mOutliers;
             }
 
@@ -68,13 +68,13 @@ namespace CML {
                 }
             }
 
-            HashMap<PFrame, Camera> getLastOptimizedCameras() {
+            FrameHashMap<Camera> getLastOptimizedCameras() {
                 LockGuard lg(mLastOptimizedCameraMutex);
                 return mLastOptimizedCamera;
             }
 
-            Set<PPoint> getGoodPointsForTracking() {
-                Set<PPoint> points;
+            PointSet getGoodPointsForTracking() {
+                PointSet points;
                 for (auto point : getPoints()) {
                     auto ph = get(point);
                     if(ph->getLastResidual(0).first != nullptr && ph->getLastResidual(0).second == DSORES_IN) {
@@ -96,7 +96,7 @@ namespace CML {
                 mMixedBundleAdjustment.set(b);
             }
 
-            const Set<PPoint> &indirectOptimizedPoints() {
+            const PointSet &indirectOptimizedPoints() {
                 return mIndirectPointToOptimizeSet;
             }
 
@@ -202,7 +202,7 @@ namespace CML {
             Matrix<Dynamic, Dynamic> mMarginalizedHessian;
             Vector<Dynamic> mMarginalizedB;
 
-            Set<PPoint> mOutliers;
+            PointSet mOutliers;
 
             List<Matrix<Dynamic, Dynamic>> sdt_tH;
             List<Vector<Dynamic>> sdt_tb;
@@ -281,14 +281,14 @@ namespace CML {
             Parameter mAddLinearizedPoints = createParameter("alwaysResetLinearized", false);
             Parameter mDisableMarginalization = createParameter("disableMarginalization", true);
 
-            Set<PPoint> mIndirectPointToOptimizeSet;
+            PointSet mIndirectPointToOptimizeSet;
 
             bool mAbortBAOnFailture = false;
 
             Parameter mOptimizeCalibration = createParameter("optimizeCalibration", false);
 
             Mutex mLastOptimizedCameraMutex;
-            HashMap<PFrame, Camera> mLastOptimizedCamera;
+            FrameHashMap<Camera> mLastOptimizedCamera;
 
             Hartley2003Triangulation *mTriangulator;
 

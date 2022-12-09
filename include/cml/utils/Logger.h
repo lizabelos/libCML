@@ -14,6 +14,8 @@
 #include <optional>
 #include <sstream>
 
+#define CML_DISABLE_LOGGER 0
+
 namespace CML {
 
     typedef enum {
@@ -133,9 +135,13 @@ namespace CML {
         }
 
         inline void setPrefix(std::string prefix) {
+#if CML_DISABLE_LOGGER
+            std::cout << prefix << std::endl;
+#else
             mPrefixMutex.lock();
             mPrefix = prefix;
             mPrefixMutex.unlock();
+#endif
         }
 
     private:
@@ -167,6 +173,22 @@ namespace CML {
     }
 
     extern Logger logger;
+
+#if CML_DISABLE_LOGGER
+#define CML_LOG_DEBUG(msg)
+#define CML_LOG_INFO(msg)
+#define CML_LOG_WARN(msg)
+#define CML_LOG_ERROR(msg)
+#define CML_LOG_FATAL(msg)
+#define CML_LOG_IMPORTANT(msg)
+#else
+#define CML_LOG_DEBUG(msg) ::CML::logger.debug(msg)
+#define CML_LOG_INFO(msg) ::CML::logger.info(msg)
+#define CML_LOG_WARN(msg) ::CML::logger.warn(msg)
+#define CML_LOG_ERROR(msg) ::CML::logger.error(msg)
+#define CML_LOG_FATAL(msg) ::CML::logger.fatal(msg)
+#define CML_LOG_IMPORTANT(msg) ::CML::logger.important(msg)
+#endif
 
 }
 

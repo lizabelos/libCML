@@ -14,8 +14,8 @@ bool CML::Optimization::Ceres::PlaneInitializer::initialize() {
 
     OrderedSet<PFrame, Comparator> frames = getMap().getFrames();
 
-    HashMap<PPoint, double*> pointsData;
-    HashMap<PFrame, Pair<double*, double*>> framesData;
+    PointHashMap<double*> pointsData;
+    FrameHashMap<Pair<double*, double*>> framesData;
 
     int i = 0;
 
@@ -98,10 +98,10 @@ bool CML::Optimization::Ceres::PlaneInitializer::initialize() {
     ceres::Solve(options, &problem, &summary);
 
     if (!summary.IsSolutionUsable()) {
-        logger.error("Ceres Message : (PI)\n" + summary.message);
+        CML_LOG_ERROR("Ceres Message : (PI)\n" + summary.message);
         return false;
     } else {
-        if (!summary.message.empty()) logger.info("Ceres Message : (PI)\n" + summary.message);
+        if (!summary.message.empty()) CML_LOG_INFO("Ceres Message : (PI)\n" + summary.message);
     }
 
     for (auto [frame, data] : framesData) {

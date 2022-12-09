@@ -247,8 +247,8 @@ bool Hybrid::poseEstimationDecision() {
 
     if (mTrackcondUncertaintyWeight.f() > 0) {
 
-        logger.debug("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
-        logger.debug("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
+        CML_LOG_DEBUG("ORB Uncertainty ( Pose Estimation Decision ) : " + std::to_string(indirectUncertainty));
+        CML_LOG_DEBUG("DSO Uncertainty ( Pose Estimation Decision ) : " + std::to_string(directUncertainty));
 
         if (!std::isfinite(indirectUncertainty)) {
             return true;
@@ -393,8 +393,8 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
 
     if (mScoreWeight.f() >= 0) {
 
-        logger.important("ORB Score ( BA Decision ) : " + std::to_string(orbScore));
-        logger.important("DSO Score ( BA Decision ) : " + std::to_string(dsoScore) + " -> " + std::to_string(weightedDsoScore));
+        CML_LOG_IMPORTANT("ORB Score ( BA Decision ) : " + std::to_string(orbScore));
+        CML_LOG_IMPORTANT("DSO Score ( BA Decision ) : " + std::to_string(dsoScore) + " -> " + std::to_string(weightedDsoScore));
 
 
         if (weightedDsoScore > orbScore) {
@@ -415,8 +415,8 @@ Hybrid::BaMode Hybrid::bundleAdjustmentDecision(bool needIndirectKF, bool needDi
             return BAINDIRECT;
         }
 
-        logger.important("ORB Uncertainty ( BA Decision ) : " + std::to_string(indirectUncertainty));
-        logger.important("DSO Uncertainty ( BA Decision ) : " + std::to_string(directUncertainty));
+        CML_LOG_IMPORTANT("ORB Uncertainty ( BA Decision ) : " + std::to_string(indirectUncertainty));
+        CML_LOG_IMPORTANT("DSO Uncertainty ( BA Decision ) : " + std::to_string(directUncertainty));
 
         if (directUncertainty * mBacondUncertaintyWeight.f() < indirectUncertainty) {
             return BADIRECT;

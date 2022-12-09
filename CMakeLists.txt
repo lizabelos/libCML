@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.10)
 project(CML
         VERSION 1.0
         LANGUAGES C CXX
@@ -93,26 +93,15 @@ if (ANDROID)
     set(AVUTIL_FOUND 0)
     set(SWSCALE_FOUND 0)
 else()
-find_package(PkgConfig QUIET)
-if (PKG_CONFIG_FOUND)
     option(ENABLE_FFMPEG "Enable FFMPEG" OFF)
     if (ENABLE_FFMPEG)
+        find_package(PkgConfig REQUIRED)
+
         pkg_check_modules(AVFORMAT REQUIRED "libavformat")
         pkg_check_modules(AVCODEC REQUIRED "libavcodec")
         pkg_check_modules(AVUTIL REQUIRED "libavutil")
         pkg_check_modules(SWSCALE REQUIRED "libswscale")
-    else()
-        set(AVFORMAT_FOUND 0)
-        set(AVCODEC_FOUND 0)
-        set(AVUTIL_FOUND 0)
-        set(SWSCALE_FOUND 0)
     endif()
-else()
-    set(AVFORMAT_FOUND 0)
-    set(AVCODEC_FOUND 0)
-    set(AVUTIL_FOUND 0)
-    set(SWSCALE_FOUND 0)
-endif()
 endif()
 
 option(USE_INTERNAL_CERES "Use Internal Ceres" ON)
@@ -242,7 +231,28 @@ set(CML_HAVE_OPENCV ${OPENCV_FOUND})
 set(CML_USE_OPENMP ${USE_OPENMP})
 set(CML_ENABLE_GUI ${ENABLE_GUI})
 set(CML_USE_GOOGLE_HASH ${USE_GOOGLE_HASH})
+
 set(CML_IS_ANDROID ${ANDROID})
+
+option(USE_FAKE_MUTEX "Use Fake Mutex" ON)
+message(STATUS "USE_FAKE_MUTEX: ${USE_FAKE_MUTEX}")
+set(CML_USE_FAKE_MUTEX ${USE_FAKE_MUTEX})
+
+#option(MAP_IMPLEMENTATION "Map Implementation" "PHMAP_PARALLEL")
+set(MAP_IMPLEMENTATION "PHMAP_PARALLEL" CACHE STRING "Map Implementation")
+message(STATUS "Map Implementation: ${MAP_IMPLEMENTATION}")
+set(CML_MAP_IMPLEMENTATION ${MAP_IMPLEMENTATION})
+
+#option(FRAME_MAP_IMPLEMENTATION "Map Frame Implementation" "PHMAP_PARALLEL")
+set(FRAME_MAP_IMPLEMENTATION "NAIVE" CACHE STRING "Map Frame Implementation")
+message(STATUS "Frame Map Implementation: ${FRAME_MAP_IMPLEMENTATION}")
+set(CML_FRAME_MAP_IMPLEMENTATION ${FRAME_MAP_IMPLEMENTATION})
+
+#option(POINT_MAP_IMPLEMENTATION "Map Point Implementation" "PHMAP_PARALLEL")
+set(POINT_MAP_IMPLEMENTATION "PHMAP_PARALLEL" CACHE STRING "Map Point Implementation")
+message(STATUS "Point Map Implementation: ${POINT_MAP_IMPLEMENTATION}")
+set(CML_POINT_MAP_IMPLEMENTATION ${POINT_MAP_IMPLEMENTATION})
+
 configure_file(include/cml/config.h.in include/cml/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
@@ -312,6 +322,7 @@ add_library(CML STATIC
 
         src/cml/utils/Logger.cpp
         src/cml/utils/GarbageCollector.cpp
+        src/cml/utils/Complexity.cpp
 
         src/cml/gui/viewer/ReprojectionViewer.cpp
         src/cml/gui/viewer/VarianceViewer.cpp
@@ -332,6 +343,8 @@ add_library(CML STATIC
         src/cml/features/cornerTracker/VFC.cpp
 
         src/lodepng/lodepng.cpp
+
+        src/cml/slam/calib/Calib.cpp
 )
 
 target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
@@ -364,7 +377,7 @@ if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
     target_include_directories(CML PUBLIC ${SWSCALE_INCLUDE_DIRS})
     target_link_directories(CML PUBLIC ${SWSCALE_LIBRARY_DIRS})
 
-    target_sources(CML PRIVATE cml/capture/VideoCapture.cpp)
+    target_sources(CML PRIVATE src/cml/capture/VideoCapture.cpp)
     target_link_libraries(CML ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES} ${SWSCALE_LIBRARIES})
 
     set(FFMPEG_FOUND 1 PARENT_SCOPE)
@@ -522,11 +535,6 @@ target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 # target_compile_options(CML PUBLIC -Wall -Werror -Wuninitialized)
 
 # target_link_options(CML PUBLIC -mllvm)
-
-if (WIN32)
-target_compile_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
-target_link_options(CML PUBLIC ${OpenMP_CXX_FLAGS} -static)
-endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC)

@@ -53,7 +53,7 @@ namespace CML::Optimization::G2O {
 
     private:
         OrderedSet<PFrame, Comparator>  lLocalKeyFrames, lFixedCameras;
-        Set<PPoint> lLocalIndirectPoints;
+        PointSet lLocalIndirectPoints;
         List<g2o::EdgeSE3ProjectXYZ*> vpEdges;
         List<Pair<PFrame, PPoint>> vpEdgesPairs;
         unsigned long maxKFid = 0;
@@ -68,6 +68,8 @@ namespace CML::Optimization::G2O {
 
         Parameter mTimeLimit = createParameter("timeLimit", 0.015);
         Parameter mAdjustDirectPoints = createParameter("adjustDirectPoints", true);
+
+        Parameter mIndirectCovisiblityMax = createParameter("indirectCovisiblityMax", 20);
 
         Timer mTimer;
     };

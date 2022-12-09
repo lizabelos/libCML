@@ -1,6 +1,8 @@
 #ifndef CML_TYPES_H
 #define CML_TYPES_H
 
+#include <cml/config.h>
+
 #include <filesystem>
 #include <vector>
 #include <list>
@@ -10,9 +12,6 @@
 #include <condition_variable>
 #include <numeric>
 #include <thread>
-#if CML_HAVE_LIBZIP
-#include <zip.h>
-#endif
 
 #ifdef ANDROID
 #include <QFile>
@@ -22,18 +21,18 @@
 #define M_PI_2 1.57079632679489661923
 #endif
 
-#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseLU>
 #include <Eigen/SparseQR>
 
-// #define SPP_DEFAULT_ALLOCATOR Eigen::aligned_allocator
 #include <parallel_hashmap/phmap.h>
 
 #include "types/Optional.h"
 #include "utils/Logger.h"
 #include "fastmath.h"
+#include "types/NaiveMap.h"
+#include "types/OS.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -44,41 +43,6 @@
 
 namespace CML {
 
-    inline void usleep(long long usec) {
-        std::this_thread::sleep_for(std::chrono::microseconds(usec));
-    }
-
-    inline float memoryUsage() {
-#ifdef linux
-        FILE *file = fopen("/proc/self/status", "r");
-        int result = -1;
-        char line[128];
-
-        while (fgets(line, 128, file) != NULL) {
-            if (strncmp(line, "VmRSS:", 6) == 0) {
-
-                {
-                    int i = strlen(line);
-                    const char* p = line;
-                    while (*p <'0' || *p > '9') p++;
-                    line[i-3] = '\0';
-                    i = atoi(p);
-                    result = i;
-                }
-
-                break;
-
-            }
-        }
-        fclose(file);
-
-        float memoryUsage = (float)result * 0.001f;
-        return memoryUsage;
-#else
-        return 0;
-#endif
-    }
-
     inline bool hasEnding (std::string const &fullString, std::string const &ending) {
         if (fullString.length() >= ending.length()) {
             return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
@@ -87,78 +51,6 @@ namespace CML {
         }
     }
 
-#ifndef ANDROID
-    inline std::string readWholeBinaryFile(const std::string &filename, bool isResource) {
-        std::ifstream file(filename, std::ios::in | std::ios::binary);
-        if (!file.is_open()) {
-            throw std::runtime_error("Could not open file: " + filename);
-        }
-        file.seekg(0, std::ios::end);
-        size_t size = file.tellg();
-        file.seekg(0, std::ios::beg);
-        std::vector<char> buffer(size);
-        file.read(buffer.data(), size);
-        file.close();
-        return std::string(buffer.begin(), buffer.end());
-    }
-
-#if CML_HAVE_LIBZIP
-    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry, bool isResource) {
-        int ziperror;
-        zip_t *zipArchive = zip_open(filename.c_str(), ZIP_RDONLY, &ziperror);
-        zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
-        if (!zipFile) {
-            throw std::runtime_error("Could not open file: " + entry);
-        }
-        std::stringstream stream;
-        char *data = new char[40000];
-        while (true) {
-            size_t n = zip_fread(zipFile, data, 40000);
-            if (n == 0) break;
-            stream << std::string(data, n);
-        }
-        zip_fclose(zipFile);
-        delete []data;
-        return stream.str();
-    }
-#endif
-#else
-    inline std::string readWholeBinaryFile(std::string filename, bool isResource) {
-        // Read the file using QFile
-        if (isResource) {
-            filename = ":/" + filename;
-        }
-        QFile file(filename.c_str());
-        if (!file.open(QIODevice::ReadOnly)) {
-            throw std::runtime_error("Could not open file: " + filename);
-        }
-        QByteArray data = file.readAll();
-        return std::string(data.constData(), data.size());
-    }
-
-#if CML_HAVE_LIBZIP
-    inline std::string readWholeZipFile(const std::string &filename, const std::string &entry, bool isResource) {
-        std::string zipContent = readWholeBinaryFile(filename, isResource);
-        zip_error_t ziperror;
-        zip_source_t *src = zip_source_buffer_create(zipContent.c_str(), zipContent.size(), 1, &ziperror);
-        zip_t *zipArchive = zip_open_from_source(src, 0, &ziperror);
-        zip_file_t *zipFile = zip_fopen(zipArchive, entry.c_str(), 0);
-        if (!zipFile) {
-            throw std::runtime_error("Could not open file: " + entry);
-        }
-        std::stringstream stream;
-        char *data = new char[40000];
-        while (true) {
-            size_t n = zip_fread(zipFile, data, 40000);
-            if (n == 0) break;
-            stream << std::string(data, n);
-        }
-        zip_fclose(zipFile);
-        delete []data;
-        return stream.str();
-    }
-#endif
-#endif
 
     inline size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
     {
@@ -182,49 +74,19 @@ namespace CML {
         return strs.size();
     }
 
-    inline std::vector<std::string> listDirectory(std::string path, std::string ext = "") {
-
-        std::vector<std::string> result;
-
-        for (const auto & entry : std::filesystem::directory_iterator(path)) {
-            result.emplace_back(entry.path().filename().string());
-        }
-
-        return result;
-
-    }
-
-#ifndef M_PI
-#define M_PI 3.14159265359
-#endif
-
 #define UNUSED(x) (void)(x)
 
     inline void printAndAbort(const char* expression, const char* file, int line, std::string msg) {
 
         std::string what = (std::string)"Assertion " + expression + " failed, file " + file + " line " + std::to_string(line);
 
-        logger.fatal(what);
-        logger.fatal(msg);
+        CML_LOG_FATAL(what);
+        CML_LOG_FATAL(msg);
 
         asm("int $3");
          abort();
 
     }
-
-#ifndef ENABLE_ASSERTTHROW_ON_RELEASE
-#define ENABLE_ASSERTTHROW_ON_RELEASE 0
-#endif
-
-#ifndef NDEBUG
-#define ENABLE_ASSERTTHROW 1
-#else
-#if ENABLE_ASSERTTHROW_ON_RELEASE
-#define ENABLE_ASSERTTHROW 1
-#else
-#define ENABLE_ASSERTTHROW 0
-#endif
-#endif
 
 #if ENABLE_ASSERTTHROW
 #define assertThrow(EXPRESSION, MSG) if (!(EXPRESSION)) printAndAbort(#EXPRESSION, __FILE__, __LINE__, MSG)
@@ -257,25 +119,58 @@ namespace CML {
             using Pair = std::pair<T, U>;
 
     template <typename T>
-            using List = std::vector<T, Eigen::aligned_allocator<T>>;
+            using List = std::vector<T>;
 
     template <typename T>
-            using LinkedList = std::list<T, Eigen::aligned_allocator<T>>;
+            using LinkedList = std::list<T>;
 
-    //template <typename T, typename H = Hasher>
-    //        using Set = spp::sparse_hash_set<T, H, std::equal_to<T>>;
+#if CML_MAP_IMPLEMENTATION == CML_MAP_IMPLEMENTATION_STD
+    template <typename T, typename C = Comparator>
+            using OrderedSet = std::set<T, C>;
+    template <typename T, typename H = Hasher>
+            using Set = std::unordered_set<T, H, std::equal_to<T>>;
 
-    template <typename T, typename C= Comparator>
-            using OrderedSet = std::set<T, C, Eigen::aligned_allocator<T>>;
-    template <typename T, typename C= Comparator>
-            using Set = std::set<T, C, Eigen::aligned_allocator<T>>;
+    template <typename T, typename U, typename H = Hasher>
+            using HashMap = std::unordered_map<T, U, H>;
+
+    template <typename T, typename U, typename H = Hasher>
+        using DenseHashMap = std::unordered_map<T, U, H>;
+#elif CML_MAP_IMPLEMENTATION == CML_MAP_IMPLEMENTATION_NAIVE
+    template <typename T, typename C = Comparator>
+            using OrderedSet = std::set<T, C>;
+    template <typename T, typename H = Hasher>
+            using Set = phmap::flat_hash_set<T, H, std::equal_to<T>>;
+
+    template <typename T, typename U, typename H = Hasher>
+            using HashMap = NaiveMap<T, U, H, 256>;
+
+    template <typename T, typename U, typename H = Hasher>
+        using DenseHashMap = NaiveMap<T, U, H, 256>;
+#elif CML_MAP_IMPLEMENTATION == CML_MAP_IMPLEMENTATION_PHMAP
+    template <typename T, typename C = Comparator>
+            using OrderedSet = std::set<T, C>;
+    template <typename T, typename H = Hasher>
+            using Set = phmap::flat_hash_set<T, H, std::equal_to<T>>;
 
     template <typename T, typename U, typename H = Hasher>
             using HashMap = phmap::flat_hash_map<T, U, H>;
 
     template <typename T, typename U, typename H = Hasher>
         using DenseHashMap = phmap::flat_hash_map<T, U, H>;
+#elif CML_MAP_IMPLEMENTATION == CML_MAP_IMPLEMENTATION_PHMAP_PARALLEL
+    template <typename T, typename C = Comparator>
+            using OrderedSet = std::set<T, C>;
+    template <typename T, typename H = Hasher>
+            using Set = phmap::parallel_flat_hash_set<T, H, std::equal_to<T>>;
 
+    template <typename T, typename U, typename H = Hasher>
+            using HashMap = phmap::parallel_flat_hash_map<T, U, H>;
+
+    template <typename T, typename U, typename H = Hasher>
+        using DenseHashMap = phmap::parallel_flat_hash_map<T, U, H>;
+#else
+#error "Unknown map implementation"
+#endif
 
     class DummyMutex {
     public:
@@ -291,10 +186,22 @@ namespace CML {
     template <typename T>
             using Atomic = std::atomic<T>;
 
+#if CML_USE_FAKE_MUTEX
+    using Mutex = DummyMutex;
+    using LockGuard = DummyLockGuard;
+    using UniqueLock = std::unique_lock<std::mutex>;
+    using ConditionVariable = std::condition_variable;
+#else
     using Mutex = std::mutex;
     using LockGuard = std::lock_guard<std::mutex>;
     using UniqueLock = std::unique_lock<std::mutex>;
     using ConditionVariable = std::condition_variable;
+#endif
+
+    using TrueMutex = std::mutex;
+    using TrueLockGuard = std::lock_guard<std::mutex>;
+    using TrueUniqueLock = std::unique_lock<std::mutex>;
+    using TrueConditionVariable = std::condition_variable;
 
     template <typename T, int C> class Queue
     {
@@ -309,7 +216,7 @@ namespace CML {
             if (mIsDestroyed) {
                 return &mElements[mPushIndex];
             }
-            UniqueLock lock(mMutex);
+            TrueUniqueLock lock(mMutex);
             while (mSize == C) {
                 mConditionVariable.wait_for(lock, std::chrono::milliseconds(10));
                 if (mIsDestroyed) {
@@ -367,7 +274,7 @@ namespace CML {
         T mElements[C];
         Atomic<int> mSize;
         int mPushIndex, mPopIndex;
-        Mutex mMutex;
+        TrueMutex mMutex;
         ConditionVariable mConditionVariable;
         Atomic<bool> mIsDestroyed = false;
     };
@@ -639,7 +546,6 @@ namespace CML {
     const bool NonNullable = false;
     const bool Nullable = true;
 
-#define CML_PTR_MAGICNUMBER ENABLE_ASSERTTHROW
 
     template <typename T, bool isNullable> class Ptr {
 
@@ -811,7 +717,7 @@ namespace CML {
 #if CML_PTR_MAGICNUMBER
             unsigned char btruth = a + 1;
             if (b != btruth) {
-                logger.fatal("Magic number not equal. Memory corruption !");
+                CML_LOG_FATAL("Magic number not equal. Memory corruption !");
                 abort();
             }
 #endif
@@ -1062,13 +968,13 @@ namespace CML {
         inline size_t operator()(PFrame pFrame) const;
         inline size_t operator()(PPoint pPoint) const;
         inline size_t operator()(const DeterministicallyHashable &obj) const {
-            return obj.hash();
+            return integerHashing(obj.hash());
         }
         inline size_t operator()(const DeterministicallyHashable *obj) const {
-            return obj->hash();
+            return integerHashing(obj->hash());
         }
         inline size_t operator()(size_t v) const {
-            return v;
+            return integerHashing(v);
         }
         inline size_t operator()(const std::string &v) const {
             return std::hash<std::string>()(v);
@@ -1095,11 +1001,33 @@ namespace CML {
 
 
 
-    template <typename T> using FrameHashMap = HashMap<PFrame, T>;
-    template <typename T> using PointHashMap = HashMap<PPoint, T>;
-
+#if CML_FRAME_MAP_IMPLEMENTATION == CML_FRAME_MAP_IMPLEMENTATION_NAIVE
+    template <typename T> using FrameHashMap = NaiveMap<PFrame, T, Hasher, 256>;
     using FrameSet = Set<PFrame>;
+#elif CML_FRAME_MAP_IMPLEMENTATION == CML_FRAME_MAP_IMPLEMENTATION_STD
+    template <typename T> using FrameHashMap = std::unordered_map<PFrame, T, Hasher>;
+    using FrameSet = std::unordered_set<PFrame, Hasher>;
+#elif CML_FRAME_MAP_IMPLEMENTATION == CML_FRAME_MAP_IMPLEMENTATION_PHMAP
+    template <typename T> using FrameHashMap = phmap::flat_hash_map<PFrame, T, Hasher>;
+    using FrameSet = phmap::flat_hash_set<PFrame, Hasher>;
+#elif CML_FRAME_MAP_IMPLEMENTATION == CML_FRAME_MAP_IMPLEMENTATION_PHMAP_PARALLEL
+    template <typename T> using FrameHashMap = phmap::parallel_flat_hash_map<PFrame, T, Hasher>;
+    using FrameSet = phmap::parallel_flat_hash_set<PFrame, Hasher>;
+#endif
+
+#if CML_POINT_MAP_IMPLEMENTATION == CML_POINT_MAP_IMPLEMENTATION_NAIVE
+    template <typename T> using PointHashMap = NaiveMap<PPoint, T, Hasher, 1024>;
     using PointSet = Set<PPoint>;
+#elif CML_POINT_MAP_IMPLEMENTATION == CML_POINT_MAP_IMPLEMENTATION_STD
+    template <typename T> using PointHashMap = std::unordered_map<PPoint, T, Hasher>;
+    using PointSet = std::unordered_set<PPoint, Hasher>;
+#elif CML_POINT_MAP_IMPLEMENTATION == CML_POINT_MAP_IMPLEMENTATION_PHMAP
+    template <typename T> using PointHashMap = phmap::flat_hash_map<PPoint, T, Hasher>;
+    using PointSet = phmap::flat_hash_set<PPoint, Hasher>;
+#elif CML_POINT_MAP_IMPLEMENTATION == CML_POINT_MAP_IMPLEMENTATION_PHMAP_PARALLEL
+    template <typename T> using PointHashMap = phmap::parallel_flat_hash_map<PPoint, T, Hasher>;
+    using PointSet = phmap::parallel_flat_hash_set<PPoint, Hasher>;
+#endif
 
     class PrivateData;
 
@@ -1125,7 +1053,7 @@ namespace CML {
     }
 
     typedef enum {
-        INDIRECT = 0, DIRECT = 1
+        INDIRECTTYPE = 0, DIRECTTYPE = 1
     } MapPointType;
 
 #define SCALEFACTOR 2
@@ -1610,6 +1538,7 @@ namespace CML {
         List<Pair<GroupFilterType, int>> mFilters;
     };
 
-};
+}
+
 
 #endif

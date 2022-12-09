@@ -27,6 +27,14 @@ namespace CML {
             mStart = std::chrono::high_resolution_clock::now();
         }
 
+        void stop() {
+            std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+            mValue = std::chrono::duration<scalar_t>(end - mStart).count();
+            for (auto observer : mObservers) {
+                observer->onNewTimerValue(*this, mValue);
+            }
+        }
+
         void waitFor(scalar_t seconds) {
             //std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<scalar_t> duration(seconds);
@@ -34,14 +42,6 @@ namespace CML {
             //mValue = std::chrono::duration<scalar_t>(end - mStart).count();
             //if (mValue >= seconds) return;
             //std::this_thread::sleep_for((end - mStart) - duration);
-        }
-
-        void stop() {
-            std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
-            mValue = std::chrono::duration<scalar_t>(end - mStart).count();
-            for (auto observer : mObservers) {
-                observer->onNewTimerValue(*this, mValue);
-            }
         }
 
         void stopAndStart() {
@@ -55,7 +55,7 @@ namespace CML {
 
         void stopAndPrint(const std::string &comment) {
             stop();
-            // logger.info(comment + " : " + std::to_string(getValue()));
+            // CML_LOG_INFO(comment + " : " + std::to_string(getValue()));
         }
 
         void stopAndPrintToCout(std::string comment) {

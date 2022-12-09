@@ -48,6 +48,9 @@ namespace CML {
                 while (getline (timesFile,line))
                 {
                     std::vector<std::string> values;
+                    if (line.empty()) {
+                        continue;
+                    }
                     split(line, values, ' ');
 
                     mTimes.emplace_back(std::stod(values[1].c_str()));
@@ -59,7 +62,7 @@ namespace CML {
                 throw std::runtime_error("Missing times");
             }
 
-            std::ifstream posesFile(zipPath + ".gt.txt");
+/*            std::ifstream posesFile(zipPath + ".gt.txt");
             if (posesFile.is_open()) {
 
                 std::string line;
@@ -80,11 +83,9 @@ namespace CML {
                 }
 
                 posesFile.close();
-            } else {
-                throw std::runtime_error("Missing groundtruth");
             }
 
-
+*/
         }
 
         inline int remaining() final {
@@ -144,7 +145,7 @@ namespace CML {
     private:
         CaptureImageGenerator *mCaptureImageGenerator;
         InternalCalibration *mCameraParameters;
-        int mCurrentImage = 0;
+        int mCurrentImage = 100;
         GrayImage mMask;
         GrayLookupTable mLookupTable;
         List<StereopolisPose> mPoses;

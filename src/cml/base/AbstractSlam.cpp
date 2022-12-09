@@ -31,7 +31,7 @@ void CML::AbstractSlam::start(Ptr<AbstractCapture, NonNullable> capture, bool us
             getTimer().start();
             run();
         }
-        logger.info("End of CML Thread");
+        CML_LOG_INFO("End of CML Thread");
     });
 }
 
@@ -54,7 +54,7 @@ void CML::AbstractSlam::startSingleThread(Ptr<AbstractCapture, NonNullable> capt
         break; // todo : don't allow to restart during evaluation
     }
 
-    logger.info("SLAM have finished");
+    CML_LOG_INFO("SLAM have finished");
 }
 
 void CML::AbstractSlam::interrupt() {
@@ -83,7 +83,7 @@ bool CML::AbstractSlam::isPaused() {
 }
 
 void CML::AbstractSlam::stop(std::string reason) {
-    logger.info("Stopping because " + reason);
+    CML_LOG_INFO("Stopping because " + reason);
     mIsStopped = true;
     if (!mCapture.isNull()) {
         mCapture->stop();
@@ -91,7 +91,7 @@ void CML::AbstractSlam::stop(std::string reason) {
 }
 
 void CML::AbstractSlam::restart() {
-    logger.info("Restarting...");
+    CML_LOG_INFO("Restarting...");
     mNeedToRestart = true;
 }
 
@@ -120,7 +120,7 @@ CML::Map &CML::AbstractSlam::getMap() {
 void CML::AbstractSlam::pauseHere() {
     setPaused(true);
     while (mIsPaused) {
-        CML::usleep(1);
+        CML::OS::usleep(1);
     }
 }
 
@@ -130,9 +130,9 @@ CML::Ptr<CML::AbstractCapture, CML::Nullable> CML::AbstractSlam::getCapture() {
 
 CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
 
-#if CML_ENABLE_GUI
-    usleep(100);
-#endif
+//#if CML_ENABLE_GUI
+//    usleep(100);
+//#endif
 
     mMap.getGarbageCollector().collect(mGarbageCollectorInstance);
 
@@ -141,29 +141,29 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
     if (mIsPaused && mPausedNextFrame > 0) {
         mPausedNextFrame--;
     } else if (mIsPaused) {
-        CML::usleep(1);
+        CML::OS::usleep(1);
         goto getNextFrameBegin;
     } else {
         mPausedNextFrame = 0;
     }
 
-    if (mMemoryLimit > 0 && memoryUsage() > mMemoryLimit) {
-        CML::logger.error("Memory usage exceed " + std::to_string(mMemoryLimit) + " MB.");
+    if (mMemoryLimit > 0 && OS::memoryUsage() > mMemoryLimit) {
+        CML_LOG_ERROR("Memory usage exceed " + std::to_string(mMemoryLimit) + " MB.");
         stop("Memory usage");
         return {};
     }
 
-    logger.debug("Waiting for next frame");
+    CML_LOG_DEBUG("Waiting for next frame");
     Timer timer;
     timer.start();
     Ptr<CaptureImage, Nullable> captureFrame = mCapture->next();
     if (captureFrame.isNull()) {
-        CML::logger.info("End of video stream");
+        CML_LOG_INFO("End of video stream");
         stop("End of video stream");
         return {};
     }
     timer.stop();
-    logger.important("Retrivied the next frame in " + std::to_string(timer.getValue()));
+    CML_LOG_IMPORTANT("Retrivied the next frame in " + std::to_string(timer.getValue()));
 
 
     mLastCaptureImage = captureFrame;
@@ -194,7 +194,7 @@ void CML::AbstractSlam::addFrame(PFrame currentFrame) {
     } else {
         strPercentage = "realtime";
     }
-    std::string strRam = "ram : " + std::to_string(memoryUsage()) + "mb";
+    std::string strRam = "ram : " + std::to_string(OS::memoryUsage()) + "mb";
     std::string strFps = "fps : " + std::to_string((int)getTimer().fps(currentFrame->getId()));
 
     logger.setPrefix(strFrame + "; " + strPercentage);

@@ -19,7 +19,7 @@ void CML::CameraViewerWidget::initializeGL() {
     initializeOpenGLFunctions();
 
     const GLubyte *glVersion = glGetString(GL_VERSION);
-    logger.info((std::string)"GL Version : " + std::string(reinterpret_cast<const char*>(glVersion)));
+    CML_LOG_INFO((std::string)"GL Version : " + std::string(reinterpret_cast<const char*>(glVersion)));
 
     mLogger = new QOpenGLDebugLogger(this);
     mLogger->initialize();
@@ -158,37 +158,37 @@ void CML::CameraViewerWidget::onMessageLogged(const QOpenGLDebugMessage &debugMe
     switch (debugMessage.type()) {
 
         case QOpenGLDebugMessage::InvalidType:
-            logger.error(debugMessage.message().toStdString());
+            CML_LOG_ERROR(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::ErrorType:
-            logger.error(debugMessage.message().toStdString());
+            CML_LOG_ERROR(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::DeprecatedBehaviorType:
-            logger.warn(debugMessage.message().toStdString());
+            CML_LOG_WARN(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::UndefinedBehaviorType:
-            logger.warn(debugMessage.message().toStdString());
+            CML_LOG_WARN(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::PortabilityType:
-            logger.warn(debugMessage.message().toStdString());
+            CML_LOG_WARN(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::PerformanceType:
-            //logger.warn(debugMessage.message().toStdString());
+            //CML_LOG_WARN(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::OtherType:
-            //logger.info(debugMessage.message().toStdString());
+            //CML_LOG_INFO(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::MarkerType:
-            //logger.info(debugMessage.message().toStdString());
+            //CML_LOG_INFO(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::GroupPushType:
-            //logger.info(debugMessage.message().toStdString());
+            //CML_LOG_INFO(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::GroupPopType:
-            //logger.info(debugMessage.message().toStdString());
+            //CML_LOG_INFO(debugMessage.message().toStdString());
             break;
         case QOpenGLDebugMessage::AnyType:
-            //logger.info(debugMessage.message().toStdString());
+            //CML_LOG_INFO(debugMessage.message().toStdString());
             break;
     }
 

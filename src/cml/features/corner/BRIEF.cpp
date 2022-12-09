@@ -35,7 +35,7 @@ CML::Binary256Descriptor CML::Features::BRIEF::computeDescriptor(const Array2D<u
             (point.x() <= diag_length_pattern) || point.x() >= (frame.getWidth() - diag_length_pattern) ||
             (point.y() <= diag_length_pattern) || point.y() >= (frame.getHeight() - diag_length_pattern)
             ) {
-       // logger.error("Can't compute BRIEF descriptor : padding are not respected");
+       // CML_LOG_ERROR("Can't compute BRIEF descriptor : padding are not respected");
         return Binary256Descriptor();
     }
 

@@ -14,7 +14,7 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
 
     int trace_total=0, trace_good=0, trace_oob=0, trace_out=0, trace_skip=0, trace_badcondition=0, trace_uninitialized=0;
 
-    Set<PPoint> toRemove;
+    PointSet toRemove;
 
     for (auto point : getMap().getGroupMapPoints(IMMATUREPOINT)) {
 
@@ -56,7 +56,7 @@ void CML::Optimization::DSOTracer::traceNewCoarse(PFrame frameToTrace, int frame
 
 }
 
-CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGroup, int pointGroup) {
+CML::PointSet CML::Optimization::DSOTracer::activatePoints(int frameGroup, int pointGroup) {
 
     auto points = getMap().getGroupMapPoints(pointGroup);
     
@@ -82,7 +82,7 @@ CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGrou
 
     if(mCurrentMinimumDistance < 0) {
         mCurrentMinimumDistance = 0;
-        logger.warn("We need urgently some new points !!");
+        CML_LOG_WARN("We need urgently some new points !!");
     }
     if(mCurrentMinimumDistance > 4) mCurrentMinimumDistance = 4;
 
@@ -223,7 +223,7 @@ CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGrou
     }
 
     List<Vector3f> lastTraced;
-    Set<PPoint> mappedPoints;
+    PointSet mappedPoints;
 
     int numMapped = 0, numNonMapped = 0, numDrop = 0;
     for(size_t k = 0; k < toOptimize.size(); k++)
@@ -280,7 +280,7 @@ CML::Set<CML::PPoint> CML::Optimization::DSOTracer::activatePoints(int frameGrou
 int CML::Optimization::DSOTracer::optimizeImmaturePoint(PPoint point, int minObs, int frameGroup) {
 
     if (!point->getReferenceFrame()->isGroup(frameGroup)) {
-        logger.error("Immature points not cleaned up correctly");
+        CML_LOG_ERROR("Immature points not cleaned up correctly");
         getMap().removeMapPoint(point, true);
         return -1;
     }
@@ -304,7 +304,7 @@ int CML::Optimization::DSOTracer::optimizeImmaturePoint(PPoint point, int minObs
     }
 
     if (nres != ((int)frames.size())-1) {
-        logger.error("Immature points not cleaned up correctly (number of res not corresponding)");
+        CML_LOG_ERROR("Immature points not cleaned up correctly (number of res not corresponding)");
         getMap().removeMapPoint(point, true);
         return -1;
     }
@@ -375,7 +375,7 @@ int CML::Optimization::DSOTracer::optimizeImmaturePoint(PPoint point, int minObs
     }
 
     if (currentIdepth <= 0) {
-        logger.error("Negative inverse depth after initialization");
+        CML_LOG_ERROR("Negative inverse depth after initialization");
         return -1;
     }
 
@@ -508,7 +508,7 @@ void CML::Optimization::DSOTracer::makeNewTraces(PFrame frame) {
         // auto corner = corners[i];
         auto type = types[i];
 
-        auto point = getMap().createMapPoint(frame, FeatureIndex(groupId, i), DIRECT);
+        auto point = getMap().createMapPoint(frame, FeatureIndex(groupId, i), DIRECTTYPE);
         auto pointData = getPrivateData(point);
 
         pointData->referenceIndex = FeatureIndex(groupId, i);
@@ -551,7 +551,7 @@ void CML::Optimization::DSOTracer::makeNewTracesFrom(PFrame frame, int groupId) 
         //auto corner = frame->getFeaturePoint(FeatureIndex(groupId, i)); // todo : type from scale factor ?
         auto type = 1;
 
-        auto point = getMap().createMapPoint(frame, FeatureIndex(groupId, i), DIRECT);
+        auto point = getMap().createMapPoint(frame, FeatureIndex(groupId, i), DIRECTTYPE);
         auto pointData = getPrivateData(point);
 
         pointData->referenceIndex = FeatureIndex(groupId, i);
@@ -621,7 +621,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTraceUV = Vector2(-1, -1);
         self->lastTracePixelInterval = 0;
         self->lastTraceStatus = IPS_OOB;
-        logger.debug("OOB because not inside frame");
+        CML_LOG_DEBUG("OOB because not inside frame");
         return IPS_OOB;
     }
 
@@ -639,7 +639,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
             self->lastTraceUV = Vector2(-1, -1);
             self->lastTracePixelInterval = 0;
             self->lastTraceStatus = IPS_OOB;
-            logger.debug("OOB because max not in frame (finite)");
+            CML_LOG_DEBUG("OOB because max not in frame (finite)");
             return IPS_OOB;
         }
 
@@ -673,7 +673,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
             self->lastTraceUV = Vector2(-1, -1);
             self->lastTracePixelInterval = 0;
             self->lastTraceStatus = IPS_OOB;
-            logger.debug("OOB because max not in frame (not finite)");
+            CML_LOG_DEBUG("OOB because max not in frame (not finite)");
             return IPS_OOB;
         }
 
@@ -684,7 +684,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTraceUV = Vector2(-1, -1);
         self->lastTracePixelInterval = 0;
         self->lastTraceStatus = IPS_OOB;
-        logger.debug("OOB because scale change too big");
+        CML_LOG_DEBUG("OOB because scale change too big");
         return IPS_OOB;
     }
 
@@ -735,7 +735,7 @@ CML::Optimization::DSOTracerStatus CML::Optimization::DSOTracer::trace(PFrame fr
         self->lastTracePixelInterval = 0;
         self->lastTraceUV = Vector2(-1,-1);
         self->lastTraceStatus = IPS_OOB;
-        logger.debug("OOB because dx or dy not finite");
+        CML_LOG_DEBUG("OOB because dx or dy not finite");
         return IPS_OOB;
     }
 

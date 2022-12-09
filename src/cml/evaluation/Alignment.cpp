@@ -111,10 +111,10 @@ double CML::Evaluation::align(const List<Camera> &input, const List<Optional<Cam
     ceres::Solve(options, &problem, &summary);
 
     if (!summary.IsSolutionUsable()) {
-        logger.error("Ceres Message : (evaluation)\n" + summary.message);
+        CML_LOG_ERROR("Ceres Message : (evaluation)\n" + summary.message);
         //return std::numeric_limits<float>::infinity();
     } else {
-        //if (!summary.message.empty()) logger.info("Ceres Message : (evaluation)\n" + summary.message);
+        //if (!summary.message.empty()) CML_LOG_INFO("Ceres Message : (evaluation)\n" + summary.message);
     }
 
     for (size_t i = 0; i < input.size(); i++) {

@@ -13,6 +13,7 @@
 #include <cml/map/PrivateData.h>
 #include <cml/map/Exposure.h>
 #include <cml/utils/GarbageCollector.h>
+#include <cml/utils/Complexity.h>
 
 
 namespace CML {
@@ -66,8 +67,9 @@ namespace CML {
 
         };
 
-        Frame(size_t id, Ptr<CaptureImage, NonNullable> captureFrame, scalar_t *cameraCenter) : mId(id), mCaptureFrame(captureFrame), mCalibration(captureFrame->getInternalCalibration()), mExposure(captureFrame->getExposureTime()), mCameraCenter(cameraCenter) {
-            mHash = integerHashing(mId);
+        Frame(size_t id, Ptr<CaptureImage, NonNullable> captureFrame, scalar_t *cameraCenter, OptPFrame previous) : mId(id), mCaptureFrame(captureFrame), mCalibration(captureFrame->getInternalCalibration()), mExposure(captureFrame->getExposureTime()), mCameraCenter(cameraCenter), mPrevious(previous) {
+            //mHash = integerHashing(mId);
+            mHash = reinterpret_cast<uint64_t>(this);
 
             for (int i = 0; i < FRAME_GROUP_MAXSIZE; i++) {
                 mGroups[i] = false;
@@ -93,6 +95,10 @@ namespace CML {
 
         inline uint64_t getHash() const {
             return mHash;
+        }
+
+        inline OptPFrame getPreviousFrame() const {
+            return mPrevious;
         }
 
         inline void setGroupId(int group, size_t id) {
@@ -136,6 +142,7 @@ namespace CML {
         }
 
         inline void setGroup(int groupId, bool state) {
+            signalMethodStart("Frame::setGroup");
             assertThrow(groupId >= 0 && groupId < FRAME_GROUP_MAXSIZE, "Invalid group id");
             if (mGroups[groupId] != state) {
 
@@ -148,6 +155,7 @@ namespace CML {
                     observer->onFrameGroupChange(this, groupId, state);
                 }
             }
+
         }
 
         [[nodiscard]] inline bool isGroup(int groupId) const {
@@ -167,13 +175,14 @@ namespace CML {
 
         void setCamera(const Camera &camera, bool updateDeforms = false);
 
-        static void setCameraAndDeform(const HashMap<PFrame, Camera> &frames);
+        static void setCameraAndDeform(const FrameHashMap<Camera> &frames);
 
-        static void setCameraAndDeform(const HashMap<PFrame, Camera> &frames, Set<PFrame> &skip);
+        static void setCameraAndDeform(const FrameHashMap<Camera> &frames, FrameSet &skip);
 
         void setCameraWithoutObserver(const Camera &camera);
 
         [[nodiscard]] inline List<Pair<FeatureIndex, PPoint>> getMapPoints() const {
+            signalMethodStart("Frame::getMapPoints");
             LockGuard lg(mMapPointsMutex);
             List<Pair<FeatureIndex, PPoint>> l;
             for (size_t groupId = 0; groupId < mMapPoints.size(); groupId++) {
@@ -183,10 +192,12 @@ namespace CML {
                     }
                 }
             }
+
             return l;
         }
 
         [[nodiscard]] inline List<PPoint> getMapPointsWithoutIndex() const {
+            signalMethodStart("Frame::getMapPointsWithoutIndex");
             LockGuard lg(mMapPointsMutex);
             List<PPoint> l;
             for (size_t groupId = 0; groupId < mMapPoints.size(); groupId++) {
@@ -196,15 +207,18 @@ namespace CML {
                     }
                 }
             }
+
             return l;
         }
 
         inline OrderedSet<PPoint, Comparator> getOrderedMapPoints() const {
+            signalMethodStart("Frame::getOrderedMapPoints");
             LockGuard lg(mMapPointsMutex);
             return mOrderedMapPoints;
         }
 
         [[nodiscard]] inline List<Pair<FeatureIndex, PPoint>> getMapPoints(int groupId) const {
+            signalMethodStart("Frame::getMapPoints");
             LockGuard lg(mMapPointsMutex);
             List<Pair<FeatureIndex, PPoint>> l;
             for (size_t index = 0; index < mMapPoints[groupId].size(); index++) {
@@ -212,10 +226,12 @@ namespace CML {
                     l.emplace_back(FeatureIndex(groupId, index), mMapPoints[groupId][index]);
                 }
             }
+
             return l;
         }
 
         [[nodiscard]] inline List<Corner> getFeaturePoints(int group) const {
+            signalMethodStart("Frame::getFeaturePoints");
             // assertThrow(group >= 0 && group < mFeaturePoints.size(), "No a valid group : " + std::to_string(group));
             if (group < 0 || group > mFeaturePoints.size()) {
                 return {};
@@ -225,6 +241,7 @@ namespace CML {
         }
 
         [[nodiscard]] inline Corner getFeaturePoint(FeatureIndex index) const {
+            signalMethodStart("Frame::getFeaturePoint(FeatureIndex)");
             LockGuard lg(mFeatureMutex);
             assertThrow(index.hasValidValue(), "Index don't have a valid value !");
             assertThrow(index.group >= 0 && index.group < (int)mFeaturePoints.size(), "Invalid group : " + std::to_string(index.group) + ". Max group : " + std::to_string(mFeaturePoints.size()));
@@ -233,6 +250,7 @@ namespace CML {
         }
 
         [[nodiscard]] inline Optional<Corner> getFeaturePoint(PPoint mapPoint) const {
+            signalMethodStart("Frame::getFeaturePoint(PPoint)");
             FeatureIndex i = getIndex(mapPoint);
             if (!i.hasValidValue()) {
                 return {};
@@ -249,23 +267,27 @@ namespace CML {
 
 
         [[nodiscard]] inline OptPPoint getMapPoint(FeatureIndex i) const {
+            signalMethodStart("Frame::getMapPoint");
             assertThrow(i.hasValidValue() && i.group < (int)mMapPoints.size() && i.index < (int)mMapPoints[i.group].size(), "Invalid feature index : " + std::to_string(i.group)  + "; " + std::to_string(i.index));
             //LockGuard lg(mMapPointsMutex);
             return mMapPoints[i.group][i.index];
         }
 
         [[nodiscard]] inline FeatureIndex getIndex(PPoint mapPoint) const {
+            signalMethodStart("Frame::getIndex");
             LockGuard lg(mMapPointsMutex);
             auto search = mMapPointsIndex.find(mapPoint);
             if (search == mMapPointsIndex.end()) {
                 return FeatureIndex();
             }
             else {
+
                 return search->second;
             }
         }
 
         inline List<FeatureIndex> getIndexes(const List<PPoint> &mapPoints) const {
+            signalMethodStart("Frame::getIndexes");
             List<FeatureIndex> indexes;
             indexes.resize(mapPoints.size());
             LockGuard lg(mMapPointsMutex);
@@ -281,6 +303,7 @@ namespace CML {
                     indexes[i] = mMapPointsIndex.at(mapPoints[i]);
                 }
             }*/
+
             return indexes;
         }
 
@@ -312,7 +335,8 @@ namespace CML {
 
         void addDirectApparitions(OptPPoint mapPoint);
 
-        Set<PPoint> getMapPointsApparitions() {
+        PointSet getMapPointsApparitions() {
+            signalMethodStart("Frame::getMapPointsApparitions");
             LockGuard lg(mMapPointsApparitionsMutex);
             return mMapPointsApparitions;
         }
@@ -387,13 +411,15 @@ namespace CML {
             return mBoW[group].isNotNull();
         }
 
-        Set<PPoint> getGroupMapPoints(int groupId) {
+        PointSet getGroupMapPoints(int groupId) {
+            signalMethodStart("Frame::getGroupMapPoints");
             assertThrow(groupId >= 0, "Invalid group id");
             LockGuard lg(mGroupsMapPointMutexes[groupId]);
             return mGroupsMapPoint[groupId];
         }
 
-        void getGroupMapPointsNoClean(int groupId, Set<PPoint> &output) {
+        void getGroupMapPointsNoClean(int groupId, PointSet &output) {
+            signalMethodStart("Frame::getGroupMapPointsNoClean");
             assertThrow(groupId >= 0, "Invalid group id");
             LockGuard lg(mGroupsMapPointMutexes[groupId]);
             for (auto point : mGroupsMapPoint[groupId]) {
@@ -401,7 +427,8 @@ namespace CML {
             }
         }
 
-        Set<PPoint> getReferenceGroupMapPoints(int groupId) {
+        PointSet getReferenceGroupMapPoints(int groupId) {
+            signalMethodStart("Frame::getReferenceGroupMapPoints");
             LockGuard lg(mGroupsMapPointReferenceMutexes[groupId]);
             return mGroupsMapPointReference[groupId];
         }
@@ -457,11 +484,13 @@ namespace CML {
             return mParent;
         }
 
-        Set<PFrame> getChilds() {
+        FrameSet getChilds() {
             return mChilds;
         }
 
         scalar_t computeMedianDepth(bool useDirect = false, bool useIndirect = true);
+
+        void computeVirtualRealityImage(const PointSet &points);
 
     protected:
         void onMapPointErased(PPoint mapPoint);
@@ -471,43 +500,45 @@ namespace CML {
         void addDeformSingleDirection(PFrame frame0, PFrame frame1);
 
         EIGEN_STRONG_INLINE void onAddIndirectApparition(PPoint mapPoint, PFrame frame) {
+            //signalMethodStart("Frame::onAddIndirectApparition");
             LockGuard lg(mIndirectCovisibilityMutex);
-            if (mIndirectCovisibility.count(frame) == 0) {
-                mIndirectCovisibility[frame] = 1;
-            } else {
+            //if (mIndirectCovisibility.count(frame) == 0) {
+            //    mIndirectCovisibility[frame] = 1;
+            //} else {
                 mIndirectCovisibility[frame]++;
-            }
+            //}
         }
 
         EIGEN_STRONG_INLINE void onRemoveIndirectApparition(PPoint mapPoint, PFrame frame) {
+            //signalMethodStart("Frame::onRemoveIndirectApparition");
             LockGuard lg(mIndirectCovisibilityMutex);
-            if (mIndirectCovisibility.count(frame) == 0) {
-                // todo : strange
-            } else {
-                mIndirectCovisibility[frame]--;
-                if (mIndirectCovisibility[frame] == 0) {
-                    mIndirectCovisibility.erase(frame);
+            auto search = mIndirectCovisibility.find(frame);
+            if (search != mIndirectCovisibility.end()) {
+                search->second--;
+                if (search->second == 0) {
+                    mIndirectCovisibility.erase(search);
                 }
             }
         }
 
         EIGEN_STRONG_INLINE void onAddDirectApparition(PPoint mapPoint, PFrame frame) {
+            //signalMethodStart("Frame::onAddDirectApparition");
             LockGuard lg(mDirectCovisibilityMutex);
-            if (mDirectCovisibility.count(frame) == 0) {
-                mDirectCovisibility[frame] = 1;
-            } else {
+            //if (mDirectCovisibility.count(frame) == 0) {
+            //    mDirectCovisibility[frame] = 1;
+            //} else {
                 mDirectCovisibility[frame]++;
-            }
+            //}
         }
 
         EIGEN_STRONG_INLINE void onRemoveDirectApparition(PPoint mapPoint, PFrame frame) {
+            //signalMethodStart("Frame::onRemoveDirectApparition");
             LockGuard lg(mDirectCovisibilityMutex);
-            if (mDirectCovisibility.count(frame) == 0) {
-                // todo : strange
-            } else {
-                mDirectCovisibility[frame]--;
-                if (mDirectCovisibility[frame] == 0) {
-                    mDirectCovisibility.erase(frame);
+            auto search = mDirectCovisibility.find(frame);
+            if (search != mDirectCovisibility.end()) {
+                search->second--;
+                if (search->second == 0) {
+                    mDirectCovisibility.erase(search);
                 }
             }
         }
@@ -530,6 +561,8 @@ namespace CML {
         size_t mId;
         uint64_t mHash;
         size_t mGroupId[FRAME_GROUP_MAXSIZE];
+
+        OptPFrame mPrevious;
 
         int mJacobianParameterId = 0;
 
@@ -557,30 +590,30 @@ namespace CML {
         //HashMap<FeatureIndex, PPoint, FeatureIndex> mMapPoints;
         List<List<OptPPoint>> mMapPoints;
         OrderedSet<PPoint, Comparator> mOrderedMapPoints;
-        HashMap<PPoint, FeatureIndex> mMapPointsIndex;
+        PointHashMap<FeatureIndex> mMapPointsIndex;
         mutable Mutex mMapPointsMutex;
 
-        Set<PPoint> mMapPointsApparitions;
+        PointSet mMapPointsApparitions;
         mutable Mutex mMapPointsApparitionsMutex;
 
         FloatImage *mDepthMap = nullptr;
 
         PrivateData mPrivataData;
 
-        std::array<Set<PPoint>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPoint;
+        std::array<PointSet, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPoint;
         std::array<Mutex, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointMutexes;
 
-        std::array<Set<PPoint>, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReference;
+        std::array<PointSet, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReference;
         std::array<Mutex, MAPOBJECT_GROUP_MAXSIZE> mGroupsMapPointReferenceMutexes;
 
         Mutex mDeformsMutex;
         List<Deform> mDeforms;
 
         Mutex mToDeformMuex;
-        Set<PFrame> mToDeform;
+        FrameSet mToDeform;
 
         OptPFrame mParent;
-        Set<PFrame> mChilds;
+        FrameSet mChilds;
 
         Mutex mIndirectCovisibilityMutex, mDirectCovisibilityMutex;
         HashMap<OptPFrame, int> mIndirectCovisibility, mDirectCovisibility;
@@ -589,11 +622,7 @@ namespace CML {
 
 
     inline size_t Hasher::operator()(PFrame pFrame) const {
-#if CML_FULLY_REPRODUCIBLE
-        return pFrame->getId();
-#else
-        return reinterpret_cast<size_t>(pFrame.p());
-#endif
+        return pFrame->hash();
     }
 
     inline bool CML::Comparator::operator() (PFrame pFrameA, PFrame pFrameB) const {

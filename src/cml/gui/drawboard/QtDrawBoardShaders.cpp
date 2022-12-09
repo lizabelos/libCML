@@ -183,18 +183,18 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
 
 
 
-    // logger.info("Loading 2D color shader from sources...");
+    // CML_LOG_INFO("Loading 2D color shader from sources...");
     m2DColorProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs2D);
     m2DColorProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsColor);
-    // logger.info("Linking the 2D color shader...");
+    // CML_LOG_INFO("Linking the 2D color shader...");
     m2DColorProgram.link();
 
     std::string msg = m2DColorProgram.log().toStdString();
     if (msg != "") {
-        logger.error(msg);
+        CML_LOG_ERROR(msg);
     }
 
-    // logger.info("Binding the 2D color shader...");
+    // CML_LOG_INFO("Binding the 2D color shader...");
     m2DColorProgram.bind();
     m2DColorLocation = m2DColorProgram.uniformLocation("uColor");
     m2DPositionLocation = m2DColorProgram.attributeLocation("aVertexPosition");
@@ -203,19 +203,19 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
 
 
 
-    // logger.info("Loading the 3D color shader from soucres...");
+    // CML_LOG_INFO("Loading the 3D color shader from soucres...");
     m3DColorProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs3D);
     m3DColorProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsColor);
-    // logger.info("Linking the 3D color shader...");
+    // CML_LOG_INFO("Linking the 3D color shader...");
     m3DColorProgram.link();
 
     msg = m3DColorProgram.log().toStdString();
     if (msg != "") {
-        logger.error(msg);
+        CML_LOG_ERROR(msg);
     }
 
     m3DColorProgram.bind();
-    // logger.info("Binding the 3D color shader...");
+    // CML_LOG_INFO("Binding the 3D color shader...");
     m3DColorMVPLocation = m3DColorProgram.uniformLocation("uMVPMatrix");
     m3DColorLocation = m3DColorProgram.uniformLocation("uColor");
     m3DPositionLocation = m3DColorProgram.attributeLocation("aVertexPosition");
@@ -223,19 +223,19 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
 
 
 
-    // logger.info("Loading the PC color shader from soucres...");
+    // CML_LOG_INFO("Loading the PC color shader from soucres...");
     mPCProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVsPC);
     mPCProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsPC);
-    // logger.info("Linking the PC color shader...");
+    // CML_LOG_INFO("Linking the PC color shader...");
     mPCProgram.link();
 
     msg = mPCProgram.log().toStdString();
     if (msg != "") {
-        logger.error(msg);
+        CML_LOG_ERROR(msg);
     }
 
     mPCProgram.bind();
-    // logger.info("Binding the PC color shader...");
+    // CML_LOG_INFO("Binding the PC color shader...");
     mPCMVPLocation = mPCProgram.uniformLocation("uMVPMatrix");
     mPCColorLocation = mPCProgram.attributeLocation("aColor");
     mPCPositionLocation = mPCProgram.attributeLocation("aVertexPosition");
@@ -248,38 +248,38 @@ CML::QtDrawBoardShaders::QtDrawBoardShaders() {
 
 
 
-    // logger.info("Loading the PC color shader from soucres...");
+    // CML_LOG_INFO("Loading the PC color shader from soucres...");
     mPathProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVsPath);
     mPathProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsPath);
-    // logger.info("Linking the PC color shader...");
+    // CML_LOG_INFO("Linking the PC color shader...");
     mPathProgram.link();
 
     msg = mPathProgram.log().toStdString();
     if (msg != "") {
-        logger.error(msg);
+        CML_LOG_ERROR(msg);
     }
 
     mPathProgram.bind();
-    // logger.info("Binding the PC color shader...");
+    // CML_LOG_INFO("Binding the PC color shader...");
     mPathMVPLocation = mPathProgram.uniformLocation("uMVPMatrix");
     mPathPositionLocation = mPCProgram.attributeLocation("aVertexPosition");
 
 
 
 
-    // logger.info("Loading the 2D texture shader...");
+    // CML_LOG_INFO("Loading the 2D texture shader...");
     m2DTextureProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, openglVersion + glslVs2D);
     m2DTextureProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, openglVersion + glslFsTexture);
-    // logger.info("Linking the 2D texture shader...");
+    // CML_LOG_INFO("Linking the 2D texture shader...");
     m2DTextureProgram.link();
 
     msg = m2DTextureProgram.log().toStdString();
     if (msg != "") {
-        logger.error(msg);
+        CML_LOG_ERROR(msg);
     }
 
     m2DTextureProgram.bind();
-    // logger.info("Binding the 3D color shader...");
+    // CML_LOG_INFO("Binding the 3D color shader...");
     m2DTextureLocation = m2DTextureProgram.uniformLocation("uTexture");
     m2DTexturePositionLocation = m2DTextureProgram.attributeLocation("aVertexPosition");
     m2DTextureCoordsLocation = m2DTextureProgram.attributeLocation("aVertexTexCoord");

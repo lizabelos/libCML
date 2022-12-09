@@ -8,6 +8,7 @@
 #include "cml/config.h"
 #include "cml/utils/GarbageCollector.h"
 #include "cml/utils/PoolAllocator.h"
+#include "cml/utils/Complexity.h"
 
 namespace CML {
 
@@ -116,13 +117,21 @@ namespace CML {
             }
         }
 
+        void reset() {
+            for (int i = 0; i < CML_PRIVATEDATA_MAX_FUNCTIONS; i++) {
+                mFunctions[i] = CML_PRIVATEDATA_NOTALLOCATED;
+            }
+        }
+
         void freeAll(const PrivateDataContext &context, GarbageCollector &garbageCollector) {
+            signalMethodStart("PrivateData::freeAll");
             for (int i = 0; i < context.mAllInstances.size(); i++) {
                 free(context.mAllInstances[i], garbageCollector, "Free all");
             }
         }
 
         template <typename T> T* get(const PrivateDataInstance& instance) {
+            signalMethodStart("PrivateData::get");
             AssertSameOrDerivedFrom<T, PrivateDataStructure>();
 #if CML_ENABLE_PRIVATEDATA_FREE_REASON
             assertThrow(mFunctions[instance.mId] != CML_PRIVATEDATA_FREED, "This private data has been freed previously : " + mReasons[instance.mId]);
@@ -141,6 +150,7 @@ namespace CML {
         }
 
         template <typename T> T* get(const PrivateDataInstance& instance, bool &isNew) {
+            signalMethodStart("PrivateData::get");
             AssertSameOrDerivedFrom<T, PrivateDataStructure>();
 #if CML_ENABLE_PRIVATEDATA_FREE_REASON
             assertThrow(mFunctions[instance.mId] != CML_PRIVATEDATA_FREED, "This private data has been freed previously : " + mReasons[instance.mId]);
@@ -162,16 +172,19 @@ namespace CML {
         }
 
         template <typename T> T* unsafe_get(const PrivateDataInstance& instance) {
+            signalMethodStart("PrivateData::unsafe_get");
             return (T*)mFunctions[instance.mId];
         }
 
         inline bool have(const PrivateDataInstance& instance) {
+            signalMethodStart("PrivateData::have");
             if (mFunctions[instance.mId] == CML_PRIVATEDATA_NOTALLOCATED) return false;
             if (mFunctions[instance.mId] == CML_PRIVATEDATA_FREED) return false;
             return true;
         }
 
         inline void free(const PrivateDataInstance& instance, const std::string& reason) {
+            signalMethodStart("PrivateData::free");
             if (mFunctions[instance.mId] == CML_PRIVATEDATA_NOTALLOCATED) {
                 mFunctions[instance.mId] = CML_PRIVATEDATA_FREED;
                 return;
@@ -192,6 +205,7 @@ namespace CML {
         }
 
         inline void free(PrivateDataInstance instance, GarbageCollector &garbageCollector, std::string reason) {
+            signalMethodStart("PrivateData::free");
             if (mFunctions[instance.mId] == CML_PRIVATEDATA_NOTALLOCATED) {
                 mFunctions[instance.mId] = CML_PRIVATEDATA_FREED;
                 return;

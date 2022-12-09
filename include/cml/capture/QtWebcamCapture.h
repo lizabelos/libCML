@@ -49,6 +49,10 @@ public:
 
     bool isAutoExposure() final;
 
+    inline CML::Ptr<CML::CaptureImageGenerator, CML::Nullable> getGenerator() final {
+        return mCaptureImageGenerator;
+    }
+
 public slots:
     void hvideoFrameChanged(const QVideoFrame &frame);
 

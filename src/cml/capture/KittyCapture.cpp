@@ -119,7 +119,7 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
     }
 
     mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
-    logger.info("Kitty Dataset " + id + " at '" + path + "' is open");
+    CML_LOG_INFO("Kitty Dataset " + id + " at '" + path + "' is open");
 
     //mLut = GrayLookupTable::exp(255, 1.005f);
 

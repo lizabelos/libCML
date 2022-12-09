@@ -54,7 +54,7 @@ void CML::QtDrawBoard::segment(Eigen::Vector2f a, Eigen::Vector2f b) {
     b = transform2D(b);
 
     load2DProgram();
-    glLineWidth(mLineWidth);
+    //glLineWidth(mLineWidth);
 
     GLfloat segment[] = {
             a.x(), a.y(), 1,
@@ -85,7 +85,7 @@ void CML::QtDrawBoard::point(Eigen::Vector2f a) {
 
 void CML::QtDrawBoard::segments(std::vector<Eigen::Vector2f> points) {
     load2DProgram();
-    glLineWidth(mLineWidth);
+    //glLineWidth(mLineWidth);
 
     std::vector<Eigen::Vector3f> hpoints;
     for (auto point : points) hpoints.emplace_back(transform2D(point).homogeneous());
@@ -112,7 +112,7 @@ void CML::QtDrawBoard::points(std::vector<Eigen::Vector2f> points) {
 
 void CML::QtDrawBoard::segment(Eigen::Vector3f a, Eigen::Vector3f b) {
     load3DProgram();
-    glLineWidth(mLineWidth);
+    //glLineWidth(mLineWidth);
 
     GLfloat segment[] = {
             a.x(), a.y(), a.z(),
@@ -136,7 +136,7 @@ void CML::QtDrawBoard::point(Eigen::Vector3f a) {
 
 void CML::QtDrawBoard::segments(std::vector<Eigen::Vector3f> points) {
     load3DProgram();
-    glLineWidth(mLineWidth);
+    //glLineWidth(mLineWidth);
 
     m3DColorProgram.enableAttributeArray(m3DPositionLocation);
     m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)points.data(), 3, 0);

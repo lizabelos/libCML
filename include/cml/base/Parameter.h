@@ -59,7 +59,7 @@ namespace CML {
 
         void set(float v) {
             assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
-            logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
+            CML_LOG_IMPORTANT("Change the value of '" + mName + "' to " + std::to_string(v));
             get<ParameterFloatingType>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
@@ -68,7 +68,7 @@ namespace CML {
 
         void set(double v) {
             assertThrow(mType == PARAM_FLOATING, "The type of the parameter is not floating");
-            logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
+            CML_LOG_IMPORTANT("Change the value of '" + mName + "' to " + std::to_string(v));
             get<ParameterFloatingType>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
@@ -77,7 +77,7 @@ namespace CML {
 
         void set(int v) {
             assertThrow(mType == PARAM_INTEGER, "The type of the parameter is not integer");
-            logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
+            CML_LOG_IMPORTANT("Change the value of '" + mName + "' to " + std::to_string(v));
             get<int>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
@@ -86,7 +86,7 @@ namespace CML {
 
         void set(bool v) {
             assertThrow(mType == PARAM_BOOLEAN, "The type of the parameter is not boolean");
-            logger.important("Change the value of '" + mName + "' to " + std::to_string(v));
+            CML_LOG_IMPORTANT("Change the value of '" + mName + "' to " + std::to_string(v));
             get<bool>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
@@ -95,7 +95,7 @@ namespace CML {
 
         void set(const std::string &v) {
             assertThrow(mType == PARAM_STRING, "The type of the parameter is not string");
-            logger.important("Change the value of '" + mName + "' to " + v);
+            CML_LOG_IMPORTANT("Change the value of '" + mName + "' to " + v);
             get<std::string>() = v;
             for (auto observer : mObservers) {
                 observer->onValueChange(*this);
@@ -130,6 +130,7 @@ namespace CML {
         Parameter(std::string name, float value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
+            CML_LOG_IMPORTANT("Create a float parameter with name '" + name + "' and value '" + std::to_string(value) + "'");
             mName = name;
             mType = PARAM_FLOATING;
             mData = (void*)new ParameterFloatingType[1];
@@ -140,6 +141,7 @@ namespace CML {
         Parameter(std::string name, double value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
+            CML_LOG_IMPORTANT("Create a double parameter with name '" + name + "' and value '" + std::to_string(value) + "'");
             mName = name;
             mType = PARAM_FLOATING;
             mData = (void*)new ParameterFloatingType[1];
@@ -150,6 +152,7 @@ namespace CML {
         Parameter(std::string name, int value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
+            CML_LOG_IMPORTANT("Create a int parameter with name '" + name + "' and value '" + std::to_string(value) + "'");
             mName = name;
             mType = PARAM_INTEGER;
             mData = (void*)new int[1];
@@ -160,6 +163,7 @@ namespace CML {
         Parameter(std::string name, bool value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
+            CML_LOG_IMPORTANT("Create a bool parameter with name '" + name + "' and value '" + std::to_string(value) + "'");
             mName = name;
             mType = PARAM_BOOLEAN;
             mData = new bool[1];
@@ -170,6 +174,7 @@ namespace CML {
         Parameter(std::string name, std::string value) {
             //mObservers.set_empty_key((Observer*)1);
             //mObservers.set_deleted_key((Observer*)2);
+            CML_LOG_IMPORTANT("Create a string parameter with name '" + name + "' and value '" + value + "'");
             mName = name;
             mType = PARAM_STRING;
             mData = new std::string[1];

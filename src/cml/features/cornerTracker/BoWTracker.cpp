@@ -275,12 +275,12 @@ List<Matching> CML::Features::BoWTracker::trackByBoW(const BoWFrameAndGroupAndDe
 
     this->getTimer().stop();
 
-    logger.debug("Tracked by Bow : " + std::to_string(matchings.size()));
-    logger.debug("Skipped because no point : " + std::to_string(skippedBecauseNoPoint));
-    logger.debug("Skipped because no map : " + std::to_string(skippedBecauseNoMap));
-    logger.debug("Skipped because th : " + std::to_string(skippedBecauseTh));
-    logger.debug("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
-    logger.debug("Removed because orientation : " + std::to_string(removeBecauseOrientation));
+    CML_LOG_DEBUG("Tracked by Bow : " + std::to_string(matchings.size()));
+    CML_LOG_DEBUG("Skipped because no point : " + std::to_string(skippedBecauseNoPoint));
+    CML_LOG_DEBUG("Skipped because no map : " + std::to_string(skippedBecauseNoMap));
+    CML_LOG_DEBUG("Skipped because th : " + std::to_string(skippedBecauseTh));
+    CML_LOG_DEBUG("Skipped because ratio : " + std::to_string(skippedBecauseRatio));
+    CML_LOG_DEBUG("Removed because orientation : " + std::to_string(removeBecauseOrientation));
 
     assertDeterministic("Matching by bow", matchings.size());
 
@@ -777,11 +777,11 @@ List<Matching> CML::Features::BoWTracker::trackByProjection(const BoWFrameAndGro
     return matchings;
 }
 
-Set<PPoint> Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints) {
+PointSet Features::BoWTracker::fuse(const Features::BoWFrameAndGroupAndDescriptor &A, const List<PPoint> &mapPoints) {
 
     auto cornersA = A.frame->getFeaturePoints(A.group);
 
-    Set<PPoint> fused;
+    PointSet fused;
 
     for (auto point : mapPoints) {
 
