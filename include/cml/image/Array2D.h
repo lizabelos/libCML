@@ -806,6 +806,21 @@ namespace CML {
 
         }
 
+        inline Array2D<T> convertGamma(float inputGamma, float outputGamma) {
+            Array2D<T> result(getWidth(), getHeight());
+            const int wh = getWidth() * getHeight();
+            #if CML_USE_OPENMP
+            #pragma omp  for schedule(static)
+            #endif
+            for (int i = 0; i < wh; i++) {
+                float v = std::pow(data()[i] / 255.0f, outputGamma / inputGamma) * 255.0f;
+                v = std::min(v, 255.0f);
+                v = std::max(v, 0.0f);
+                result.data()[i] = v;
+            }
+            return result;
+        }
+
     private:
         Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> mMatrix;
         T *mData;

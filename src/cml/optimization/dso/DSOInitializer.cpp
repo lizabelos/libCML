@@ -236,8 +236,13 @@ int CML::Optimization::DSOInitializer::tryInitialize(PFrame frameToTrack, PFrame
                 inc = -(wM * (Hl.ldlt().solve(bl)));    //=-H^-1 * b.
             }
 
-            auto se3 = SE3::exp((SE3::Tangent)(inc.head<6>().cast<scalar_t>()));
-
+            SE3 se3;
+            try {
+                se3 = SE3::exp((SE3::Tangent)(inc.head<6>().cast<scalar_t>()));
+            } catch (const std::exception &e) {
+                CML_LOG_ERROR("SE3::exp failed");
+                return -1;
+            }
             Camera newCamera = mCurrentCamera.compose(Camera(se3.translation(), Quaternion(se3.unit_quaternion().w(), se3.unit_quaternion().x(), se3.unit_quaternion().y(), se3.unit_quaternion().z())));
             Exposure newExposure = mCurrentExposure.add(inc[6], inc[7]);
 

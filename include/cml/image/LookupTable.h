@@ -20,40 +20,59 @@ namespace CML {
             computeInverse();
         }
 
-        static GrayLookupTable fromInverse(const Vectorf<256> &values) {
-            GrayLookupTable table(values);
-            std::swap(table.mValues, table.mInv);
-            return table;
-        }
-
-        static float gammaEncode(float v, scalar_t gamma = 2.2) {
-            return pow((scalar_t)v / 255.0,1.0 / gamma) * 255.0;
-        }
-
-        static float gammaDecode(float v, scalar_t gamma = 2.2) {
-            return pow((scalar_t)v / 255.0,gamma) * 255.0;
-        }
-
-        static double gammaEncode(double v, scalar_t gamma = 2.2) {
-            return pow((scalar_t)v / 255.0,1.0 / gamma) * 255.0;
-        }
-
-        static double gammaDecode(double v, scalar_t gamma = 2.2) {
-            return pow((scalar_t)v / 255.0,gamma) * 255.0;
-        }
-
-        static GrayLookupTable gammaEncode(scalar_t gamma = 2.2) {
+        static GrayLookupTable contrastAndBrightness(scalar_t contrast, scalar_t brightness) {
             Vectorf<256> values;
             for (int i = 0; i < 256; i++) {
-                values[i] = pow((scalar_t)i / 255.0,1.0 / gamma) * 255.0;
+                float value = (i - 127.5f) * contrast + 127.5f + brightness;
+                if (value < 0) {
+                    value = 0;
+                } else if (value > 255) {
+                    value = 255;
+                }
+                values[i] = value;
             }
             return GrayLookupTable(values);
         }
 
-        static GrayLookupTable gammaDecode(scalar_t gamma = 2.2) {
+        static GrayLookupTable gamma(scalar_t gamma) {
             Vectorf<256> values;
             for (int i = 0; i < 256; i++) {
-                values[i] = pow((scalar_t)i / 255.0,gamma) * 255.0;
+                float value = std::pow(i / 255.0f, gamma) * 255.0f;
+                if (value < 0) {
+                    value = 0;
+                } else if (value > 255) {
+                    value = 255;
+                }
+                values[i] = value;
+            }
+            return GrayLookupTable(values);
+        }
+
+        static GrayLookupTable level(scalar_t black, scalar_t white) {
+            Vectorf<256> values;
+            for (int i = 0; i < 256; i++) {
+                float value = (i - black) / (white - black) * 255.0f;
+                if (value < 0) {
+                    value = 0;
+                } else if (value > 255) {
+                    value = 255;
+                }
+                values[i] = value;
+            }
+            return GrayLookupTable(values);
+        }
+
+        static GrayLookupTable level(scalar_t black, scalar_t white, scalar_t gamma) {
+            Vectorf<256> values;
+            for (int i = 0; i < 256; i++) {
+                float value = (i - black) / (white - black) * 255.0f;
+                value = std::pow(value / 255.0f, gamma) * 255.0f;
+                if (value < 0) {
+                    value = 0;
+                } else if (value > 255) {
+                    value = 255;
+                }
+                values[i] = value;
             }
             return GrayLookupTable(values);
         }

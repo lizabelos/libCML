@@ -43,8 +43,8 @@ CML::CaptureImageGenerator::CaptureImageGenerator(int width, int height, int def
         mPyramidSize = 0;
 
         Vector2 s(width, height);
-        if (s.y() > 480) {
-            s = s * 480 / height;
+        if (s.x() > 480) {
+            s = s * 480 / width;
         }
         while (true) {
             double area = s.x() * s.y();
@@ -201,7 +201,6 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
         }
         undistortedGrayImage = captureImage->mInternalCalibration->removeDistortion(undistortedGrayImage, mWidths[0], mHeights[0]);
     }
-
 
     Ptr<Image, Nullable> lastColorImage;
     Ptr<FloatImage, Nullable> lastGrayImage;

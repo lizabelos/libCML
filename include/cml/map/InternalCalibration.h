@@ -532,7 +532,7 @@ namespace CML {
 
     InternalCalibration* parseInternalEurocCalibration(std::string path, Vector2i outputSize);
 
-    InternalCalibration* parseInternalStereopolisCalibration(std::string path, Vector2i outputSize);
+    InternalCalibration* parseInternalStereopolisCalibration(std::string path, Vector2i outputSize,  Vector2i cropOrigin, Vector2i cropSize);
 
 }
 

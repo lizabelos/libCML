@@ -325,7 +325,7 @@ CML::HashMap<std::string, CML::List<std::string>> xmlDocToHashMap(rapidxml::xml_
 }
 
 
-CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize) {
+CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string path, Vector2i outputSize, Vector2i cropOrigin, Vector2i cropSize) {
     rapidxml::xml_document doc;
 
     std::ifstream file(path);
@@ -349,6 +349,11 @@ CML::InternalCalibration* CML::parseInternalStereopolisCalibration(std::string p
     Vector2d size;
     std::sscanf(szimgstr.c_str(), "%lf %lf", &size[0], &size[1]);
 
+
+    //size[1] = size[1] / 2;
+    size = cropSize.cast<scalar_t>();
+    params[0] = params[0] - cropOrigin[0];
+    params[1] = params[1] - cropOrigin[1];
 
     if (modunif["TypeModele"][0]=="eModele_FishEye_10_5_5") {
         PinholeUndistorter pinhole{Vector2(f, f), Vector2(params[0], params[1])};

@@ -74,7 +74,7 @@ void ensureFailed(char const* function, char const* file, int line,
         "file '%s', line %d.\n",                                              \
         function, file, line);                                                \
     SOPHUS_FMT_PRINT(description, ##__VA_ARGS__);                             \
-    std::abort();                                                             \
+    throw std::runtime_error("");                                                             \
   } while (false)
 
 #ifdef __CUDACC__

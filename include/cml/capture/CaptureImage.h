@@ -306,7 +306,6 @@ namespace CML {
         Optional<GrayLookupTable*> mLut;
         Optional<Array2D<float>> mInverseVignette;
         Optional<Camera> mGroundtruth;
-
     };
 
     class CaptureImageGenerator : public CaptureImageMaker::Generator {

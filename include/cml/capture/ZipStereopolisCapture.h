@@ -27,19 +27,23 @@ namespace CML {
             if (!std::filesystem::is_directory(extractPath) || !std::filesystem::exists(extractPath)) { // Check if src folder exists
                 std::filesystem::create_directory(extractPath);
             }
-            loadZip(zipPath, ".tif", extractPath);
+            loadZip(zipPath, "_0.tif", extractPath);
 
             uint8_t *data;
             size_t size;
             decompressFile(1, &data, &size);
             auto images = loadTiffImage(data, size);
-            mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
+            //mMask = loadPngImage(zipPath + ".mask.png").first.castToUChar<unsigned char>();
+            mLookupTable = GrayLookupTable::gamma(2.2 / 1.8);
 
-            mLookupTable = GrayLookupTable::gammaDecode();
+            const int mWidthCrop = 20;
+            mCropOrigin = {mWidthCrop / 2, images.second.getHeight() / 4 - 10};
+            mCropSize = {images.second.getWidth() - mWidthCrop, images.second.getHeight() / 2};
 
-            mCaptureImageGenerator = new CaptureImageGenerator(images.first.getWidth(), images.first.getHeight());
 
-            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize());
+            mCaptureImageGenerator = new CaptureImageGenerator(mCropSize.x(), mCropSize.y());
+
+            mCameraParameters = parseInternalStereopolisCalibration(zipPath + ".xml", mCaptureImageGenerator->getOutputSize(), mCropOrigin, mCropSize);
 
 
             std::ifstream timesFile(zipPath + ".times.txt");
@@ -103,15 +107,19 @@ namespace CML {
             std::string decompressedFilePath = decompressFile(mCurrentImage, &data, &size);
             auto images = loadTiffImage(data, size);
 
-            for (int y = 0; y < images.first.getHeight(); y++) {
+
+            /*for (int y = 0; y < images.first.getHeight(); y++) {
                 for (int x = 0; x < images.first.getWidth(); x++) {
                     if (mMask(x,y) < 128 || (y < images.first.getHeight() / 3 && images.first(x,y) > 250)) {
                         images.first(x,y) = std::numeric_limits<float>::quiet_NaN();
                         images.second(x,y) = ColorRGBA(0,0,0,0);
                     }
                 }
-            }
+            }*/
+            images.first = images.first.crop(mCropOrigin.x(), mCropOrigin.y(), mCropSize.x(), mCropSize.y());
+            images.second = images.second.crop(mCropOrigin.x(), mCropOrigin.y(), mCropSize.x(), mCropSize.y());
 
+           // images.first = images.first.convertGamma(1.8f, 2.2f);
 
             CaptureImageMaker imageMaker = mCaptureImageGenerator->create();
             imageMaker.setImage(images.first)
@@ -145,12 +153,13 @@ namespace CML {
     private:
         CaptureImageGenerator *mCaptureImageGenerator;
         InternalCalibration *mCameraParameters;
-        int mCurrentImage = 100;
-        GrayImage mMask;
         GrayLookupTable mLookupTable;
+        int mCurrentImage = 1;
+        //GrayImage mMask;
         List<StereopolisPose> mPoses;
         List<float> mTimes;
 
+        Vector2i mCropOrigin, mCropSize;
 
     };
 
