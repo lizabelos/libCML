@@ -47,7 +47,7 @@ namespace CML {
             return loadJpegImage(data, size);
         }
 
-        inline std::string decompressFile(const std::string &filename, uint8_t **data, size_t *size) {
+        inline std::string decompressFile(const std::string &filename, uint8_t **data, size_t *size, bool extractOnly = false) {
             if (mZipBuffer.size() == 0) {
                 mZipBuffer.resize(1e+8);
             }
@@ -65,6 +65,11 @@ namespace CML {
 
                 f = fopen(extractedFilePath.c_str(), "rb");
                 if (f != nullptr) {
+
+                    if (extractOnly) {
+                        fclose(f);
+                        return extractedFilePath;
+                    }
 
                     CML_LOG_DEBUG("Using extracted image");
 
@@ -105,8 +110,8 @@ namespace CML {
             return extractedFilePath;
         }
 
-        inline std::string decompressFile(int id, uint8_t **data, size_t *size) {
-            return decompressFile(mZipFilePath[id], data, size);
+        inline std::string decompressFile(int id, uint8_t **data, size_t *size, bool extractOnly = false) {
+            return decompressFile(mZipFilePath[id], data, size, extractOnly);
         }
 
         inline const std::string &getFilename(int id) {
@@ -124,7 +129,7 @@ namespace CML {
             CML_LOG_IMPORTANT("Decompressing all files");
             for (int k = 0; k < getImageNumber(); k++) {
                 CML_LOG_IMPORTANT("Decompressing " + std::to_string(k) + "/" + std::to_string(getImageNumber()));
-                decompressFile(k, &data, &size);
+                decompressFile(k, &data, &size, true);
             }
         }
 

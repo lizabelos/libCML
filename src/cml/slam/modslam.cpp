@@ -79,7 +79,7 @@ Ptr<AbstractCapture, Nullable> loadDataset(const std::string &path) {
     CML_LOG_INFO("Trying to load dataset as a ZipStereopolisCapture");
     try {
         CML::ZipStereopolisCapture *capture = new CML::ZipStereopolisCapture(path);
-        //capture->decompressAll();
+        capture->decompressAll();
         return capture;
     } catch (const std::exception &e) {
         CML_LOG_ERROR(e.what());
