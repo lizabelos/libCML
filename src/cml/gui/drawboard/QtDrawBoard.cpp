@@ -41,11 +41,11 @@ void CML::QtDrawBoard::lineWidth(int size) {
 }
 
 void CML::QtDrawBoard::disableDepthTest() {
-    glDisable(GL_DEPTH_TEST);
+    mFunctions->glDisable(GL_DEPTH_TEST);
 }
 
 void CML::QtDrawBoard::enableDepthTest() {
-    glEnable(GL_DEPTH_TEST);
+    mFunctions->glEnable(GL_DEPTH_TEST);
 }
 
 void CML::QtDrawBoard::segment(Eigen::Vector2f a, Eigen::Vector2f b) {
@@ -63,7 +63,7 @@ void CML::QtDrawBoard::segment(Eigen::Vector2f a, Eigen::Vector2f b) {
 
     m2DColorProgram.enableAttributeArray(m2DPositionLocation);
     m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)segment, 3, 0);
-    glDrawArrays(GL_LINES,0,2);
+    mFunctions->glDrawArrays(GL_LINES,0,2);
     m2DColorProgram.disableAttributeArray(m2DPositionLocation);
 }
 
@@ -79,7 +79,7 @@ void CML::QtDrawBoard::point(Eigen::Vector2f a) {
 
     m2DColorProgram.enableAttributeArray(m2DPositionLocation);
     m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)point, 3, 0);
-    glDrawArrays(GL_POINTS,0,1);
+    mFunctions->glDrawArrays(GL_POINTS,0,1);
     m2DColorProgram.disableAttributeArray(m2DPositionLocation);
 }
 
@@ -92,7 +92,7 @@ void CML::QtDrawBoard::segments(std::vector<Eigen::Vector2f> points) {
 
     m2DColorProgram.enableAttributeArray(m2DPositionLocation);
     m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)hpoints.data(), 3, 0);
-    glDrawArrays(GL_LINES,0,hpoints.size());
+    mFunctions->glDrawArrays(GL_LINES,0,hpoints.size());
     m2DColorProgram.disableAttributeArray(m2DPositionLocation);
 }
 
@@ -106,7 +106,7 @@ void CML::QtDrawBoard::points(std::vector<Eigen::Vector2f> points) {
 
     m2DColorProgram.enableAttributeArray(m2DPositionLocation);
     m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)hpoints.data(), 3, 0);
-    glDrawArrays(GL_POINTS,0,hpoints.size());
+    mFunctions->glDrawArrays(GL_POINTS,0,hpoints.size());
     m2DColorProgram.disableAttributeArray(m2DPositionLocation);
 }
 
@@ -121,7 +121,7 @@ void CML::QtDrawBoard::segment(Eigen::Vector3f a, Eigen::Vector3f b) {
 
     m3DColorProgram.enableAttributeArray(m3DPositionLocation);
     m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)segment, 3, 0);
-    glDrawArrays(GL_LINES,0,2);
+    mFunctions->glDrawArrays(GL_LINES,0,2);
     m3DColorProgram.disableAttributeArray(m3DPositionLocation);
 }
 
@@ -130,7 +130,7 @@ void CML::QtDrawBoard::point(Eigen::Vector3f a) {
 
     m3DColorProgram.enableAttributeArray(m3DPositionLocation);
     m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)a.data(), 3, 0);
-    glDrawArrays(GL_POINTS,0,1);
+    mFunctions->glDrawArrays(GL_POINTS,0,1);
     m3DColorProgram.disableAttributeArray(m3DPositionLocation);
 }
 
@@ -140,7 +140,7 @@ void CML::QtDrawBoard::segments(std::vector<Eigen::Vector3f> points) {
 
     m3DColorProgram.enableAttributeArray(m3DPositionLocation);
     m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)points.data(), 3, 0);
-    glDrawArrays(GL_LINES,0,points.size());
+    mFunctions->glDrawArrays(GL_LINES,0,points.size());
     m3DColorProgram.disableAttributeArray(m3DPositionLocation);
 }
 
@@ -149,7 +149,7 @@ void CML::QtDrawBoard::points(std::vector<Eigen::Vector3f> points) {
 
     m3DColorProgram.enableAttributeArray(m3DPositionLocation);
     m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)points.data(), 3, 0);
-    glDrawArrays(GL_POINTS,0,points.size());
+    mFunctions->glDrawArrays(GL_POINTS,0,points.size());
     m3DColorProgram.disableAttributeArray(m3DPositionLocation);
 }
 
@@ -213,7 +213,7 @@ void CML::QtDrawBoard::texture(const Image &oslamImage, float x, float y, float 
     m2DTextureProgram.enableAttributeArray(m2DTextureCoordsLocation);
     m2DTextureProgram.setAttributeArray(m2DTextureCoordsLocation, (const GLfloat*)texcoords.data(), 3, 0);
 
-    glDrawArrays(GL_TRIANGLE_FAN,0,4);
+    mFunctions->glDrawArrays(GL_TRIANGLE_FAN,0,4);
 
     m2DTextureProgram.disableAttributeArray(m2DTextureCoordsLocation);
     m2DTextureProgram.disableAttributeArray(m2DTexturePositionLocation);
@@ -260,7 +260,7 @@ void CML::QtDrawBoard::texture(PFrame &frame, float x, float y, float width, flo
     m2DTextureProgram.enableAttributeArray(m2DTextureCoordsLocation);
     m2DTextureProgram.setAttributeArray(m2DTextureCoordsLocation, (const GLfloat*)texcoords.data(), 3, 0);
 
-    glDrawArrays(GL_TRIANGLE_FAN,0,4);
+    mFunctions->glDrawArrays(GL_TRIANGLE_FAN,0,4);
 
     m2DTextureProgram.disableAttributeArray(m2DTextureCoordsLocation);
     m2DTextureProgram.disableAttributeArray(m2DTexturePositionLocation);
@@ -324,7 +324,7 @@ void CML::QtDrawBoard::pointCloud(scalar_t *coords, scalar_t *colors, unsigned i
     //mPCProgram.setAttributeArray(mPCVarianceLocation, (const GLfloat*)variance, 1, 0);
 
 
-    glDrawArrays(GL_POINTS,0,size);
+    mFunctions->glDrawArrays(GL_POINTS,0,size);
 
     mPCProgram.disableAttributeArray(mPCPositionLocation);
     mPCProgram.disableAttributeArray(mPCColorLocation);
@@ -377,7 +377,7 @@ void CML::QtDrawBoard::cameraPath(scalar_t *coords, size_t size) {
     mFunctions->glVertexAttribPointer(mPathPositionLocation, 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)coords);
 
 
-    glDrawArrays(GL_LINE_STRIP,0,size);
+    mFunctions->glDrawArrays(GL_LINE_STRIP,0,size);
 
     mPathProgram.disableAttributeArray(mPathPositionLocation);
 

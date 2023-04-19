@@ -12,7 +12,9 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(ANDROID_PACKAGE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/android CACHE INTERNAL "")
+
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOMOC ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 0)
@@ -163,9 +165,7 @@ add_subdirectory(thirdparty/gdcmjpeg)
 
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
-    # https://bugreports.qt.io/browse/QTCREATORBUG-25793
-    #find_package(QT NAMES Qt6 COMPONENTS Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia REQUIRED)
-    find_package(Qt6 CONFIG REQUIRED Core Widgets OpenGL OpenGLWidgets PrintSupport Multimedia Charts Network)
+    find_package(Qt6 NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
@@ -253,7 +253,7 @@ set(POINT_MAP_IMPLEMENTATION "PHMAP_PARALLEL" CACHE STRING "Map Point Implementa
 message(STATUS "Point Map Implementation: ${POINT_MAP_IMPLEMENTATION}")
 set(CML_POINT_MAP_IMPLEMENTATION ${POINT_MAP_IMPLEMENTATION})
 
-configure_file(include/cml/config.h.in include/cml/config.h)
+configure_file(src/cml/config.h.in src/cml/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 #######################################################################################################################
@@ -267,10 +267,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 # # # # # # CML SOURCE CODE  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #######################################################################################################################
 
-include_directories(CML include)
 include_directories(CML src)
 
-file(GLOB_RECURSE HEADER_LIST CONFIGURE_DEPENDS include/*.h)
+file(GLOB_RECURSE HEADER_LIST CONFIGURE_DEPENDS src/*.h)
 
 add_library(CML STATIC
 
@@ -348,7 +347,7 @@ add_library(CML STATIC
 )
 
 target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
-target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/include/suitesparse)
+target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/src/suitesparse)
 
 if (USE_OPENMP)
     target_link_libraries(CML OpenMP::OpenMP_CXX)
@@ -380,10 +379,10 @@ if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
     target_sources(CML PRIVATE src/cml/capture/VideoCapture.cpp)
     target_link_libraries(CML ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES} ${SWSCALE_LIBRARIES})
 
-    set(FFMPEG_FOUND 1 PARENT_SCOPE)
+    set(FFMPEG_FOUND 1)
 
 else()
-    set(FFMPEG_FOUND 0 PARENT_SCOPE)
+    set(FFMPEG_FOUND 0)
 endif()
 
 if (LIBZIP_FOUND)
@@ -429,100 +428,62 @@ if (GLOG_FOUND)
 endif()
 
 if (ENABLE_GUI)
-    qt6_wrap_cpp(ModelViewerWidgetSRC include/cml/gui/widgets/ModelWidget.h)
-    qt6_wrap_cpp(LoggerWidgetSRC include/cml/gui/widgets/LoggerWidget.h)
-    qt6_wrap_cpp(CameraViewerWidgetSRC include/cml/gui/widgets/CameraViewerWidget.h)
-    qt6_wrap_cpp(WebcamCaptureSRC include/cml/capture/QtWebcamCapture.h)
-    qt6_wrap_cpp(SpoilerSRC include/cml/gui/widgets/Spoiler.h)
-    qt6_wrap_cpp(GroupsWidgetSRC include/cml/gui/widgets/GroupsWidget.h)
-    qt6_wrap_cpp(DesktopMainWindowSRC include/cml/gui/MainSlamWidget.h)
-
-    target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp ${ModelViewerWidgetSRC}
-            src/cml/gui/drawboard/QtDrawBoard.cpp
-            src/cml/gui/widgets/LoggerWidget.cpp ${LoggerWidgetSRC}
+    target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp src/cml/gui/widgets/ModelWidget.h
+            src/cml/gui/drawboard/QtDrawBoard.cpp src/cml/gui/drawboard/QtDrawBoard.h
+            src/cml/gui/widgets/LoggerWidget.cpp src/cml/gui/widgets/LoggerWidget.h
             src/cml/gui/widgets/CameraViewerWidget.cpp ${CameraViewerWidgetSRC}
-            src/cml/gui/widgets/Spoiler.cpp ${SpoilerSRC}
-            src/cml/gui/widgets/GroupsWidget.cpp ${GroupsWidgetSRC}
-            src/cml/gui/drawboard/QtDrawBoardShaders.cpp
-            src/cml/capture/QtWebcamCapture.cpp ${WebcamCaptureSRC}
-            src/cml/gui/MainSlamWidget.cpp ${DesktopMainWindowSRC}
+            src/cml/gui/widgets/Spoiler.cpp src/cml/gui/widgets/Spoiler.h
+            src/cml/gui/widgets/GroupsWidget.cpp src/cml/gui/widgets/GroupsWidget.h
+            src/cml/gui/drawboard/QtDrawBoardShaders.cpp src/cml/gui/drawboard/QtDrawBoardShaders.h
+            src/cml/capture/QtWebcamCapture.cpp src/cml/capture/QtWebcamCapture.h
+            src/cml/gui/MainSlamWidget.cpp src/cml/gui/MainSlamWidget.h
             resources.qrc
             )
 
 
     if (NOT ANDROID)
-        qt6_wrap_cpp(FunctionWidgetSRC include/cml/gui/widgets/FunctionWidget.h)
-        qt6_wrap_cpp(FunctionListWidgetSRC include/cml/gui/widgets/FunctionListWidget.h)
-        qt6_wrap_cpp(ParameterIntegerSliderSRC include/cml/gui/widgets/ParameterIntegerSlider.h)
-        qt6_wrap_cpp(ParameterFloatingSliderSRC include/cml/gui/widgets/ParameterFloatingSlider.h)
-        qt6_wrap_cpp(ParameterCheckboxSRC include/cml/gui/widgets/ParameterCheckbox.h)
-        qt6_wrap_cpp(StatisticWidgetSRC include/cml/gui/widgets/StatisticWidget.h)
-
-        target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp ${ModelViewerWidgetSRC}
-                src/cml/gui/widgets/FunctionWidget.cpp ${FunctionWidgetSRC}
-                src/cml/gui/widgets/FunctionListWidget.cpp ${FunctionListWidgetSRC}
-                src/cml/gui/widgets/ParameterIntegerSlider.cpp ${ParameterIntegerSliderSRC}
-                src/cml/gui/widgets/ParameterFloatingSlider.cpp ${ParameterFloatingSliderSRC}
-                src/cml/gui/widgets/ParameterCheckbox.cpp ${ParameterCheckboxSRC}
-                src/cml/gui/widgets/StatisticWidget.cpp ${StatisticWidgetSRC}
+        target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp src/cml/gui/widgets/ModelWidget.h
+                src/cml/gui/widgets/FunctionWidget.cpp src/cml/gui/widgets/FunctionWidget.h
+                src/cml/gui/widgets/FunctionListWidget.cpp src/cml/gui/widgets/FunctionListWidget.h
+                src/cml/gui/widgets/ParameterIntegerSlider.cpp src/cml/gui/widgets/ParameterIntegerSlider.h
+                src/cml/gui/widgets/ParameterFloatingSlider.cpp src/cml/gui/widgets/ParameterFloatingSlider.h
+                src/cml/gui/widgets/ParameterCheckbox.cpp src/cml/gui/widgets/ParameterCheckbox.h
+                src/cml/gui/widgets/StatisticWidget.cpp src/cml/gui/widgets/StatisticWidget.h
                 resources.qrc
 
        )
     endif()
 
-    target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts Qt6::Network ${OPENGL_LIBRARIES})
+    target_link_libraries(CML Qt::Core Qt::Widgets Qt::OpenGL Qt::OpenGLWidgets Qt::PrintSupport Qt::Multimedia Qt::Charts Qt::Network ${OPENGL_LIBRARIES})
 
-    if (MINGW)
-        target_link_libraries(CML opengl32 glu32 mingw32)
-    endif()
-
-endif()
-
-
-if (ANDROID)
-    add_library(modslam MODULE
-                src/cml/slam/modslam.cpp
-                src/cml/slam/modslam/Hybrid.cpp
-                src/cml/slam/modslam/Research.cpp
-                src/cml/slam/modslam/Make.cpp
-                src/cml/slam/modslam/indirect/Tracking.cpp
-                src/cml/slam/modslam/indirect/Mapping.cpp
-                src/cml/slam/modslam/direct/Mapping.cpp
-                src/cml/slam/modslam/direct/Tracking.cpp
-                )
-    target_link_libraries(modslam CML)
-    target_include_directories(modslam PUBLIC include/cml/slam/modslam)
-
-    set_target_properties(modslam PROPERTIES
-                QT_ANDROID_PACKAGE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/android"
+    qt_add_executable(modslam
+            src/cml/slam/modslam.cpp
+            src/cml/slam/modslam/Hybrid.cpp
+            src/cml/slam/modslam/Research.cpp
+            src/cml/slam/modslam/Make.cpp
+            src/cml/slam/modslam/indirect/Tracking.cpp
+            src/cml/slam/modslam/indirect/Mapping.cpp
+            src/cml/slam/modslam/direct/Mapping.cpp
+            src/cml/slam/modslam/direct/Tracking.cpp
             )
-
-    qt_android_generate_deployment_settings(modslam)
-    qt_android_add_apk_target(modslam)
-
-
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/android-build/libs/${ANDROID_ABI}/")
-    add_custom_command(
-        TARGET modslam
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-        ARGS -E copy "${CMAKE_CURRENT_BINARY_DIR}/libmodslam.so" "${CMAKE_CURRENT_BINARY_DIR}/android-build/libs/${ANDROID_ABI}/libmodslam_${ANDROID_ABI}.so"
-    )
-
-else()
+    set_target_properties(modslam PROPERTIES
+            QT_ANDROID_PACKAGE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/android"
+            )
+else ()
     add_executable(modslam
-                src/cml/slam/modslam.cpp
-                src/cml/slam/modslam/Hybrid.cpp
-                src/cml/slam/modslam/Research.cpp
-                src/cml/slam/modslam/Make.cpp
-                src/cml/slam/modslam/indirect/Tracking.cpp
-                src/cml/slam/modslam/indirect/Mapping.cpp
-                src/cml/slam/modslam/direct/Mapping.cpp
-                src/cml/slam/modslam/direct/Tracking.cpp
-                )
-    target_link_libraries(modslam CML)
-    target_include_directories(modslam PUBLIC include/cml/slam/modslam)
+            src/cml/slam/modslam.cpp
+            src/cml/slam/modslam/Hybrid.cpp
+            src/cml/slam/modslam/Research.cpp
+            src/cml/slam/modslam/Make.cpp
+            src/cml/slam/modslam/indirect/Tracking.cpp
+            src/cml/slam/modslam/indirect/Mapping.cpp
+            src/cml/slam/modslam/direct/Mapping.cpp
+            src/cml/slam/modslam/direct/Tracking.cpp
+            )
 endif()
+
+target_link_libraries(modslam PUBLIC CML)
+target_include_directories(modslam PUBLIC src/cml/slam/modslam)
 
 
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
