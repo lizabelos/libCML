@@ -1,7 +1,7 @@
 libCML and MODSLAM
 ===========================
 
-<img src="https://github.com/belosthomas/libCML/raw/main/documentation/images/screen_recording.gif" width="600" alt=""/>
+<img src="https://github.com/lizabelos/libCML/raw/main/documentation/images/screen_recording.gif" width="600" alt=""/>
 
 # 1. About libCML
 
