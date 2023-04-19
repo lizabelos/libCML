@@ -1,64 +1,16 @@
 libCML and MODSLAM
 ===========================
 
-# 1. MOD SLAM: Mixed Method for a More Robust SLAM Without Loop Closing
-
-**Paper link** : [https://hal.archives-ouvertes.fr/hal-03538133](https://hal.archives-ouvertes.fr/hal-03538133)
-
-In recent years, the state-of-the-art  of monocular SLAM has seen remarkable advances in reducing errors and improving robustness. At the same time, this quality of results can be obtained in real-time on small CPUs.
-However, most algorithms have a high failure rate out-of-the-box. Systematic error such as drift remains still significant even for the best algorithms. This can be handled by a global measure as a loop closure, but it penalizes online data processing. We propose a mixed SLAM, based on ORB-SLAM2 and DSO: MOD SLAM. It is a fusion of photometric and feature-based methods, without being a simple copy of both. We propose a decision system to predict at each frame which optimization will produce the minimum drift so that only one will be selected to save computational time and resources. We propose a new implementation of the map that is equipped with the ability to actively work with DSO and ORB points at the same time. Our experimental results show that this method increases the overall robustness and reduces the drift without compromising the computational resources. Contrary to the best state-of-the-art algorithms, MOD SLAM can handle 100\% of KITTI, TUM, and random phone videos, without any configuration change.
-
-If you are using this work, please cite : 
-```bibtex
-@inproceedings{modslam2021,
-  title={MOD SLAM: Mixed Method for a More Robust SLAM without Loop Closing},
-  author={Thomas Belos, Pascal Monasse, and Eva Dokladalova},
-  booktitle={In Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)}
-}
-```
-
-## Downloads
-
-**Information** : Hyper-threading seems to have a very high impact on the performance. Disable it on the BIOS via : 
-```bash
-echo off > /sys/devices/system/cpu/smt/control
-```
-
-### Windows
-
-https://github.com/belosthomas/libCML/releases
-
-### Linux
-
-Build Coming soon...
-
-### Android
-
-https://github.com/belosthomas/libCML/releases
-
 <img src="https://github.com/belosthomas/libCML/raw/main/documentation/images/screen_recording.gif" width="600" alt=""/>
 
-**Known issues on Android:**
-- A lot of crashes
-- Not internal calibration is used
-- Based on old settings
+# 1. About libCML
 
-# 2. About libCML
+libCML is a SLAM library and scientific tool, which include a novel fast thread-safe graph map implementation.
+It is used by MOD SLAM : a mixed method for a more robust SLAM without loop closing, that is implemented on this repository. You can find the paper here : **Paper link** : [https://hal.archives-ouvertes.fr/hal-03538133](https://hal.archives-ouvertes.fr/hal-03538133).
 
-libCML is a SLAM library and scientific tool, which include a novel fast thread-safe graph map implementation. If you are using this work, please cite :
-```bibtex
-@misc{libcml,
-  title={libCML : SLAM library},
-  author={Thomas Belos, Pascal Monasse, Eva Dokladalova},
-  url={https://github.com/belosthomas/libCML}
-}
-```
+If you want to make your own SLAM based on libCML, follow the tutorial here : under construction.
 
-# 3. Compilation
-
-**Minimum Ubuntu Version :** 20
-
-**Minimum Fedora Version :** 34
+# 2. Compilation
 
 ## a. Windows, Linux and Mac
 
@@ -73,8 +25,6 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 4
 ```
-
-☕ Then, take a break, drink a cup of coffee. It can take hours time to build.
 
 This is a list of different option you can pass to cmake : 
 ```bash
@@ -93,7 +43,7 @@ We recommend you to use Qt Creator, as it is the most simple way to build ModSLA
 4. Launch Qt Creator. Go to Android settings. Make sure that all is ok. Download the Android SDK you want.
 5. Open the project with Qt Creator, configure it for Android/Release and simply build it
 
-# 4. Execution
+# 3. Execution
 
 ```bash
 cd build
@@ -113,7 +63,7 @@ Here is a list of arguments you can pass to the executable :
 -z # Print the statistics at each iteration. Used for python script and result analasys.
 ```
 
-# 5. Datasets
+# 4. Datasets
 
 ## KITTI Odometry
 
@@ -151,6 +101,7 @@ Download here : https://www.cvlibs.net/datasets/kitti/eval_odometry.php
 │       ├── 10
 ```
 
+To run MOD SLAM on KITTI Odometry, you can use the following command :
 ```bash
 cd build
 ./modslam -d /KITTI/dataset/sequences/02
@@ -168,6 +119,8 @@ cd build
 ├── Camera_0.xml
 ```
 
+
+To run MOD SLAM on Stereopolis, you can use the following command :
 ```bash
 cd build
 ./modslam -d /Stereopolis/Camera_0.zip
