@@ -525,8 +525,8 @@ namespace CML {
                 newImage = Array2D<U>(getWidth(), getHeight());
             }
 
-            T *data = mData;
-            int size = newImage.eigenMatrix().size();
+            const T *data = mData;
+            const int size = newImage.eigenMatrix().size();
             __m128 accumulation; //  __attribute__ ((aligned (16)));
             __m128 datablock; //  __attribute__ ((aligned (16)));
             const int res_shifty = (kernel.getHeight() - 1) / 2;
@@ -541,7 +541,7 @@ namespace CML {
             }
 
 
-            for (int i = 0; i < size - (kernel.eigenMatrix().size() + 4); i++) {
+            for (int i = 0; i < size - (kernel.eigenMatrix().size() + 4); i += 4) {
                 accumulation = _mm_setzero_ps();
                 for (int ker_y = 0; ker_y < kernel.eigenMatrix().size(); ker_y++) {
                         datablock = _mm_loadu_ps(&data[i + ker_y]);

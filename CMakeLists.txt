@@ -165,7 +165,7 @@ add_subdirectory(thirdparty/gdcmjpeg)
 
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
-    find_package(Qt6 NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia)
+    find_package(Qt6 NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
     file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
@@ -254,7 +254,7 @@ message(STATUS "Point Map Implementation: ${POINT_MAP_IMPLEMENTATION}")
 set(CML_POINT_MAP_IMPLEMENTATION ${POINT_MAP_IMPLEMENTATION})
 
 configure_file(src/cml/config.h.in src/cml/config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
 
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -485,6 +485,8 @@ endif()
 target_link_libraries(modslam PUBLIC CML)
 target_include_directories(modslam PUBLIC src/cml/slam/modslam)
 
+add_executable(orbtest src/cml/tests/orbtest.cpp)
+target_link_libraries(orbtest PUBLIC CML)
 
 target_compile_options(CML PUBLIC ${COMPILER_FLAG_FPIC})
 
@@ -501,7 +503,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CML PUBLIC -O3 -fno-math-errno)
+    target_compile_options(CML PUBLIC -O3 -fno-math-errno -fexpensive-optimizations)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -g)
     target_compile_definitions(CML PUBLIC)

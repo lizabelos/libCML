@@ -58,6 +58,8 @@ namespace CML::Features {
 
         void compute(const CaptureImage &frame);
 
+        void compute(const FloatImage &image);
+
         void computeBow(Ptr<BoW, Nullable> &bow) {
             if (bow.isNull()) {
                 bow = new BoW();
@@ -106,7 +108,13 @@ namespace CML::Features {
 
         void computeDescriptors(const GrayImage& image, List<Corner>& keypoints, List<Binary256Descriptor>& descriptors);
 
+        void computeDescriptorsWithTransposedImage(const GrayImage& image, List<Corner>& keypoints, List<Binary256Descriptor>& descriptors);
+
+
         Binary256Descriptor computeDescriptor(const Corner& kpt, const GrayImage& img);
+
+        Binary256Descriptor computeDescriptorWithTransposedImage(const Corner& kpt, const GrayImage& img);
+
 
         void computeOrientation(const GrayImage & image, List<Corner>& keypoints, const List<int>& umax);
 
