@@ -14,7 +14,7 @@ namespace CML {
 }
 
 CML::Logger::Logger() : mLevel(MORE) {
-
+    std::ios_base::sync_with_stdio(false);
 }
 
 void CML::Logger::log(LoggerLevel level, const std::string &msg) {

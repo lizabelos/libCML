@@ -141,13 +141,13 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
         }
     }
 
-    Image undistortedColorImage = captureImageMaker.mColorImage.valueOrDefault(Image());
+    const Image &undistortedColorImageRef = captureImageMaker.mColorImage.valueOrDefault(Image());
     FloatImage undistortedGrayImage;
 
     int wh = 0;
 
     if (!captureImageMaker.mGrayImage.has_value()) {
-        undistortedGrayImage = FloatImage(undistortedColorImage.getWidth(), undistortedColorImage.getHeight());
+        undistortedGrayImage.reconstruct(false, undistortedColorImageRef.getWidth(), undistortedColorImageRef.getHeight());
         wh = undistortedGrayImage.getWidth() * undistortedGrayImage.getHeight();
         if (captureImageMaker.mLut.has_value()) {
             #if CML_USE_OPENMP
@@ -155,14 +155,14 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
             #endif
             for (int i = 0; i < wh; i++) {
                 undistortedGrayImage.data()[i] = (*captureImageMaker.mLut.value())(
-                        undistortedColorImage.data()[i].gray());
+                        undistortedColorImageRef.data()[i].gray());
             }
         } else {
             #if CML_USE_OPENMP
             #pragma omp  for schedule(static)
             #endif
             for (int i = 0; i < wh; i++) {
-                undistortedGrayImage.data()[i] = undistortedColorImage.data()[i].gray();
+                undistortedGrayImage.data()[i] = undistortedColorImageRef.data()[i].gray();
             }
         }
     } else {
@@ -195,9 +195,10 @@ CML::Ptr<CML::CaptureImage, CML::NonNullable> CML::CaptureImageGenerator::genera
     }
 
 
+    Image undistortedColorImage;
     if (captureImage->mInternalCalibration != nullptr) {
         if (enableColor) {
-            undistortedColorImage = captureImage->mInternalCalibration->fastRemoveDistortion(undistortedColorImage, mWidths[0], mHeights[0]);
+            undistortedColorImage = captureImage->mInternalCalibration->fastRemoveDistortion(undistortedColorImageRef, mWidths[0], mHeights[0]);
         }
         undistortedGrayImage = captureImage->mInternalCalibration->removeDistortion(undistortedGrayImage, mWidths[0], mHeights[0]);
     }

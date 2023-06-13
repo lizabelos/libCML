@@ -97,12 +97,14 @@ if (ANDROID)
 else()
     option(ENABLE_FFMPEG "Enable FFMPEG" OFF)
     if (ENABLE_FFMPEG)
+        set(ENV{PKG_CONFIG_PATH} "/clang64/lib/pkgconfig")
+
         find_package(PkgConfig REQUIRED)
 
-        pkg_check_modules(AVFORMAT REQUIRED "libavformat")
-        pkg_check_modules(AVCODEC REQUIRED "libavcodec")
-        pkg_check_modules(AVUTIL REQUIRED "libavutil")
-        pkg_check_modules(SWSCALE REQUIRED "libswscale")
+        pkg_check_modules(AVFORMAT REQUIRED IMPORTED_TARGET "libavformat")
+        pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET "libavcodec")
+        pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET "libavutil")
+        pkg_check_modules(SWSCALE REQUIRED IMPORTED_TARGET "libswscale")
     endif()
 endif()
 
@@ -289,6 +291,7 @@ add_library(CML STATIC
         src/cml/capture/RobotCarCapture.cpp
 
         src/cml/features/corner/PixelSelector.cpp
+        src/cml/features/Features.cpp
 
         src/cml/image/Array2D.cpp
         src/cml/image/Filter.cpp
@@ -366,21 +369,9 @@ if (Yaml-cpp_FOUND)
 endif()
 
 if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
-
-    target_include_directories(CML PUBLIC ${AVFORMAT_INCLUDE_DIRS})
-    target_link_directories(CML PUBLIC ${AVFORMAT_LIBRARY_DIRS})
-    target_include_directories(CML PUBLIC ${AVCODEC_INCLUDE_DIRS})
-    target_link_directories(CML PUBLIC ${AVCODEC_LIBRARY_DIRS})
-    target_include_directories(CML PUBLIC ${AVUTIL_INCLUDE_DIRS})
-    target_link_directories(CML PUBLIC ${AVUTIL_LIBRARY_DIRS})
-    target_include_directories(CML PUBLIC ${SWSCALE_INCLUDE_DIRS})
-    target_link_directories(CML PUBLIC ${SWSCALE_LIBRARY_DIRS})
-
     target_sources(CML PRIVATE src/cml/capture/VideoCapture.cpp)
-    target_link_libraries(CML ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES} ${SWSCALE_LIBRARIES})
-
+    target_link_libraries(CML PkgConfig::AVFORMAT PkgConfig::AVCODEC PkgConfig::AVUTIL PkgConfig::SWSCALE)
     set(FFMPEG_FOUND 1)
-
 else()
     set(FFMPEG_FOUND 0)
 endif()

@@ -37,8 +37,8 @@ namespace CML {
             mLookupTable = GrayLookupTable::gamma(2.2 / 1.8);
 
             const int mWidthCrop = 20;
-            mCropOrigin = {mWidthCrop / 2, images.second.getHeight() / 4 - 10};
-            mCropSize = {images.second.getWidth() - mWidthCrop, images.second.getHeight() / 2};
+            mCropOrigin = {images.second.getWidth() / 2, images.second.getHeight() / 2};
+            mCropSize = {images.second.getWidth() - mWidthCrop, images.second.getHeight() - mWidthCrop};
 
 
             mCaptureImageGenerator = new CaptureImageGenerator(mCropSize.x(), mCropSize.y());

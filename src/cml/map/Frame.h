@@ -553,6 +553,13 @@ namespace CML {
             return mDirectCovisibility;
         }
 
+        EIGEN_STRONG_INLINE void setFlagged(bool value) {
+            mFlagged = value;
+        }
+
+        EIGEN_STRONG_INLINE bool isFlagged() {
+            return mFlagged;
+        }
 
     private:
         void onMapPointGroupChange(PPoint mapPoint, int groupId, bool state);
@@ -618,6 +625,7 @@ namespace CML {
         Mutex mIndirectCovisibilityMutex, mDirectCovisibilityMutex;
         HashMap<OptPFrame, int> mIndirectCovisibility, mDirectCovisibility;
 
+        bool mFlagged;
     };
 
 

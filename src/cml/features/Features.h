@@ -209,80 +209,11 @@ namespace CML {
     using Binary512Descriptor = BinaryDescriptor<64>;
     using Binary1024Descriptor = BinaryDescriptor<128>;
 
-    template <int DESCSIZE> BinaryDescriptor<DESCSIZE> computeDistinctiveDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors)
-    {
+    template <int DESCSIZE> BinaryDescriptor<DESCSIZE> computeDistinctiveDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors);
 
-        // Compute distances between them
-        const size_t N = descriptors.size();
+    template <int DESCSIZE> BinaryDescriptor<DESCSIZE> computeMedianDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors);
 
-        float distances[N][N];
-        for(size_t i=0;i<N;i++)
-        {
-            distances[i][i]=0;
-            for(size_t j=i+1;j<N;j++)
-            {
-                int distij = descriptors[i].distance(descriptors[j]);
-                distances[i][j]=distij;
-                distances[j][i]=distij;
-            }
-        }
-
-        // Take the descriptor with least median distance to the rest
-        int bestMedian = INT_MAX;
-        int bestIdx = 0;
-        for(size_t i = 0; i < N; i++)
-        {
-            List<int> dists(distances[i],distances[i] + N);
-            int m = median(dists);
-
-            if(m < bestMedian)
-            {
-                bestMedian = m;
-                bestIdx = i;
-            }
-        }
-
-        return descriptors[bestIdx];
-    }
-
-    template <int DESCSIZE> BinaryDescriptor<DESCSIZE> computeMedianDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors)
-    {
-        BinaryDescriptor<DESCSIZE> result;
-
-        int sums[DESCSIZE * 8];
-
-        for (size_t i = 0; i < descriptors.size(); i++) {
-
-            for (size_t j = 0; j < DESCSIZE * 8; j++) {
-
-                sums[j] += descriptors[i].getBit(j);
-
-            }
-
-        }
-
-        int threshold = descriptors.size() < 2;
-
-        for (size_t j = 0; j < DESCSIZE * 8; j++) {
-
-            if (sums[j] < threshold) {
-                result.clearBit(j);
-            } else {
-                result.setBit(j);
-            }
-        }
-
-        return result;
-    }
-
-    template <int DESCSIZE> int computeHashOfDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors) {
-        int h = 0;
-        for (auto d : descriptors) {
-            h += d.hash();
-        }
-        return h;
-    }
-
+    template <int DESCSIZE> int computeHashOfDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors);
 
 }
 

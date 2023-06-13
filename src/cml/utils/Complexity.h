@@ -5,7 +5,7 @@
 #include "cml/utils/Timer.h"
 #include <string>
 
-#define CML_ENABLE_COMPLEXITY_REPORT 1
+#define CML_ENABLE_COMPLEXITY_REPORT 0
 
 #if CML_ENABLE_COMPLEXITY_REPORT
 

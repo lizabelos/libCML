@@ -408,12 +408,12 @@ namespace CML {
             assertThrow(input.getWidth() == mOriginalSize.x() && input.getHeight() == mOriginalSize.y(), "Invalid input size");
 
             float factor = 1.0f;
-            while (true) {
+            /*while (true) {
                 if (input.getWidth() / 2 > outputWidth && input.getHeight() / 2 > outputHeight) {
                     input = input.reduceByTwo();
                     factor = factor * 0.5f;
                 } else break;
-            }
+            }*/
 
             CML_LOG_IMPORTANT(
                     "Using a factor of " + std::to_string(factor) + " for calibration undistortion ("

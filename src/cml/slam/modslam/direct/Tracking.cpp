@@ -44,9 +44,9 @@ bool Hybrid::directNeedNewKeyFrame(PFrame currentFrame) {
         mFirstDirectRMSE = mLastPhotometricTrackingResidual.rmse();
     }
 
-    bool trackingResidualTooBig =
-            mLastPhotometricTrackingResidual.rmse() > mDsoKeyframeResidualRatio.f() * mFirstDirectRMSE;
-    //bool trackingResidualTooBig = false;
+    //bool trackingResidualTooBig =
+    //        mLastPhotometricTrackingResidual.rmse() > mDsoKeyframeResidualRatio.f() * mFirstDirectRMSE;
+    bool trackingResidualTooBig = false;
 
     if (flowTooBig) {
         CML_LOG_INFO("Creating new keyframe because of flow");

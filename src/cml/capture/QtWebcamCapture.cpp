@@ -68,7 +68,7 @@ QtWebcamCapture::QtWebcamCapture(size_t poolSize, QObject *parent) : QVideoSink(
         mCalibration = new CML::InternalCalibration(undistorter, originalSize);
 
 
-        mVignette = CML::Array2D<float>(640,480, 1);
+        mVignette = CML::Array2D<float>(640,480, 1.0f);
         mCaptureImageGenerator = new CML::CaptureImageGenerator(640,480);
 
     //}

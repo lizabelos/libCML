@@ -15,7 +15,7 @@ CML::RobotCarCapture::RobotCarCapture(const std::string &path, bool useColor) {
     std::string leftImagePath = mImages[mCurrentImage];
     Image image = loadPngImage(leftImagePath).second;
 
-    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
+    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1.0f);
     float w = image.getWidth();
     float h = image.getHeight();
     mVignetteMax = 1;

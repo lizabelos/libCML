@@ -101,7 +101,7 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
 
     logger << "The images will be resized to " << mWidth << "x" << mHeight << endl;
 
-    mVignette = Array2D<float>(mWidth, mHeight, 1);
+    mVignette = Array2D<float>(mWidth, mHeight, 1.0f);
 
     mCaptureImageGenerator = new CaptureImageGenerator(mWidth, mHeight);
     try {
@@ -189,8 +189,8 @@ void CML::CaptureFFMPEG::ffmpegRun() {
                             .setPath(mPath)
                             .setTime((double)f / fps)
                             .setCalibration(mCameraParameters)
-                            .setLut(&mLookupTable)
-                            .setInverseVignette(mVignette)
+                            //.setLut(&mLookupTable)
+                            //.setInverseVignette(mVignette)
                             .generate();
                     f = f + 1;
                     mQueue.notifyPush();

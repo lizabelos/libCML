@@ -239,11 +239,20 @@ void CML::MapPoint::addDirectApparition(PFrame frame) {
     for (auto observer: mObservers) {
         observer->onAddDirectApparition(this, frame);
     }
-    Set<OptPFrame> observers;
-    observers.insert(mApparitionsIndirect.begin(), mApparitionsIndirect.end());
-    observers.insert(mApparitionsDirect.begin(), mApparitionsDirect.end());
-    for (auto observer : observers) {
+
+    for (auto observer : mApparitionsIndirect) {
         observer->onAddDirectApparition(this, frame);
+        observer->setFlagged(true);
+    }
+
+    for (auto observer : mApparitionsDirect) {
+        if (!observer->isFlagged()) {
+            observer->onAddDirectApparition(this, frame);
+        }
+    }
+
+    for (auto observer : mApparitionsIndirect) {
+        observer->setFlagged(false);
     }
 
     for (int i = 0; i < MAPOBJECT_GROUP_MAXSIZE; i++) {

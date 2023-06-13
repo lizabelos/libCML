@@ -442,7 +442,7 @@ void CML::Map::onMapPointDestroyed(PPoint mapPoint) {
 
 }
 
-#define CML_USE_OLDER_COVISIBLITY_GRAPH 1
+#define CML_USE_OLDER_COVISIBLITY_GRAPH 0
 
 CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int max, int groupId, int th) {
     signalMethodStart("Map::processIndirectCovisiblity");

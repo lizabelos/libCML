@@ -15,7 +15,7 @@ CML::Eth3DCapture::Eth3DCapture(const std::string &path) {
     std::string leftImagePath = mImages[mCurrentImage];
     Image image = loadPngImage(leftImagePath).second;
 
-    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
+    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1.0f);
     float w = image.getWidth();
     float h = image.getHeight();
     mVignetteMax = 1;

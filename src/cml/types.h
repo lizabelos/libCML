@@ -746,10 +746,13 @@ namespace CML {
 
     public:
         EIGEN_STRONG_INLINE ColorRGBA() {
+            // Initializing ColorRGBA to zero slow down the construction of Eigen ColorRGBA array
+            /**
             mColor[0] = 0;
             mColor[1] = 0;
             mColor[2] = 0;
             mColor[3] = 0;
+             **/
         }
 
         EIGEN_STRONG_INLINE ColorRGBA(uint8_t r, uint8_t g, uint8_t b) {

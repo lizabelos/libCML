@@ -78,7 +78,7 @@ CML::KittyCapture::KittyCapture(const std::string &path, bool useColor) : mUseCo
     std::string leftImagePath = mImages[0][mCurrentImage];
     Image image = loadPngImage(leftImagePath).second;
 
-    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
+    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1.0f);
     mVignetteMax = 1;
 
     std::ifstream calibFile(path + "/calib.txt");

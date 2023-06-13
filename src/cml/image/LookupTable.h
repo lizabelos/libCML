@@ -16,7 +16,9 @@ namespace CML {
         }
 
         GrayLookupTable(const Vectorf<256> &values) {
-            mValues = values;
+            //mValues = values;
+            // do a memcpy
+            memcpy((void*)mValues.data(), (void*)values.data(), sizeof(float) * 256);
             computeInverse();
         }
 
@@ -129,8 +131,9 @@ namespace CML {
         }
 
     private:
-        Vectorf<256> mValues, mInv;
-
+        //Vectorf<256> mValues, mInv;
+        // use std array instead
+        std::array<float, 256> mValues, mInv;
     };
 
 }

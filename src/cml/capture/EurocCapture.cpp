@@ -38,7 +38,7 @@ CML::EurocCapture::EurocCapture(const std::string &path) {
     mCaptureImageGenerator = new CaptureImageGenerator(image.getWidth(), image.getHeight());
     mCalibration = parseInternalEurocCalibration(path + "/mav0/cam0/sensor.yaml", mCaptureImageGenerator->getOutputSize());
 
-    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1);
+    mVignette = Array2D<float>(image.getWidth(), image.getHeight(), 1.0f);
     mVignetteMax = 1;
 
     mIsInit = true;

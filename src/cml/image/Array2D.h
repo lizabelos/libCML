@@ -30,9 +30,50 @@ namespace CML {
 
         Array2D(int width, int height) : AbstractROArray2D<T>() {
             mMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>(width, height);
-            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-                    mMatrix(x,y) = T(0);
+            //if (initializeToZero) {
+            if (true) {
+                if (std::is_same<T, ColorRGB>::value || std::is_same<T, ColorRGBA>::value) {
+                    memset(mMatrix.data(), 0, sizeof(T) * width * height);
+                } else {
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            mMatrix(x, y) = T(0);
+                        }
+                    }
                 }
+            }
+            mData = mMatrix.data();
+        }
+
+        Array2D(bool initializeToZero, int width, int height) : AbstractROArray2D<T>() {
+            mMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>(width, height);
+            if (initializeToZero) {
+                if (std::is_same<T, ColorRGB>::value || std::is_same<T, ColorRGBA>::value) {
+                    memset(mMatrix.data(), 0, sizeof(T) * width * height);
+                } else {
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            mMatrix(x, y) = T(0);
+                        }
+                    }
+                }
+            }
+            mData = mMatrix.data();
+        }
+
+        void reconstruct(bool initializeToZero, int width, int height) {
+            mMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>(width, height);
+            if (initializeToZero) {
+                if (std::is_same<T, ColorRGB>::value || std::is_same<T, ColorRGBA>::value) {
+                    memset(mMatrix.data(), 0, sizeof(T) * width * height);
+                } else {
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            mMatrix(x, y) = T(0);
+                        }
+                    }
+                }
+            }
             mData = mMatrix.data();
         }
 
@@ -51,8 +92,7 @@ namespace CML {
         }
 
         Array2D(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other) : AbstractROArray2D<T>() {
-            mMatrix = other;
-            mData = mMatrix.data();
+            copyToThis(other);
         }
 
         Array2D(int width, int height, T* data) : AbstractROArray2D<T>() {
@@ -86,15 +126,21 @@ namespace CML {
         }
 
         Array2D& operator=(const Array2D<T> &other) {
-            mMatrix = other.mMatrix;
-            mData = mMatrix.data();
-            return *this;
+            return copyToThis(other);
         }
 
         Array2D& copyToThis(const Array2D<T> &other) {
-            mMatrix = other.mMatrix;
-            mData = mMatrix.data();
-            return *this;
+            // If T is ColorRGB or ColorRGBA, we can use memcpy
+            if (std::is_same<T, ColorRGB>::value || std::is_same<T, ColorRGBA>::value) {
+                mMatrix.resize(other.getWidth(), other.getHeight());
+                memcpy(mMatrix.data(), other.mMatrix.data(), sizeof(T) * other.getWidth() * other.getHeight());
+                mData = mMatrix.data();
+                return *this;
+            } else {
+                mMatrix = other.mMatrix;
+                mData = mMatrix.data();
+                return *this;
+            }
         }
 
         EIGEN_STRONG_INLINE int getWidth() const final {
