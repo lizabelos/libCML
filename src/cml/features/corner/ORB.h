@@ -126,7 +126,7 @@ namespace CML::Features {
         Parameter mIncreaseThreshold = createParameter("increaseThreshold", true);
         Parameter mIniThFAST = createParameter("iniThFAST", 20);
         Parameter mMinThFAST = createParameter("minThFAST", 7);
-        Parameter mNLevels = createParameter("nLevels", 1);
+        Parameter mNLevels = createParameter("nLevels", 7);
         Parameter mScaleFactor = createParameter("scaleFactor", 1.2f);
 
         List<int> mnFeaturesPerLevel;

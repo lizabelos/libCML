@@ -467,40 +467,44 @@ void CML::ModelWidget::timerEvent(QTimerEvent *e) {
 
 void CML::ModelWidget::onMessageLogged(const QOpenGLDebugMessage &debugMessage) {
 
+    std::string messageToDisplay = "ModelWidget got OpenGL debug message: ";
+    messageToDisplay += debugMessage.message().toStdString();
+
+    
     switch (debugMessage.type()) {
 
         case QOpenGLDebugMessage::InvalidType:
-            CML_LOG_ERROR(debugMessage.message().toStdString());
+            CML_LOG_ERROR(messageToDisplay);
             break;
         case QOpenGLDebugMessage::ErrorType:
-            CML_LOG_ERROR(debugMessage.message().toStdString());
+            CML_LOG_ERROR(messageToDisplay);
             break;
         case QOpenGLDebugMessage::DeprecatedBehaviorType:
-            CML_LOG_WARN(debugMessage.message().toStdString());
+            CML_LOG_WARN(messageToDisplay);
             break;
         case QOpenGLDebugMessage::UndefinedBehaviorType:
-            CML_LOG_WARN(debugMessage.message().toStdString());
+            CML_LOG_WARN(messageToDisplay);
             break;
         case QOpenGLDebugMessage::PortabilityType:
-            CML_LOG_WARN(debugMessage.message().toStdString());
+            CML_LOG_WARN(messageToDisplay);
             break;
         case QOpenGLDebugMessage::PerformanceType:
-            //CML_LOG_WARN(debugMessage.message().toStdString());
+            //CML_LOG_WARN(messageToDisplay);
             break;
         case QOpenGLDebugMessage::OtherType:
-            //CML_LOG_INFO(debugMessage.message().toStdString());
+            //CML_LOG_INFO(messageToDisplay);
             break;
         case QOpenGLDebugMessage::MarkerType:
-            //CML_LOG_INFO(debugMessage.message().toStdString());
+            //CML_LOG_INFO(messageToDisplay);
             break;
         case QOpenGLDebugMessage::GroupPushType:
-            //CML_LOG_INFO(debugMessage.message().toStdString());
+            //CML_LOG_INFO(messageToDisplay);
             break;
         case QOpenGLDebugMessage::GroupPopType:
-            //CML_LOG_INFO(debugMessage.message().toStdString());
+            //CML_LOG_INFO(messageToDisplay);
             break;
         case QOpenGLDebugMessage::AnyType:
-            //CML_LOG_INFO(debugMessage.message().toStdString());
+            //CML_LOG_INFO(messageToDisplay);
             break;
     }
 

@@ -87,6 +87,8 @@ else()
     find_package(Sophus REQUIRED)
 endif()
 
+add_subdirectory(thirdparty/spdlog)
+
 add_subdirectory(thirdparty/g2o)
 
 if (ANDROID)
@@ -168,7 +170,6 @@ add_subdirectory(thirdparty/gdcmjpeg)
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
     find_package(Qt6 NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
-    file(COPY resources/style.css DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 
@@ -322,6 +323,8 @@ add_library(CML STATIC
         src/cml/robust/RobustPoseLoss.cpp
         src/cml/robust/RobustRaulmurInitializer.cpp
 
+        src/cml/types/OS.cpp
+
         src/cml/utils/Logger.cpp
         src/cml/utils/GarbageCollector.cpp
         src/cml/utils/Complexity.cpp
@@ -349,7 +352,7 @@ add_library(CML STATIC
         src/cml/slam/calib/Calib.cpp
 )
 
-target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8)
+target_link_libraries(CML Threads::Threads ${EIGEN3_LIBRARY} ${SuiteSparse_LIBRARIES} ${LIBTIFF_LIBRARIES} gdcmjpeg8 spdlog::spdlog)
 target_include_directories(CML PUBLIC ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR} ${LIBZIP_INCLUDE_DIR} ${LIBTIFF_INCLUDE_DIR} /usr/src/suitesparse)
 
 if (USE_OPENMP)
@@ -421,14 +424,12 @@ endif()
 if (ENABLE_GUI)
     target_sources(CML PRIVATE src/cml/gui/widgets/ModelWidget.cpp src/cml/gui/widgets/ModelWidget.h
             src/cml/gui/drawboard/QtDrawBoard.cpp src/cml/gui/drawboard/QtDrawBoard.h
-            src/cml/gui/widgets/LoggerWidget.cpp src/cml/gui/widgets/LoggerWidget.h
             src/cml/gui/widgets/CameraViewerWidget.cpp ${CameraViewerWidgetSRC}
             src/cml/gui/widgets/Spoiler.cpp src/cml/gui/widgets/Spoiler.h
             src/cml/gui/widgets/GroupsWidget.cpp src/cml/gui/widgets/GroupsWidget.h
             src/cml/gui/drawboard/QtDrawBoardShaders.cpp src/cml/gui/drawboard/QtDrawBoardShaders.h
             src/cml/capture/QtWebcamCapture.cpp src/cml/capture/QtWebcamCapture.h
             src/cml/gui/MainSlamWidget.cpp src/cml/gui/MainSlamWidget.h
-            resources.qrc
             )
 
 
@@ -440,8 +441,6 @@ if (ENABLE_GUI)
                 src/cml/gui/widgets/ParameterFloatingSlider.cpp src/cml/gui/widgets/ParameterFloatingSlider.h
                 src/cml/gui/widgets/ParameterCheckbox.cpp src/cml/gui/widgets/ParameterCheckbox.h
                 src/cml/gui/widgets/StatisticWidget.cpp src/cml/gui/widgets/StatisticWidget.h
-                resources.qrc
-
        )
     endif()
 
@@ -456,6 +455,8 @@ if (ENABLE_GUI)
             src/cml/slam/modslam/indirect/Mapping.cpp
             src/cml/slam/modslam/direct/Mapping.cpp
             src/cml/slam/modslam/direct/Tracking.cpp
+            resources.qrc
+            thirdparty/QDarkStyleSheet/qdarkstyle/dark/darkstyle.qrc
             )
     set_target_properties(modslam PROPERTIES
             QT_ANDROID_PACKAGE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/android"
@@ -508,9 +509,6 @@ endif()
 if (ENABLE_ASSERT)
     target_compile_definitions(CML PUBLIC ENABLE_ASSERTTHROW_ON_RELEASE=1)
 endif()
-
-file(COPY resources DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
 
 #######################################################################################################################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

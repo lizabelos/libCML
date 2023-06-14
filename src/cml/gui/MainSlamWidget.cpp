@@ -60,7 +60,7 @@ CML::MainSlamWidget::MainSlamWidget(Ptr<AbstractSlam, NonNullable> slam, bool re
                    qDebug() << "Can't create directory resources";
                }
            }
-           if (!QFile::copy(":/resources/ORBvoc.zip", "resources/ORBvoc.zip")) {
+           if (!QFile::copy(":/modslam/resources/ORBvoc.zip", "resources/ORBvoc.zip")) {
                qDebug() << "Can't copy ORBvoc.zip";
                abort();
            }

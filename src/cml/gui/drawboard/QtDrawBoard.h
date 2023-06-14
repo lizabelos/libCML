@@ -17,7 +17,7 @@
 
 namespace CML {
 
-    class QtDrawBoard : public DrawBoard, private QtDrawBoardShaders {
+    class QtDrawBoard : public DrawBoard {
 
     public:
         QtDrawBoard(QOpenGLExtraFunctions *functions);
@@ -87,6 +87,12 @@ namespace CML {
 
         OptPFrame mLastCachedFrame;
         QOpenGLTexture *mCachedTexture = nullptr;
+
+        QtShaders::Color2d mColor2dShader;
+        QtShaders::Color3d mColor3dShader;
+        QtShaders::PointCloud mPointCloudShader;
+        QtShaders::SegmentPath mSegmentPathShader;
+        QtShaders::Texture mTextureShader;
 
     };
 

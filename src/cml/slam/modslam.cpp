@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QSurface>
 #include <QSurfaceFormat>
+#include <QDirIterator>
 #include <cml/gui/MainSlamWidget.h>
 #include <cml/capture/QtWebcamCapture.h>
 #endif
@@ -179,7 +180,8 @@ public:
     }
 
     virtual void onNewValue(Statistic *statistic, scalar_t x, scalar_t y) {
-        logger.raw("STAT " + mName + " " + std::to_string(x) + " " + std::to_string(y) + "\n");
+        std::string msg = "STAT " + mName + " " + std::to_string(x) + " " + std::to_string(y) + "\n";
+        printf(msg.c_str());
     }
 
 private:
@@ -214,7 +216,7 @@ int main(int argc, char *argv[])
 
     std::string executionPath = weakly_canonical(std::filesystem::path(argv[0])).parent_path().string();
 
-    logger.setLogLevel(CML::INFO);
+    //logger.setLogLevel(CML::INFO);
 
     printTypeSize();
 
@@ -283,9 +285,9 @@ int main(int argc, char *argv[])
 
     program.parse_args(argc, argv);
 
-    if (program["--verbose"] == true) {
+    /*if (program["--verbose"] == true) {
         logger.setLogLevel(CML::MORE);
-    }
+    }*/
 
     if (program["--reverse"] == true) {
         if (capture.isNotNull()) {
@@ -353,12 +355,20 @@ int main(int argc, char *argv[])
 #if CML_ENABLE_GUI
     else if (executionMode == GUI) {
         QApplication a(argc, argv);
-        Q_INIT_RESOURCE(resources);
 
-        QFile f("style.css");
-        if (f.open(QFile::ReadOnly | QFile::Text)) {
-            QString css = QTextStream(&f).readAll();
-            a.setStyleSheet(css);
+        Q_INIT_RESOURCE(resources);
+        Q_INIT_RESOURCE(darkstyle);
+
+        QFile f(":/qdarkstyle/dark/darkstyle.qss");
+
+        if (!f.exists())   {
+            printf("Unable to set stylesheet, file not found\n");
+            abort();
+        }
+        else   {
+            f.open(QFile::ReadOnly | QFile::Text);
+            QTextStream ts(&f);
+            a.setStyleSheet(ts.readAll());
         }
 
         MainSlamWidget w(slam, !saveImagePath.empty());

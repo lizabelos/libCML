@@ -90,7 +90,7 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
     //    throw std::runtime_error("Couldn't allocate packet for '" + path + "'");
    // }
 
-    logger << "Video '" << path << "' is open !" << endl;
+    CML_LOG_INFO("Video '" + std::string(path) + "' is open !");
 
     if (mHeight == 0) {
         mWidth = mCodecCtx->width;
@@ -99,7 +99,7 @@ CML::CaptureFFMPEG::CaptureFFMPEG(const std::string &path, unsigned int height, 
         mWidth = mCodecCtx->width * mHeight / mCodecCtx->height;
     }
 
-    logger << "The images will be resized to " << mWidth << "x" << mHeight << endl;
+    CML_LOG_INFO("The images will be resized to " + std::to_string(mWidth) + "x" + std::to_string(mHeight));
 
     mVignette = Array2D<float>(mWidth, mHeight, 1.0f);
 
@@ -142,7 +142,7 @@ CML::Ptr<CML::CaptureImage, CML::Nullable> CML::CaptureFFMPEG::next() {
 
 void CML::CaptureFFMPEG::ffmpegRun() {
 
-    logger << "Playing video" << endl;
+    CML_LOG_INFO("Playing video '" + std::string(mPath) + "'");
 
     AVPacket packet;
 

@@ -175,7 +175,7 @@ CML::Ptr<CML::Frame, 1> CML::AbstractSlam::getNextFrame() {
         resolutionsStr += std::to_string(currentFrame->getWidth(i)) + "x" + std::to_string(currentFrame->getHeight(i));
     }
 
-    CML::logger.raw("New frame. Id = " + std::to_string(currentFrame->getId()) + ". Pyramid resolutions : " + resolutionsStr + "\n");
+    CML_LOG_IMPORTANT("New frame. Id = " + std::to_string(currentFrame->getId()) + ". Pyramid resolutions : " + resolutionsStr + "\n");
 
     return currentFrame;
 }
@@ -197,7 +197,8 @@ void CML::AbstractSlam::addFrame(PFrame currentFrame) {
     std::string strRam = "ram : " + std::to_string(OS::memoryUsage()) + "mb";
     std::string strFps = "fps : " + std::to_string((int)getTimer().fps(currentFrame->getId()));
 
-    logger.setPrefix(strFrame + "; " + strPercentage);
+    spdlog::set_pattern("[%H:%M:%S %z] [" + strFrame + ";" + strPercentage + "] [%l] [thread %t] %v");
+    //logger.setPrefix(strFrame + "; " + strPercentage);
 }
 
 CML::Ptr<CML::CaptureImage, CML::Nullable> CML::AbstractSlam::getLastCaptureFrame() {

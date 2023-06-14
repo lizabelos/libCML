@@ -26,7 +26,6 @@
 #include "cml/gui/widgets/ModelWidget.h"
 #ifndef ANDROID
 #include "cml/gui/widgets/FunctionListWidget.h"
-#include "cml/gui/widgets/LoggerWidget.h"
 #endif
 #include "cml/gui/widgets/CameraViewerWidget.h"
 #include "cml/base/AbstractSlam.h"

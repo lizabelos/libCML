@@ -1,6 +1,14 @@
 <RCC>
-    <qresource prefix="/">
+    <qresource prefix="modslam">
         <file alias="resources/ORBvoc.zip">resources/ORBvoc.zip</file>
-        <file alias="resources/reference.jpg">resources/reference.jpg</file>
+        <file alias="resources/shaders/fscolor.glsl">resources/shaders/fscolor.glsl</file>
+        <file alias="resources/shaders/fspath.glsl">resources/shaders/fspath.glsl</file>
+        <file alias="resources/shaders/fspc.glsl">resources/shaders/fspc.glsl</file>
+        <file alias="resources/shaders/fstexture.glsl">resources/shaders/fstexture.glsl</file>
+        <file alias="resources/shaders/version.glsl">resources/shaders/version.glsl</file>
+        <file alias="resources/shaders/vs2d.glsl">resources/shaders/vs2d.glsl</file>
+        <file alias="resources/shaders/vs3d.glsl">resources/shaders/vs3d.glsl</file>
+        <file alias="resources/shaders/vspath.glsl">resources/shaders/vspath.glsl</file>
+        <file alias="resources/shaders/vspc.glsl">resources/shaders/vspc.glsl</file>
     </qresource>
 </RCC>

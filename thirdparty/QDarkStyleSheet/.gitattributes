@@ -1,0 +1,13 @@
+docs/* linguist-documentation
+
+qdarkstyle/dark/rc/* linguist-generated
+qdarkstyle/dark/_variables.scss linguist-generated
+qdarkstyle/dark/darkstyle_rc.py linguist-generated
+qdarkstyle/dark/darkstyle.qrc linguist-generated
+qdarkstyle/dark/darkstyle.qss linguist-generated
+
+qdarkstyle/light/rc/* linguist-generated
+qdarkstyle/light/_variables.scss linguist-generated
+qdarkstyle/light/lightstyle_rc.py linguist-generated
+qdarkstyle/light/lightstyle.qrc linguist-generated
+qdarkstyle/light/lightstyle.qss linguist-generated

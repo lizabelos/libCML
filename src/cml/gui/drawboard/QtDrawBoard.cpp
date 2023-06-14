@@ -14,12 +14,17 @@ inline QMatrix4x4 EigenToQt(Eigen::Matrix4f m) {
     return QMatrix4x4(m.data()).transposed();
 }
 
-CML::QtDrawBoard::QtDrawBoard(QOpenGLExtraFunctions *functions) : QtDrawBoardShaders(), mFunctions(functions) {
-
+CML::QtDrawBoard::QtDrawBoard(QOpenGLExtraFunctions *functions) : mFunctions(functions) {
 
     mColor = Eigen::Vector3f(0,0,0);
     mPointSize = 1;
     mLineWidth = 1;
+
+    mColor2dShader.load(mFunctions);
+    mColor3dShader.load(mFunctions);
+    mTextureShader.load(mFunctions);
+    mPointCloudShader.load(mFunctions);
+    mSegmentPathShader.load(mFunctions);
 
 }
 
@@ -61,10 +66,10 @@ void CML::QtDrawBoard::segment(Eigen::Vector2f a, Eigen::Vector2f b) {
             b.x(), b.y(), 1
     };
 
-    m2DColorProgram.enableAttributeArray(m2DPositionLocation);
-    m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)segment, 3, 0);
-    mFunctions->glDrawArrays(GL_LINES,0,2);
-    m2DColorProgram.disableAttributeArray(m2DPositionLocation);
+    mColor2dShader.enableAttributeArray("aVertexPosition");
+    mColor2dShader.setAttributeArray("aVertexPosition", (const GLfloat*)segment, 3, 0);
+    mColor2dShader.glDrawArrays(GL_LINES,0,2);
+    mColor2dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::point(Eigen::Vector2f a) {
@@ -77,10 +82,10 @@ void CML::QtDrawBoard::point(Eigen::Vector2f a) {
             a.x(), a.y(), 1
     };
 
-    m2DColorProgram.enableAttributeArray(m2DPositionLocation);
-    m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)point, 3, 0);
-    mFunctions->glDrawArrays(GL_POINTS,0,1);
-    m2DColorProgram.disableAttributeArray(m2DPositionLocation);
+    mColor2dShader.enableAttributeArray("aVertexPosition");
+    mColor2dShader.setAttributeArray("aVertexPosition", (const GLfloat*)point, 3, 0);
+    mColor2dShader.glDrawArrays(GL_POINTS,0,1);
+    mColor2dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::segments(std::vector<Eigen::Vector2f> points) {
@@ -90,10 +95,10 @@ void CML::QtDrawBoard::segments(std::vector<Eigen::Vector2f> points) {
     std::vector<Eigen::Vector3f> hpoints;
     for (auto point : points) hpoints.emplace_back(transform2D(point).homogeneous());
 
-    m2DColorProgram.enableAttributeArray(m2DPositionLocation);
-    m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)hpoints.data(), 3, 0);
-    mFunctions->glDrawArrays(GL_LINES,0,hpoints.size());
-    m2DColorProgram.disableAttributeArray(m2DPositionLocation);
+    mColor2dShader.enableAttributeArray("aVertexPosition");
+    mColor2dShader.setAttributeArray("aVertexPosition", (const GLfloat*)hpoints.data(), 3, 0);
+    mColor2dShader.glDrawArrays(GL_LINES,0,hpoints.size());
+    mColor2dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::points(std::vector<Eigen::Vector2f> points) {
@@ -104,10 +109,10 @@ void CML::QtDrawBoard::points(std::vector<Eigen::Vector2f> points) {
     for (auto point : points) hpoints.emplace_back(transform2D(point).homogeneous());
 
 
-    m2DColorProgram.enableAttributeArray(m2DPositionLocation);
-    m2DColorProgram.setAttributeArray(m2DPositionLocation, (const GLfloat*)hpoints.data(), 3, 0);
-    mFunctions->glDrawArrays(GL_POINTS,0,hpoints.size());
-    m2DColorProgram.disableAttributeArray(m2DPositionLocation);
+    mColor2dShader.enableAttributeArray("aVertexPosition");
+    mColor2dShader.setAttributeArray("aVertexPosition", (const GLfloat*)hpoints.data(), 3, 0);
+    mColor2dShader.glDrawArrays(GL_POINTS,0,hpoints.size());
+    mColor2dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::segment(Eigen::Vector3f a, Eigen::Vector3f b) {
@@ -119,55 +124,51 @@ void CML::QtDrawBoard::segment(Eigen::Vector3f a, Eigen::Vector3f b) {
             b.x(), b.y(), b.z()
     };
 
-    m3DColorProgram.enableAttributeArray(m3DPositionLocation);
-    m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)segment, 3, 0);
-    mFunctions->glDrawArrays(GL_LINES,0,2);
-    m3DColorProgram.disableAttributeArray(m3DPositionLocation);
+    mColor3dShader.enableAttributeArray("aVertexPosition");
+    mColor3dShader.setAttributeArray("aVertexPosition", (const GLfloat*)segment, 3, 0);
+    mColor3dShader.glDrawArrays(GL_LINES,0,2);
+    mColor3dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::point(Eigen::Vector3f a) {
     load3DProgram();
 
-    m3DColorProgram.enableAttributeArray(m3DPositionLocation);
-    m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)a.data(), 3, 0);
-    mFunctions->glDrawArrays(GL_POINTS,0,1);
-    m3DColorProgram.disableAttributeArray(m3DPositionLocation);
+    mColor3dShader.enableAttributeArray("aVertexPosition");
+    mColor3dShader.setAttributeArray("aVertexPosition", (const GLfloat*)a.data(), 3, 0);
+    mColor3dShader.glDrawArrays(GL_POINTS,0,1);
+    mColor3dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::segments(std::vector<Eigen::Vector3f> points) {
     load3DProgram();
     //glLineWidth(mLineWidth);
 
-    m3DColorProgram.enableAttributeArray(m3DPositionLocation);
-    m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)points.data(), 3, 0);
-    mFunctions->glDrawArrays(GL_LINES,0,points.size());
-    m3DColorProgram.disableAttributeArray(m3DPositionLocation);
+    mColor3dShader.enableAttributeArray("aVertexPosition");
+    mColor3dShader.setAttributeArray("aVertexPosition", (const GLfloat*)points.data(), 3, 0);
+    mColor3dShader.glDrawArrays(GL_LINES,0,points.size());
+    mColor3dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::points(std::vector<Eigen::Vector3f> points) {
     load3DProgram();
 
-    m3DColorProgram.enableAttributeArray(m3DPositionLocation);
-    m3DColorProgram.setAttributeArray(m3DPositionLocation, (const GLfloat*)points.data(), 3, 0);
-    mFunctions->glDrawArrays(GL_POINTS,0,points.size());
-    m3DColorProgram.disableAttributeArray(m3DPositionLocation);
+    mColor3dShader.enableAttributeArray("aVertexPosition");
+    mColor3dShader.setAttributeArray("aVertexPosition", (const GLfloat*)points.data(), 3, 0);
+    mColor3dShader.glDrawArrays(GL_POINTS,0,points.size());
+    mColor3dShader.disableAttributeArray("aVertexPosition");
 }
 
 void CML::QtDrawBoard::load2DProgram() {
-
-    m2DColorProgram.bind();
-    m2DColorProgram.setUniformValue(m2DColorLocation, QVector4D(mColor.x(), mColor.y(), mColor.z(), 1));
-    m2DColorProgram.setUniformValue(m2DPointSizeLocation, (GLfloat)mPointSize);
-
+    mColor2dShader.bind();
+    mColor2dShader.setUniformValue("uColor", mColor.x(), mColor.y(), mColor.z(), 1);
+    mColor2dShader.setUniformValue("uPointSize", mPointSize);
 }
 
 void CML::QtDrawBoard::load3DProgram() {
-
-    m3DColorProgram.bind();
-    m3DColorProgram.setUniformValue(m3DColorLocation, QVector4D(mColor.x(), mColor.y(), mColor.z(), 1));
-    m3DColorProgram.setUniformValue(m3DColorMVPLocation, EigenToQt(mProjectionMatrix * mCameraMatrix * mModelMatrix));
-    m3DColorProgram.setUniformValue(m3DPointSizeLocation, (GLfloat)mPointSize);
-
+    mColor3dShader.bind();
+    mColor3dShader.setUniformValue("uColor", mColor.x(), mColor.y(), mColor.z(), 1);
+    mColor3dShader.setUniformValue("uMVPMatrix", mProjectionMatrix * mCameraMatrix * mModelMatrix);
+    mColor3dShader.setUniformValue("uPointSize", mPointSize);
 }
 
 void CML::QtDrawBoard::setProjectionMatrix(Eigen::Matrix4f matrix) {
@@ -187,12 +188,11 @@ void CML::QtDrawBoard::texture(const Image &oslamImage, float x, float y, float 
     image = image.rgbSwapped();
     QOpenGLTexture texture(image);
 
-    m2DTextureProgram.bind();
+    mTextureShader.bind();
 
     // glActiveTexture(GL_TEXTURE0);
     texture.bind();
-    m2DTextureProgram.enableAttributeArray(m2DTextureLocation);
-    m2DTextureProgram.setUniformValue(m2DTextureLocation, 0);
+    mTextureShader.glUniform1i("uTexture", 0);
 
     std::vector<Eigen::Vector3f> vertexs;
     vertexs.emplace_back(Eigen::Vector3f( x, y, 0));
@@ -207,17 +207,16 @@ void CML::QtDrawBoard::texture(const Image &oslamImage, float x, float y, float 
     texcoords.emplace_back(Eigen::Vector3f( 0, 0, 0));
 
 
-    m2DTextureProgram.enableAttributeArray(m2DTexturePositionLocation);
-    m2DTextureProgram.setAttributeArray(m2DTexturePositionLocation, (const GLfloat*)vertexs.data(), 3, 0);
+    mTextureShader.enableAttributeArray("aVertexPosition");
+    mTextureShader.setAttributeArray("aVertexPosition", (const GLfloat*)vertexs.data(), 3, 0);
 
-    m2DTextureProgram.enableAttributeArray(m2DTextureCoordsLocation);
-    m2DTextureProgram.setAttributeArray(m2DTextureCoordsLocation, (const GLfloat*)texcoords.data(), 3, 0);
+    mTextureShader.enableAttributeArray("aVertexTexCoord");
+    mTextureShader.setAttributeArray("aVertexTexCoord", (const GLfloat*)texcoords.data(), 3, 0);
 
-    mFunctions->glDrawArrays(GL_TRIANGLE_FAN,0,4);
+    mTextureShader.glDrawArrays( GL_TRIANGLE_FAN,0,4);
 
-    m2DTextureProgram.disableAttributeArray(m2DTextureCoordsLocation);
-    m2DTextureProgram.disableAttributeArray(m2DTexturePositionLocation);
-    m2DTextureProgram.disableAttributeArray(m2DTextureLocation);
+    mTextureShader.disableAttributeArray("aVertexTexCoord");
+    mTextureShader.disableAttributeArray("aVertexPosition");
 
 }
 
@@ -231,12 +230,11 @@ void CML::QtDrawBoard::texture(PFrame &frame, float x, float y, float width, flo
         mLastCachedFrame = frame;
     }
 
-    m2DTextureProgram.bind();
+    mTextureShader.bind();
 
     // glActiveTexture(GL_TEXTURE0);
     mCachedTexture->bind();
-    m2DTextureProgram.enableAttributeArray(m2DTextureLocation);
-    m2DTextureProgram.setUniformValue(m2DTextureLocation, 0);
+    mTextureShader.setUniformValue("uTexture", 0);
 
 
 
@@ -254,17 +252,16 @@ void CML::QtDrawBoard::texture(PFrame &frame, float x, float y, float width, flo
     texcoords.emplace_back(Eigen::Vector3f( 0, 0, 0));
 
 
-    m2DTextureProgram.enableAttributeArray(m2DTexturePositionLocation);
-    m2DTextureProgram.setAttributeArray(m2DTexturePositionLocation, (const GLfloat*)vertexs.data(), 3, 0);
+    mTextureShader.enableAttributeArray("aVertexPosition");
+    mTextureShader.setAttributeArray("aVertexPosition", (const GLfloat*)vertexs.data(), 3, 0);
 
-    m2DTextureProgram.enableAttributeArray(m2DTextureCoordsLocation);
-    m2DTextureProgram.setAttributeArray(m2DTextureCoordsLocation, (const GLfloat*)texcoords.data(), 3, 0);
+    mTextureShader.enableAttributeArray("aVertexTexCoord");
+    mTextureShader.setAttributeArray("aVertexTexCoord", (const GLfloat*)texcoords.data(), 3, 0);
 
-    mFunctions->glDrawArrays(GL_TRIANGLE_FAN,0,4);
+    mTextureShader.glDrawArrays(GL_TRIANGLE_FAN,0,4);
 
-    m2DTextureProgram.disableAttributeArray(m2DTextureCoordsLocation);
-    m2DTextureProgram.disableAttributeArray(m2DTexturePositionLocation);
-    m2DTextureProgram.disableAttributeArray(m2DTextureLocation);
+    mTextureShader.disableAttributeArray("aVertexTexCoord");
+    mTextureShader.disableAttributeArray("aVertexPosition");
 
 }
 
@@ -303,32 +300,32 @@ void CML::QtDrawBoard::pointCloud(scalar_t *coords, scalar_t *colors, unsigned i
 
     //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
-    mPCProgram.bind();
-    mPCProgram.setUniformValue(mPCMVPLocation, EigenToQt(mProjectionMatrix * mCameraMatrix * mModelMatrix));
-    mPCProgram.setUniformValue(mPCVarianceFilterLocation, (GLfloat)varianceFilter);
-    mFunctions->glUniform1ui(mPCGroupsFilterLocation, groupsFilter);
+    mPointCloudShader.bind();
+    mPointCloudShader.setUniformValue("uMVPMatrix", mProjectionMatrix * mCameraMatrix * mModelMatrix);
+    mPointCloudShader.setUniformValue("uVarianceFilter", (GLfloat)varianceFilter);
+    mPointCloudShader.glUniform1i( "uGroupsFilter", groupsFilter);
 
-    mPCProgram.enableAttributeArray(mPCPositionLocation);
-    mFunctions->glVertexAttribPointer(mPCPositionLocation, 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)coords);
-    //mPCProgram.setAttributeArray(mPCPositionLocation, (const GLfloat *)coords, 3, 0);
+    mPointCloudShader.enableAttributeArray("aVertexPosition");
+    mPointCloudShader.glVertexAttribPointer( "aVertexPosition", 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)coords);
+    //mPointCloudShader.setAttributeArray("aVertexPosition", (const GLfloat *)coords, 3, 0);
 
-    mPCProgram.enableAttributeArray(mPCColorLocation);
-    mFunctions->glVertexAttribPointer(mPCColorLocation, 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)colors);
-    // mPCProgram.setAttributeArray(mPCColorLocation, (const GLfloat*)colors, 3, 0);
+    mPointCloudShader.enableAttributeArray("aColor");
+    mPointCloudShader.glVertexAttribPointer( "aColor", 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)colors);
+    // mPointCloudShader.setAttributeArray("aColor", (const GLfloat*)colors, 3, 0);
 
-    mPCProgram.enableAttributeArray(mPCGroupsLocation);
-    mFunctions->glVertexAttribIPointer(mPCGroupsLocation, 1, GL_INT, 0, (const GLint *)groups);
+    mPointCloudShader.enableAttributeArray("aGroups");
+    mPointCloudShader.glVertexAttribIPointer( "aGroups", 1, GL_INT, 0, (const GLint *)groups);
 
-    mPCProgram.enableAttributeArray(mPCVarianceLocation);
-    mFunctions->glVertexAttribPointer(mPCVarianceLocation, 1, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)variance);
-    //mPCProgram.setAttributeArray(mPCVarianceLocation, (const GLfloat*)variance, 1, 0);
+    mPointCloudShader.enableAttributeArray("aVariance");
+    mPointCloudShader.glVertexAttribPointer( "aVariance", 1, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)variance);
+    //mPointCloudShader.setAttributeArray("aVariance", (const GLfloat*)variance, 1, 0);
 
 
-    mFunctions->glDrawArrays(GL_POINTS,0,size);
+    mPointCloudShader.glDrawArrays(GL_POINTS,0,size);
 
-    mPCProgram.disableAttributeArray(mPCPositionLocation);
-    mPCProgram.disableAttributeArray(mPCColorLocation);
-    mPCProgram.disableAttributeArray(mPCVarianceLocation);
+    mPointCloudShader.disableAttributeArray("aVertexPosition");
+    mPointCloudShader.disableAttributeArray("aColor");
+    mPointCloudShader.disableAttributeArray("aVariance");
 }
 
 void CML::QtDrawBoard::cacheTexture(PFrame frame) {
@@ -370,15 +367,15 @@ void CML::QtDrawBoard::cameraPath(scalar_t *coords, size_t size) {
 
     //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
-    mPathProgram.bind();
-    mPathProgram.setUniformValue(mPathMVPLocation, EigenToQt(mProjectionMatrix * mCameraMatrix * mModelMatrix));
+    mSegmentPathShader.bind();
+    mSegmentPathShader.setUniformValue("uMVPMatrix", mProjectionMatrix * mCameraMatrix * mModelMatrix);
 
-    mPathProgram.enableAttributeArray(mPathPositionLocation);
-    mFunctions->glVertexAttribPointer(mPathPositionLocation, 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)coords);
+    mSegmentPathShader.enableAttributeArray("aVertexPosition");
+    mSegmentPathShader.glVertexAttribPointer( "aVertexPosition", 3, CML_GL_SCALAR, GL_FALSE, 0, (const scalar_t *)coords);
 
 
     mFunctions->glDrawArrays(GL_LINE_STRIP,0,size);
 
-    mPathProgram.disableAttributeArray(mPathPositionLocation);
+    mSegmentPathShader.disableAttributeArray("aVertexPosition");
 
 }

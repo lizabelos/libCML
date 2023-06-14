@@ -160,7 +160,7 @@ namespace CML {
 
 CML::InternalCalibration* CML::parseInternalTumCalibration(std::string path, Vector2i outputSize) {
     std::ifstream f(path.c_str());
-    logger << "Reading Photometric Calibration from file " << path << endl;
+    CML_LOG_INFO("Reading Photometric Calibration from file " + path);
     if (!f.good())
     {
         throw std::runtime_error("Couldn't open " + path + "'");
