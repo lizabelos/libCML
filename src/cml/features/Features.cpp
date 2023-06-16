@@ -6,21 +6,38 @@
 #include <climits>
 #include <memory>
 
+std::vector<int> gDistances;
+
+void initializaDescDistances(int N) {
+    if (gDistances.size() < N * N) {
+        gDistances.resize(N * N);
+    }
+    memset(&gDistances[0], 0, N * N * sizeof(int));
+}
+
+inline int &getDescDistance(int i, int j, int N) {
+    return gDistances[i * N + j];
+}
+
+inline int *getDescDistances(int i, int N) {
+    return &gDistances[i * N];
+}
+
 template <int DESCSIZE>
 CML::BinaryDescriptor<DESCSIZE> CML::computeDistinctiveDescriptors(List<BinaryDescriptor<DESCSIZE>> &descriptors) {
 
     // Compute distances between them
     const size_t N = descriptors.size();
 
-    float distances[N][N];
+    initializaDescDistances(N);
+
     for(size_t i=0;i<N;i++)
     {
-        distances[i][i]=0;
         for(size_t j=i+1;j<N;j++)
         {
             int distij = descriptors[i].distance(descriptors[j]);
-            distances[i][j]=distij;
-            distances[j][i]=distij;
+            getDescDistance(i,j,N)=distij;
+            getDescDistance(j,i,N)=distij;
         }
     }
 
@@ -29,12 +46,10 @@ CML::BinaryDescriptor<DESCSIZE> CML::computeDistinctiveDescriptors(List<BinaryDe
     int bestIdx = 0;
     for(size_t i = 0; i < N; i++)
     {
-        List<int> dists(distances[i],distances[i] + N);
-        //int m = median(dists);
-        // use nth_element to partition the data into the smallest N/2 and largest N/2
-        std::nth_element(dists.begin(), dists.begin() + dists.size()/2, dists.end());
+        auto dists = getDescDistances(i,N);
+        std::nth_element(&dists[0], &dists[0] + N/2, &dists[0] + N);
 
-        int m = dists[dists.size()/2];
+        int m = dists[N/2];
 
         if(m < bestMedian)
         {

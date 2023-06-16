@@ -308,6 +308,9 @@ CML::OptPFrame CML::Map::getLastGroupFrame(int groupId, int n) {
     if (mGroupsFrames[groupId].empty()) {
         return {};
     }
+    if (n >= mGroupsFrames[groupId].size()) {
+        return {};
+    }
     auto it = mGroupsFrames[groupId].begin();
     std::advance(it, n);
     return *(it);

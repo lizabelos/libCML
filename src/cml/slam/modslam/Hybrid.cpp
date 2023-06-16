@@ -336,6 +336,15 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
     scalar_t mode = 0;
     scalar_t modeSum = 0;
 
+    if (mEnableDirect.b() && !mTrackingOk) {
+        mTrackingOk = indirectTrackWithCMLGraph(currentFrame);
+        if (mTrackingOk) {
+            mode = mode + 2;
+            modeSum = modeSum + 2;
+            mTrackedWithIndirect = true;
+        }
+    }
+/*
     if (mEnableIndirect.b() && !mTrackingOk) {
         mTrackingOk = indirectTrackWithMotionModel(currentFrame);
         if (mTrackingOk) {
@@ -352,10 +361,12 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
             modeSum = modeSum + 2;
             mTrackedWithIndirect = true;
         }
-    }
+    }*/
 
     if (!mTrackingOk) {
         CML_LOG_ERROR("ORB Tracking failed");
+    } else {
+        currentFrame->setGroup(ORBTRACKEDFRAME, true);
     }
 
     /* if (!mTrackingOk) {
@@ -363,10 +374,10 @@ void Hybrid::trackWithOrbAndDsoRefinement(PFrame currentFrame) {
 
      }*/
 
+
     if (mEnableDirect.b()) {
 
         if (mTrackingOk) {
-            currentFrame->setGroup(ORBTRACKEDFRAME, true);
             Camera camera = currentFrame->getCamera();
             Exposure exposure = currentFrame->getExposure();
             mLastPhotometricTrackingResidual = mPhotometricTracker->optimize(mLastPhotometricTrackingResidual, 0, currentFrame, mPhotometricTracker->getLastComputed(), camera, exposure);

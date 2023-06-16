@@ -79,6 +79,201 @@ Optional<Binary256Descriptor> Hybrid::findDescriptor(PPoint point) {
     return d;
 }
 
+bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
+
+    Camera motionToTry = getMap().getLastFrame(1)->getCamera() * getMap().getLastFrame(2)->getCamera().to(getMap().getLastFrame(1)->getCamera());
+
+    OptPFrame lastFrame = mLastFrame;
+    OptPFrame lastKeyFrame = getMap().getLastGroupFrame(CML::AbstractSlam::getMap().KEYFRAME);
+
+    if (lastFrame.isNull()) {
+        return false;
+    }
+
+    if (lastKeyFrame.isNull()) {
+        return false;
+    }
+
+    if (!have(lastFrame)) {
+        return false;
+    }
+
+    if (!have(lastKeyFrame)) {
+        return false;
+    }
+
+    if (lastFrame == lastKeyFrame) {
+        lastKeyFrame = getMap().getLastGroupFrame(CML::AbstractSlam::getMap().KEYFRAME, 2);
+    }
+
+    if (lastKeyFrame.isNull()) {
+        return false;
+    }
+
+    if (!have(lastKeyFrame)) {
+        return false;
+    }
+
+    PointSet activePoints = getMap().getGroupMapPoints(ACTIVEINDIRECTPOINT);
+
+    HashMap<PPoint, Eigen::SparseVector<scalar_t>> scores;
+
+    int currentFeatureId = get(currentFrame)->featureId;
+    List<Corner> currentCorners = currentFrame->getFeaturePoints(currentFeatureId);
+    List<Descriptor> &currentDescriptors = get(currentFrame)->descriptors;
+    int currentCornersNum = currentDescriptors.size();
+
+
+    List<Descriptor> &lastFrameDescriptors = get(lastFrame)->descriptors;
+    List<Descriptor> &lastKeyFrameDescriptors = get(lastKeyFrame)->descriptors;
+
+    List<NearestNeighbor> nearestNeighbor;
+
+    for (PPoint point : activePoints) {
+
+        DistortedVector2d projection = currentFrame->distort(point->getWorldCoordinate().project(currentFrame->getCamera()), 0);
+
+        // currentFrame->processNearestNeighbors(currentFeatureId, projection, 20, nearestNeighbor); // todo : 20 is a parameter
+        currentFrame->processNearestNeighborsInRadius(currentFeatureId, projection, 14, nearestNeighbor); // todo : 20 is a parameter
+
+        for (auto &nn : nearestNeighbor) {
+
+            DistortedVector2d projection;
+            int nPredictedLevel;
+            scalar_t viewCos;
+            if (!Features::computeViewcosAndScale(point, currentFrame, motionToTry, projection, viewCos, nPredictedLevel)) {
+                continue;
+            }
+
+            // matching.set(nn.index, i, descriptorsB[i].distance(descriptorsA[nn.index]));
+            scalar_t distScore = 0;
+            if (nn.distance <= 1.0) {
+                distScore = 99999;
+            } else {
+                distScore = 1000.0 / nn.distance;
+            }
+            //scalar_t descriptorScore = 1000.0 / currentDescriptors[nn.index].distance(point->getDescriptor<Binary256Descriptor>());
+            scalar_t descriptorScore = 0;
+            scalar_t levelScore = 1000.0 / (1 + std::abs(nPredictedLevel - currentCorners[nn.index].level()));
+
+            FeatureIndex lastFrameIndex = lastFrame->getIndex(point);
+            if (lastFrameIndex.hasValidValue()) {
+                scalar_t dist = currentDescriptors[nn.index].distance(lastFrameDescriptors[lastFrameIndex.index]);
+                if (dist < 1.0) {
+                    descriptorScore += 99999;
+                } else {
+                    descriptorScore += 1000.0 / dist;
+                }
+            }
+
+            FeatureIndex lastKeyFrameIndex = lastKeyFrame->getIndex(point);
+            if (lastKeyFrameIndex.hasValidValue()) {
+                scalar_t dist = currentDescriptors[nn.index].distance(lastKeyFrameDescriptors[lastKeyFrameIndex.index]);
+                if (dist < 1.0) {
+                    descriptorScore += 99999;
+                } else {
+                    descriptorScore += 1000.0 / dist;
+                }
+            }
+
+            scalar_t score = distScore + descriptorScore + levelScore;
+
+            if (score < 2000) {
+                continue;
+            }
+
+            if (scores.find(point) == scores.end()) {
+                //scores[point] = List<int>(currentCornersNum, 0);
+                scores[point].resize(currentCornersNum); // todo : use a sparse matrix ?
+            }
+
+            // compute maxScore
+            scalar_t maxScore = 0;
+            for (Eigen::SparseVector<double>::InnerIterator it(scores[point]); it; ++it) {
+                if (it.value() > maxScore) {
+                    maxScore = it.value();
+                }
+            }
+
+            if (score > maxScore * 0.8) {
+                scores[point].coeffRef(nn.index) += score;
+                scores[point].prune(score * 0.8);
+            }
+
+        }
+
+    }
+
+    List<Matching> matchings;
+    List<bool> outliers;
+
+
+    for (auto &score : scores) {
+        PPoint point = score.first;
+        auto &pointScores = score.second;
+
+        int maxScore = 0;
+        for (Eigen::SparseVector<double>::InnerIterator it(pointScores); it; ++it) {
+            scalar_t score = it.value();
+            if (score > maxScore) {
+                maxScore = score;
+            }
+        }
+
+        for (Eigen::SparseVector<double>::InnerIterator it(pointScores); it; ++it) {
+            scalar_t score = it.value();
+            if (score > maxScore * 0.8) {
+                // scalar_t descriptorDistance, PFrame frameA, PFrame frameB, FeatureIndex indexA, FeatureIndex indexB
+                PFrame frameB = *point->getIndirectApparitions().begin();
+                Matching matching(1.0 / score, currentFrame, frameB, FeatureIndex(currentFeatureId, it.index()), frameB->getIndex(point));
+                matching.getMapPoint()->getWorldCoordinate();
+                matchings.emplace_back(matching);
+
+                if (score == maxScore) {
+                    outliers.emplace_back(false);
+                } else {
+                    outliers.emplace_back(true);
+                }
+
+            }
+
+        }
+
+    }
+
+
+
+    if (matchings.size() < 20) {
+        CML_LOG_IMPORTANT("Not accepting the tracking with motion model because of the number of matchings");
+        return false;
+    }
+
+    mLastIndirectTrackingResult = mPnP->optimize(currentFrame, motionToTry, matchings, outliers, mTrackcondUncertaintyWeight.f() > 0);
+    if (!mLastIndirectTrackingResult.isOk) {
+        CML_LOG_IMPORTANT("Not accepting the tracking with motion model because the optimization failed");
+        return false;
+    }
+
+
+
+    mLastOrbTrackingInliersRatio = 0.5; // todo : hack
+
+    assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
+
+        currentFrame->setCamera(mLastIndirectTrackingResult.camera);
+        for (size_t i = 0; i < matchings.size(); i++) {
+            if (outliers[i]) {
+                continue;
+            }
+            if (currentFrame->setMapPoint(matchings[i].getIndexA(currentFrame), matchings[i].getMapPoint())) {
+                currentFrame->addDirectApparitions(matchings[i].getMapPoint());
+            }
+        }
+        return true;
+
+
+
+}
 
 bool Hybrid::indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> optionalMotionToTry) {
     mLastHaveSucceedCVMM = 1;

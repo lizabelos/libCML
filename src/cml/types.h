@@ -945,6 +945,15 @@ namespace CML {
 
     extern Atomic<size_t> *mHashCounter;
 
+    typedef struct NearestNeighbor {
+        NearestNeighbor() {
+        }
+        NearestNeighbor(size_t _index, scalar_t _distance) : index(_index), distance(_distance) {
+        }
+        size_t index;
+        scalar_t distance;
+    } NearestNeighbor;
+
     class DeterministicallyHashable {
 
     public:
@@ -999,6 +1008,9 @@ namespace CML {
         }
         inline size_t operator()(const std::string &a, const std::string &b) const {
             return a > b;
+        }
+        inline size_t operator()(const NearestNeighbor &a, const NearestNeighbor &b) const {
+            return a.distance > b.distance;
         }
     };
 
@@ -1345,15 +1357,6 @@ namespace CML {
         }
 
     } FeatureIndex;
-
-    typedef struct NearestNeighbor {
-        NearestNeighbor() {
-        }
-        NearestNeighbor(size_t _index, scalar_t _distance) : index(_index), distance(_distance) {
-        }
-        size_t index;
-        scalar_t distance;
-    } NearestNeighbor;
 
     template <typename T> class PointGrid;
 

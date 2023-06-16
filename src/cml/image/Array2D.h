@@ -87,12 +87,12 @@ namespace CML {
         }
 
         Array2D(const Array2D<T> &other) : AbstractROArray2D<T>() {
-            mMatrix = other.mMatrix;
-            mData = mMatrix.data();
+            copyToThis(other);
         }
 
         Array2D(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other) : AbstractROArray2D<T>() {
-            copyToThis(other);
+            mMatrix = other;
+            mData = mMatrix.data();
         }
 
         Array2D(int width, int height, T* data) : AbstractROArray2D<T>() {

@@ -32,6 +32,8 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
     List<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
     List<size_t> vnIndexEdgeMono;
+    List<number_t> vnInfo;
+    
     vpEdgesMono.reserve(N);
     vnIndexEdgeMono.reserve(N);
 
@@ -43,19 +45,27 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     scalar_t cx = K(0, 2);
     scalar_t cy = K(1, 2);
 
-    outliers = List<bool>();
-    outliers.resize(N, false);
+    if (outliers.size() != N) {
+        outliers = List<bool>();
+        outliers.resize(N, false);
+    }
+
+    int nBad = 0;
+
 
     for(int i=0; i<N; i++)
     {
+
+
         OptPPoint pMP = matchings[i].getMapPoint();
         if (pMP.isNull()) {
+            CML_LOG_ERROR("G2O : MapPoint is null");
+            outliers[i] = true;
             continue;
         }
 
-        // Monocular observation
         nInitialCorrespondences++;
-        outliers[i] = false;
+
 
         DistortedVector2d obs = matchings[i].getFeaturePoint(frame).point0();
 
@@ -74,9 +84,17 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         e->setMeasurement(obs.cast<number_t>());
         //const float invSigma2 = pMP->getReferenceCorner().level() * pMP->getUncertainty();
         scalar_t scaleFactor = matchings[i].getFeaturePoint(frame).processScaleFactorFromLevel();
-        scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
+        //scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
+        scalar_t invSigma2 = 1.0 / matchings[i].getDescriptorDistance();
         e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
-        e->setLevel(0);
+        vnInfo.push_back(1.0 / (scaleFactor * scaleFactor));
+
+        if (outliers[i]) {
+            e->setLevel(1);
+            nBad++;
+        } else {
+            e->setLevel(0);
+        }
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -98,6 +116,12 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     assertDeterministic("Number of G2O tracker initial correspondance", nInitialCorrespondences);
 
     if(nInitialCorrespondences < 3) {
+        CML_LOG_ERROR("G2O : Not enough initial correspondences");
+        return result;
+    }
+
+    if((nInitialCorrespondences-nBad)<5) {
+        CML_LOG_ERROR("G2O : Too few initial inliers");
         return result;
     }
 
@@ -111,7 +135,6 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     }
 
     scalar_t chi2Mono = 5.991;
-    int nBad = 0;
 
     for(size_t it = 0; it < 4; it++)
     {
@@ -120,9 +143,10 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         optimizer.initializeOptimization(0);
         optimizer.optimize(its[it]);
 
-        nBad = evaluteOutliers(vpEdgesMono, vnIndexEdgeMono, outliers, chi2Mono);
+        nBad = evaluateOutliers(vpEdgesMono, vnIndexEdgeMono, vnInfo, outliers, chi2Mono);
 
         if((nInitialCorrespondences-nBad)<5) {
+            CML_LOG_ERROR("G2O : Too few inliers");
             return result;
         }
 
@@ -135,6 +159,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         }
 
         if(optimizer.edges().size() < 10) {
+            CML_LOG_ERROR("G2O : Too few edges");
             return result;
         }
 
@@ -187,7 +212,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
             new g2o::BlockSolver_6_3(std::move(linearSolver))
     );
 
-    optimizer.setAlgorithm(new g2o::OptimizationAlgorithmLevenberg(std::move(solver_ptr)));
+    optimizer.setAlgorithm(new g2o::OptimizationAlgorithmGaussNewton(std::move(solver_ptr)));
 
     int nInitialCorrespondences=0;
 
@@ -204,6 +229,8 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
     // Set MapPoint vertices
     List<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
     List<size_t> vnIndexEdgeMono;
+    List<number_t> vnInfo;
+
     vpEdgesMono.reserve(100);
     vnIndexEdgeMono.reserve(100);
 
@@ -251,8 +278,11 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         e->setMeasurement(obs.cast<number_t>());
         scalar_t scaleFactor = featurePoint.processScaleFactorFromLevel();
         scalar_t invSigma2 = 1.0 / (scaleFactor * scaleFactor);
+        //scalar_t invSigma2 = 1.0 / matchings[i].getDescriptorDistance();
         e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
         e->setLevel(0);
+        
+        vnInfo.push_back(invSigma2);
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -297,7 +327,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
         optimizer.initializeOptimization(0);
         optimizer.optimize(its[it]);
 
-        nBad = evaluteOutliers(vpEdgesMono, vnIndexEdgeMono, outliers, chi2Mono);
+        nBad = evaluateOutliers(vpEdgesMono, vnIndexEdgeMono, vnInfo, outliers, chi2Mono);
 
         if((nInitialCorrespondences-nBad)<5) {
             return result;
@@ -352,7 +382,7 @@ CML::Optimization::G2O::IndirectCameraOptimizerResult CML::Optimization::G2O::In
 
 }
 
-int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold) {
+int CML::Optimization::G2O::IndirectCameraOptimizer::evaluateOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<number_t> info, List<bool> &outliers, scalar_t chi2Threshold) {
 
     if (!mCheckOutliers.b()) {
         for(size_t i=0, iend=vpEdges.size(); i<iend; i++)
@@ -376,7 +406,7 @@ int CML::Optimization::G2O::IndirectCameraOptimizer::evaluteOutliers(List<g2o::E
             e->computeError();
         //}
 
-        const float chi2 = e->chi2();
+        const float chi2 = e->error().dot((Eigen::Matrix2d::Identity() * info[i]) * e->error());
 
         if(!std::isfinite(chi2) || chi2 > chi2Threshold)
         {

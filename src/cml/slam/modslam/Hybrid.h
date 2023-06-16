@@ -190,6 +190,8 @@ private:
 
     bool indirectTrackWithMotionModel(PFrame currentFrame, Optional<Camera> camera = Optional<Camera>());
     bool indirectTrackReferenceKeyFrame(PFrame currentFrame);
+    bool indirectTrackWithCMLGraph(PFrame currentFrame);
+
     bool indirectTrackLocalMap(PFrame currentFrame);
     void indirectSearchLocalPoints(PFrame currentFrame);
     void indirectUpdateLocalKeyFrames(PFrame currentFrame);

@@ -46,7 +46,7 @@ namespace CML {
             }
 
         protected:
-            int evaluteOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<bool> &outliers, scalar_t chi2Threshold);
+            int evaluateOutliers(List<g2o::EdgeSE3ProjectXYZ*> &vpEdges, List<size_t> vnIndexEdge, List<number_t> info, List<bool> &outliers, scalar_t chi2Threshold);
 
         private:
             Parameter mCheckOutliers = createParameter("checkOutliers", true);

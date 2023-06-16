@@ -328,6 +328,7 @@ add_library(CML STATIC
         src/cml/utils/Logger.cpp
         src/cml/utils/GarbageCollector.cpp
         src/cml/utils/Complexity.cpp
+        src/cml/utils/KDTree.cpp
 
         src/cml/gui/viewer/ReprojectionViewer.cpp
         src/cml/gui/viewer/VarianceViewer.cpp
