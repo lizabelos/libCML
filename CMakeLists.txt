@@ -167,9 +167,21 @@ endif()
 
 add_subdirectory(thirdparty/gdcmjpeg)
 
+set(QT_VERSION 0)
+
 if (ENABLE_GUI)
     set(OpenGL_GL_PREFERENCE GLVND)
-    find_package(Qt6 NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
+    set(QT_VERSION 6)
+    find_package(Qt6 QUIET COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
+    # If Qt6 is not found, try Qt5
+    if (NOT Qt6_FOUND)
+        set(QT_VERSION 5)
+        find_package(Qt5 QUIET COMPONENTS Core Quick OpenGL OpenGLWidgets PrintSupport Multimedia Charts)
+    endif()
+
+    if (NOT Qt6_FOUND AND NOT Qt5_FOUND)
+        message(FATAL_ERROR "Qt 5 or Qt 6 with Quick, OpenGL, OpenGLWidgets, PrintSupport, Multimedia and Charts is required to build the GUI.")
+    endif()
 endif()
 
 
@@ -242,17 +254,17 @@ message(STATUS "USE_FAKE_MUTEX: ${USE_FAKE_MUTEX}")
 set(CML_USE_FAKE_MUTEX ${USE_FAKE_MUTEX})
 
 #option(MAP_IMPLEMENTATION "Map Implementation" "PHMAP_PARALLEL")
-set(MAP_IMPLEMENTATION "PHMAP_PARALLEL" CACHE STRING "Map Implementation")
+set(MAP_IMPLEMENTATION "STD" CACHE STRING "Map Implementation")
 message(STATUS "Map Implementation: ${MAP_IMPLEMENTATION}")
 set(CML_MAP_IMPLEMENTATION ${MAP_IMPLEMENTATION})
 
 #option(FRAME_MAP_IMPLEMENTATION "Map Frame Implementation" "PHMAP_PARALLEL")
-set(FRAME_MAP_IMPLEMENTATION "NAIVE" CACHE STRING "Map Frame Implementation")
+set(FRAME_MAP_IMPLEMENTATION "PHMAP" CACHE STRING "Map Frame Implementation")
 message(STATUS "Frame Map Implementation: ${FRAME_MAP_IMPLEMENTATION}")
 set(CML_FRAME_MAP_IMPLEMENTATION ${FRAME_MAP_IMPLEMENTATION})
 
 #option(POINT_MAP_IMPLEMENTATION "Map Point Implementation" "PHMAP_PARALLEL")
-set(POINT_MAP_IMPLEMENTATION "PHMAP_PARALLEL" CACHE STRING "Map Point Implementation")
+set(POINT_MAP_IMPLEMENTATION "PHMAP" CACHE STRING "Map Point Implementation")
 message(STATUS "Point Map Implementation: ${POINT_MAP_IMPLEMENTATION}")
 set(CML_POINT_MAP_IMPLEMENTATION ${POINT_MAP_IMPLEMENTATION})
 
@@ -447,18 +459,37 @@ if (ENABLE_GUI)
 
     target_link_libraries(CML Qt::Core Qt::Widgets Qt::OpenGL Qt::OpenGLWidgets Qt::PrintSupport Qt::Multimedia Qt::Charts Qt::Network ${OPENGL_LIBRARIES})
 
-    qt_add_executable(modslam
-            src/cml/slam/modslam.cpp
-            src/cml/slam/modslam/Hybrid.cpp
-            src/cml/slam/modslam/Research.cpp
-            src/cml/slam/modslam/Make.cpp
-            src/cml/slam/modslam/indirect/Tracking.cpp
-            src/cml/slam/modslam/indirect/Mapping.cpp
-            src/cml/slam/modslam/direct/Mapping.cpp
-            src/cml/slam/modslam/direct/Tracking.cpp
-            resources.qrc
-            thirdparty/QDarkStyleSheet/qdarkstyle/dark/darkstyle.qrc
-            )
+    if (QT_VERSION EQUAL 6)
+        target_link_libraries(CML Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::PrintSupport Qt6::Multimedia Qt6::Charts Qt6::Network ${OPENGL_LIBRARIES})
+        qt6_add_executable(modslam
+                src/cml/slam/modslam.cpp
+                src/cml/slam/modslam/Hybrid.cpp
+                src/cml/slam/modslam/Research.cpp
+                src/cml/slam/modslam/Make.cpp
+                src/cml/slam/modslam/indirect/Tracking.cpp
+                src/cml/slam/modslam/indirect/Mapping.cpp
+                src/cml/slam/modslam/direct/Mapping.cpp
+                src/cml/slam/modslam/direct/Tracking.cpp
+                resources.qrc
+                thirdparty/QDarkStyleSheet/qdarkstyle/dark/darkstyle.qrc
+                )
+    else()
+        target_link_libraries(CML Qt5::Core Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets Qt5::PrintSupport Qt5::Multimedia Qt5::Charts Qt5::Network ${OPENGL_LIBRARIES})
+        qt5_add_executable(modslam
+                src/cml/slam/modslam.cpp
+                src/cml/slam/modslam/Hybrid.cpp
+                src/cml/slam/modslam/Research.cpp
+                src/cml/slam/modslam/Make.cpp
+                src/cml/slam/modslam/indirect/Tracking.cpp
+                src/cml/slam/modslam/indirect/Mapping.cpp
+                src/cml/slam/modslam/direct/Mapping.cpp
+                src/cml/slam/modslam/direct/Tracking.cpp
+                resources.qrc
+                thirdparty/QDarkStyleSheet/qdarkstyle/dark/darkstyle.qrc
+                )
+    endif()
+
+
     set_target_properties(modslam PROPERTIES
             QT_ANDROID_PACKAGE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/android"
             )
@@ -496,7 +527,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(CML PUBLIC)
     target_compile_options(CML PUBLIC -g)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CML PUBLIC -O3 -fno-math-errno -fexpensive-optimizations)
+    target_compile_options(CML PUBLIC -O2 -fno-math-errno)
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(CML PUBLIC -Og -g)
     target_compile_definitions(CML PUBLIC)

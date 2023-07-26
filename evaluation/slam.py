@@ -71,17 +71,17 @@ class SLAM(ABC):
 
     def processLogForStats(self, log, fullError = False):
 
-        if fullError:
-            self.error = "\n".join(log)
-        else:
-            allDeadly = [x for x in log if "[DEADLY]" in x]
-            allError = [x for x in log if "[ERROR]" in x]
+        # remove empty lines
+        log = [x for x in log if x != "" and x != "\n" and x != "\r\n"]
+        logForError = [x for x in log if "STAT" not in x]
 
-            if len(allDeadly) > 0:
-                self.error = ";".join([x for x in allDeadly])
-            elif len(allError) > 0:
-                self.error = allError[-1]
-        stats_table = [x.split(" ")[1:] for x in log if x.startswith("STAT")]
+        if fullError:
+            self.error = "\n".join(logForError)
+        else:
+            # limit the size of the log to 10 lines
+            self.error = "\n".join(logForError[-10:])
+
+        stats_table = [x.split(" ")[1:] for x in log if x.startswith("STAT") and len(x.split(" ")) == 4]
         stats = {}
         for name, x, y in stats_table:
             if not name in stats:
@@ -125,8 +125,6 @@ class ModSLAM(SLAM):
         if d.isReverse():
             args = args + " -b"
         command = executable + " " + args
-
-        # print(command)
 
         out, err, tim = system(command, comment=d.name(), time_limit=time_limit)
         self.tim = tim

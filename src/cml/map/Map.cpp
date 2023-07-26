@@ -98,7 +98,6 @@ CML::PPoint CML::Map::createMapPoint(PFrame reference, FeatureIndex referenceInd
     OptPPoint object;
 
     if (mReusableMapPoints.empty()) {
-
         object = new MapPoint(id, reference, referenceIndex, type,
                               &mBufferCoordinates[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
                               &mBufferColors[bufferId][rowId * 3 * CML_MAPPOINT_SPARSITY],
@@ -445,7 +444,7 @@ void CML::Map::onMapPointDestroyed(PPoint mapPoint) {
 
 }
 
-#define CML_USE_OLDER_COVISIBLITY_GRAPH 0
+#define CML_USE_OLDER_COVISIBLITY_GRAPH 1
 
 CML::List<CML::PFrame> CML::Map::processIndirectCovisiblity(PFrame frame, int max, int groupId, int th) {
     signalMethodStart("Map::processIndirectCovisiblity");

@@ -43,9 +43,7 @@ CML::CaptureImageGenerator::CaptureImageGenerator(int width, int height, int def
         mPyramidSize = 0;
 
         Vector2 s(width, height);
-        if (s.x() > 480) {
-            s = s * 480 / width;
-        }
+
         while (true) {
             double area = s.x() * s.y();
            /* if (area > 1000 * 1000) {

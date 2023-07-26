@@ -462,17 +462,6 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
         mLastDirectKeyFrame = currentFrame;
         mLastDirectKeyFrame->setGroup(getMap().KEYFRAME, true);
         mLastDirectKeyFrame->setGroup(DIRECTKEYFRAME, true); // Need to do this to save the capture frame
-        if (mEnableNeuralNetwork.b()) {
-            try {
-                mDepthMap = mNeuralNetwork->load(currentFrame->getCaptureFrame()).cast<float>(); // Put the points between 0 and 2
-                mHaveValidDepthMap = true;
-                CML_LOG_IMPORTANT("Successfully loaded neural network depth map for first frame");
-            } catch (...) {
-                mHaveValidDepthMap = false;
-                CML_LOG_ERROR("Can't load neural network depth map for first frame");
-                abort();
-            }
-        }
         return;
     }
 
@@ -502,6 +491,7 @@ void Hybrid::initializeWithDSO(PFrame currentFrame) {
         if (!mOnlyInitialize) {
 
             mPhotometricBA->addNewFrame(mLastDirectKeyFrame, mPhotometricTracer->IMMATUREPOINT);
+            assertDeterministic("numpoints", getMap().getMapPoints().size());
             mPhotometricBA->addPoints(getMap().getMapPoints());
 
             if (mEnableDirect.b()) {

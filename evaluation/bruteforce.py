@@ -115,29 +115,20 @@ def bruteforceFindBest(currentParam):
     print(pow10)
 
     weightAndInv = floatrange(0,1.05,0.05) + [1/x for x in floatrange(0.05,1,0.05)]
-    params = [
-        #    ["orb.iniThFAST", intrange(10, 30, 1)],
-        #    ["orb.nLevels", intrange(1, 9, 1)],
-        #    ["orb.scaleFactor", floatrange(1.1, 1.6, 0.1)]
-    ]
-    #for t in ["motionModelTracker", "referenceTracker", "localPointsTracker", "triangulationTracker"]:
-    #    params = params + [
-    #        [t + ".thHigh", intrange(10, 100, 10)],
-    #        [t + ".thLow", intrange(10, 100, 10)],
-    #        [t + ".ratio", floatrange(0.1,1.1,0.1)],
-    #        [t + ".checkOrientation", ["true", "false"]]
-    #    ]
 
-    for i in range(12):
-        params += [["peDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]]
-        currentParam["peDecisionWeightsDt:" + str(i)] = 0.0
-    for i in range(14):
-        params += [["baDecisionWeightsDt:" + str(i), floatrange(-1,1.05,0.05)]]
-        currentParam["baDecisionWeightsDt:" + str(i)] = 0.0
+
+    params = [
+        ["graphTrackDist", intrange(0,20,1)],
+        ["graphDistScore", intrange(0,2000,100)],
+        ["graphDescriptorScoreA", intrange(0,2000,100)],
+        ["graphDescriptorScoreB", intrange(0,2000,100)],
+        ["graphLevelScore", intrange(0,2000,100)],
+        ["graphScoreThreshold", intrange(0,2000,100)],
+        ["graphScoreRatio", floatrange(0.0,1.1,0.1)],
+        ["graphMininumMatching", intrange(0,200,5)],
+    ]
 
     params = params + [
-        ["trackcondUncertaintyWeightOrb", weightAndInv + [-1]],
-        ["trackcondUncertaintyWeightDso", weightAndInv + [-1]],
         ["trackingMinimumOrbPoint", intrange(0,205,5)],
         ["trackcondFlowThreshold", floatrange(0.0,2.1,0.1)],
         ["trackcondUncertaintyWeight", weightAndInv + [-1]],
@@ -154,8 +145,20 @@ def bruteforceFindBest(currentParam):
         ["orbInlierNumThreshold", intrange(0,100,5)],
     ]
 
+    # new params
+    # Parameter mGraphTrackDist = createParameter("graphTrackDist", 14);
+    # Parameter mGraphDistScore = createParameter("graphDistScore", 1000);
+    # Parameter mGraphDescriptorScoreA = createParameter("graphDescriptorScoreA", 1000);
+    # Parameter mGraphDescriptorScoreB = createParameter("graphDescriptorScoreB", 1000);
+    # Parameter mGraphLevelScore = createParameter("graphLevelScore", 1000);
+    # Parameter mGraphScoreThreshold = createParameter("graphScoreThreshold", 2000);
+    # Parameter mGraphScoreRatio = createParameter("graphScoreRatio", 0.8f);
+    # Parameter mGraphMininumMatching = createParameter("graphMininumMatching", 50);
+
+
+
     seedParamName = "dsoInitializer.regularizationWeight"
-    seedParamValues = [0.5,0.6]
+    seedParamValues = [0.5,0.55,0.6,0.65,0.7]
     #seedParamName = "orb.nLevels"
     #seedParamValues = [1,2,3,4,5]
 
@@ -163,7 +166,7 @@ def bruteforceFindBest(currentParam):
     launchPrintStatusThread()
     # currentParam = {'numOrbCorner': 500, 'trackcondUncertaintyWeight': 0.4, 'bacondScoreWeight': 0.02, 'trackcondUncertaintyWindow': 8}
     # currentParam = {'dsoInitializer.densityFactor': 0.9, 'dsoTracker.saturatedThreshold': 0.39}
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
     currentMin = 99999999
     while True:
         bestParamModif = None
@@ -187,6 +190,7 @@ def bruteforceFindBest(currentParam):
                 currentSum = 0
 
                 for i in range(0, len(datasets)):
+                    isAllErrorForThisSeed = True
                     for seed in seedParamValues:
 
                         s = slams[0]
@@ -206,21 +210,50 @@ def bruteforceFindBest(currentParam):
                         try:
                             ate = evaluateOn(context, datasets[i])
                             fps = numFramesOf(datasets[i].name()) / context.getTime()
+                            toprint = toprint + datasets[i].name() + "\t"
                             toprint = toprint + str(float(int(ate * 10) / 10)) + " at " + str(int(fps)) + "\t"
                             currentSum = currentSum + criteria(datasets[i].name(), ate, fps)
+                            isAllErrorForThisSeed = False
                         except KeyboardInterrupt:
                             return 0,0,""
                         except Exception as e:
+
+                            # dump the exception into a file
+                            with open("error.txt", "a") as f:
+                                f.write(str(e))
+                                # dump the stack
+                                import traceback
+                                traceback.print_exc(file=f)
+
                             err = 10000
                             try:
                                 slamLog = context.getError()
+                                # lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
+                                # since the update, lines are in this format : "[07:51:02 +02:00] [frame 643;40%] [info] [thread 10052] Applying bundle adjustment step."
                                 lastLine = [x for x in slamLog.split("\n") if "frame " in x][-1]
-                                numFrame = re.findall(r'\d+', lastLine)[0]
+                                lastLine = lastLine.split("frame ")[1]
+                                lastLine = lastLine.split(";")[0]
+                                numFrame = int(lastLine)
                                 err = 10000 - int(numFrame)
-                            except:
-                                pass
+                            except Exception as e:
+
+                                # dump the exception into a file
+                                with open("error.txt", "a") as f:
+                                    f.write(str(e))
+                                    # dump the stack
+                                    import traceback
+                                    traceback.print_exc(file=f)
                             toprint = toprint + str(err) + "\t"
                             currentSum = currentSum + err
+                    if False and isAllErrorForThisSeed:
+                        # don't continue. consider all the other datasets as err = 10000
+                        for j in range(i + 1, len(datasets)):
+                            for seed in seedParamValues:
+                                toprint = toprint + datasets[j].name() + "\t"
+                                toprint = toprint + "nope\t"
+                                currentSum = currentSum + 10000
+                        break
+                toprint = "total : " + str(currentSum) + "\t" + toprint
                 return currentSum, toprint
 
             for v in param[1]:
@@ -263,35 +296,11 @@ def bruteforceFindBest(currentParam):
 
 if __name__ == "__main__":
     bruteforceFindBest({
-        #0
-        'numOrbCorner': 1250,
-        'orb.nLevels': 1,
-        'dsoBa.disableMarginalization': True,
-        'orbBa.adjustDirectPoints': True,
-        'trackingMinimumOrbPoint': 85,
-        'trackcondUncertaintyWeight': 2.86,
-        'bacondMinimumOrbPoint': 40,
-        'numOrbMultiplier': 1.0,
-        'bacondSaturatedRatio': 0.4,
-        'trackcondUncertaintyWindow': 1,
-        'bacondScoreWeight': 0.0,
-        'orbInlierRatioThreshold': 0.6,
-        'orbKeyframeRatio': 0.94,
-        'orbInlierNumThreshold': 30,
-        'trackcondUncertaintyWeightOrb': 0.0,
-        #1
-        'bacondTrackThresholdDso': 0.0,
-        #2
-        'bacondTrackThresholdOrb': 1.0,
-        #46
-        'trackcondFlowThreshold': 1.4,
-        #61
-        'trackcondUncertaintyWeightDso': 0.25,
+        'freeAllDirectPoint': True,
+        'dsoTracer.desiredPointDensity': 800,
+        'dsoTracer.immatureDensity': 600,
+        'dsoInitializer.pointDensity': 2000,
+        'dsoBa.iterations': 4,
+        'dsoBa.maxFrames': 6
     }
     )
-    #pow10 = [math.pow(10,i) for i in range(1,11)] + [-1]
-    #pow10.reverse()
-    #print(pow10)
-    #for i in pow10:
-    #    p = {"orbUncertaintyThreshold": i}
-    #    bruteforceFindBest(p)

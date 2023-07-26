@@ -344,15 +344,13 @@ private:
     /// PARAMETERS
     bool mOnlyInitialize = false;
     int mFrameLimit = -1;
-    Parameter mEnableNeuralNetwork = createParameter("enableNN", false);
     Parameter mEnableIndirect = createParameter("enableIndirect", true);
     Parameter mEnableDirect = createParameter("enableDirect", true);
     Parameter mLinearizeDirect = createParameter("linearizeDirect", true);
     Parameter mLinearizeIndirect = createParameter("linearizeIndirect", true);
     Parameter mFreeAllDirectPoint = createParameter("freeAllDirectPoint", false);
-    Parameter mNumOrbCorner = createParameter("numOrbCorner", 1250);
+    Parameter mNumOrbCorner = createParameter("numOrbCorner", 500);
 
-    /// PARAMETERS FOR THE DECISION SYSTEM
     Parameter mBacondSaturatedRatio = createParameter("bacondSaturatedRatio", 0.4);
     Parameter mBacondSaturatedRatioDir = createParameter("bacondSaturatedRatioDir", true);
     Parameter mIndirectUncertaintyThreshold = createParameter("orbUncertaintyThreshold", -1.0);
@@ -377,12 +375,6 @@ private:
     Window<float> mBacondTrack;
 
 
-    /// PARAMETERS FOR THE DECISION BUT WITH WEIGHTS
-    Parameter mPoseEstimationDecisionFcWeights = createParameter("peDecisionWeightsFc", std::string());
-    Parameter mBundleAdjustmentDecisionFcWeights = createParameter("baDecisionWeightsFc", std::string());
-    Parameter mPoseEstimationDecisionDtWeights = createParameter("peDecisionWeightsDt", std::string());
-    Parameter mBundleAdjustmentDecisionDtWeights = createParameter("baDecisionWeightsDt", std::string());
-
     Parameter mOptimiseOrbEachTime = createParameter("mOptimiseOrbEachTime", false);
 
     Parameter mOrbKeyframeReflimit = createParameter("orbKeyframeReflimit", 200);
@@ -402,7 +394,18 @@ private:
     Parameter mDsoUrgentlyNeedNewPointsKFRatio = createParameter("dsoUrgentlyNeedNewPointsKFRatio", 1.0f);
 
     Parameter mNumOrbMultiplier = createParameter("numOrbMultiplier", 1.0f);
-    Parameter mEnableIndirectCulling = createParameter("enableIndirectCulling", false);
+    Parameter mEnableIndirectCulling = createParameter("enableIndirectCulling", true);
+
+    Parameter mGraphTrackDist = createParameter("graphTrackDist", 14);
+    Parameter mGraphDistScore = createParameter("graphDistScore", 1000);
+    Parameter mGraphDescriptorScoreA = createParameter("graphDescriptorScoreA", 1000);
+    Parameter mGraphDescriptorScoreB = createParameter("graphDescriptorScoreB", 1000);
+    Parameter mGraphLevelScore = createParameter("graphLevelScore", 1000);
+    Parameter mGraphScoreThreshold = createParameter("graphScoreThreshold", 2000);
+    Parameter mGraphScoreRatio = createParameter("graphScoreRatio", 0.8f);
+    Parameter mGraphMininumMatching = createParameter("graphMininumMatching", 50);
+
+
 
     Ptr<Statistic, NonNullable> mStatTrackORBVar = createStatistic("Track ORB Var");
     Ptr<Statistic, NonNullable> mStatTrackDSOVar = createStatistic("Track DSO Var");

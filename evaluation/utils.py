@@ -59,9 +59,7 @@ def system(command, comment="", disable_openmp=True, time_limit=None):
             if "frame " in line and not isSLAM:
                 isSLAM = True
                 start_time = time.time()
-            if "(" in line and ")" in line:
-                line = comment + "," + line[line.find("(")+1:line.find(")")]
-                currentStatus[threading.get_ident()] = line
+            currentStatus[threading.get_ident()] = line
 
         timer.cancel()
         end_time = time.time()

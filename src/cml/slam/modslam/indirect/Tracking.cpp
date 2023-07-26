@@ -134,7 +134,7 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
         DistortedVector2d projection = currentFrame->distort(point->getWorldCoordinate().project(currentFrame->getCamera()), 0);
 
         // currentFrame->processNearestNeighbors(currentFeatureId, projection, 20, nearestNeighbor); // todo : 20 is a parameter
-        currentFrame->processNearestNeighborsInRadius(currentFeatureId, projection, 14, nearestNeighbor); // todo : 20 is a parameter
+        currentFrame->processNearestNeighborsInRadius(currentFeatureId, projection, mGraphTrackDist.i(), nearestNeighbor); // todo : 20 is a parameter
 
         for (auto &nn : nearestNeighbor) {
 
@@ -146,45 +146,31 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
             }
 
             // matching.set(nn.index, i, descriptorsB[i].distance(descriptorsA[nn.index]));
-            scalar_t distScore = 0;
-            if (nn.distance <= 1.0) {
-                distScore = 99999;
-            } else {
-                distScore = 1000.0 / nn.distance;
-            }
-            //scalar_t descriptorScore = 1000.0 / currentDescriptors[nn.index].distance(point->getDescriptor<Binary256Descriptor>());
+            scalar_t distScore = (float)mGraphDistScore.i() / (nn.distance + 0.001);
+            scalar_t levelScore = (float)mGraphLevelScore.i() / (float)(1 + std::abs(nPredictedLevel - currentCorners[nn.index].level()));
+
             scalar_t descriptorScore = 0;
-            scalar_t levelScore = 1000.0 / (1 + std::abs(nPredictedLevel - currentCorners[nn.index].level()));
 
             FeatureIndex lastFrameIndex = lastFrame->getIndex(point);
             if (lastFrameIndex.hasValidValue()) {
                 scalar_t dist = currentDescriptors[nn.index].distance(lastFrameDescriptors[lastFrameIndex.index]);
-                if (dist < 1.0) {
-                    descriptorScore += 99999;
-                } else {
-                    descriptorScore += 1000.0 / dist;
-                }
+                descriptorScore += (float)mGraphDescriptorScoreA.i() / (dist + 0.001);
             }
 
             FeatureIndex lastKeyFrameIndex = lastKeyFrame->getIndex(point);
             if (lastKeyFrameIndex.hasValidValue()) {
                 scalar_t dist = currentDescriptors[nn.index].distance(lastKeyFrameDescriptors[lastKeyFrameIndex.index]);
-                if (dist < 1.0) {
-                    descriptorScore += 99999;
-                } else {
-                    descriptorScore += 1000.0 / dist;
-                }
+                descriptorScore += (float)mGraphDescriptorScoreB.i() / (dist + 0.001);
             }
 
             scalar_t score = distScore + descriptorScore + levelScore;
 
-            if (score < 2000) {
+            if (score < mGraphScoreThreshold.i()) {
                 continue;
             }
 
             if (scores.find(point) == scores.end()) {
-                //scores[point] = List<int>(currentCornersNum, 0);
-                scores[point].resize(currentCornersNum); // todo : use a sparse matrix ?
+                scores[point].resize(currentCornersNum);
             }
 
             // compute maxScore
@@ -195,9 +181,9 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
                 }
             }
 
-            if (score > maxScore * 0.8) {
+            if (score > maxScore * mGraphScoreRatio.f()) {
                 scores[point].coeffRef(nn.index) += score;
-                scores[point].prune(score * 0.8);
+                scores[point].prune(score * mGraphScoreRatio.f());
             }
 
         }
@@ -222,7 +208,7 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
 
         for (Eigen::SparseVector<double>::InnerIterator it(pointScores); it; ++it) {
             scalar_t score = it.value();
-            if (score > maxScore * 0.8) {
+            if (score > maxScore * mGraphScoreRatio.f()) {
                 // scalar_t descriptorDistance, PFrame frameA, PFrame frameB, FeatureIndex indexA, FeatureIndex indexB
                 PFrame frameB = *point->getIndirectApparitions().begin();
                 Matching matching(1.0 / score, currentFrame, frameB, FeatureIndex(currentFeatureId, it.index()), frameB->getIndex(point));
@@ -243,7 +229,7 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
 
 
 
-    if (matchings.size() < 20) {
+    if (matchings.size() < mGraphMininumMatching.i()) {
         CML_LOG_IMPORTANT("Not accepting the tracking with motion model because of the number of matchings");
         return false;
     }
@@ -257,6 +243,14 @@ bool Hybrid::indirectTrackWithCMLGraph(PFrame currentFrame) {
 
 
     mLastOrbTrackingInliersRatio = 0.5; // todo : hack
+
+    int numInliers = 0;
+    for (size_t i = 0; i < matchings.size(); i++) {
+        if (outliers[i]) {
+            continue;
+        }
+        numInliers++;
+    }
 
     assertDeterministic("Number of inliers for indirect tracking with motion model", numInliers);
 
@@ -539,7 +533,7 @@ void Hybrid::indirectUpdateLocalKeyFrames(PFrame currentFrame) {
     }
 
     FrameHashMap<int> keyframeCounter;
-    keyframeCounter.reserve(100);
+    //keyframeCounter.reserve(100);
 
     List<PFrame> tmpIndirectApparitions;
     tmpIndirectApparitions.reserve(1000);

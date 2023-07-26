@@ -323,7 +323,7 @@ namespace CML {
         size_t mId;
         uint64_t mHash;
 
-        PFrame mReference;
+        OptPFrame mReference;
         OptPFrame mLastSeen;
         Ptr<Descriptor, Nullable> mDescriptor;
         unsigned int *mGroups;
